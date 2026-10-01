@@ -1,0 +1,29 @@
+#Automated System Configuration File
+
+{
+  "$schema": "https://schemastore.org",
+  "projectId": "vizazi-caregiver-platform",
+  "engine": {
+    "maxMemoryAllocationMB": 4096,
+    "cpuCoreThrottleLimit": 0.85,
+    "timeoutSeconds": 300
+  },
+  "executionModes": {
+    "denseIntegrationLoops": {
+      "parallelExecutionLimit": 2,
+      "garbageCollectionIntervalMS": 5000,
+      "suppressTelemetryVerboseLogs": true
+    }
+  },
+  "environmentMapping": {
+    "SUPABASE_CLI_INTERNAL_MEM_LIMIT": "2g",
+    "NODE_OPTIONS": "--max-old-space-size=3072 --no-warnings",
+    "PLAYWRIGHT_WORKERS": "2"
+  },
+  "watchIgnore": [
+    "**/.supabase/local/volumes/**",
+    "**/node_modules/**",
+    "**/test-results/**",
+    "**/playwright-report/**"
+  ]
+}

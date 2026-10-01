@@ -1,0 +1,48 @@
+Deployment Playbook
+
+
+1.Initialize Project & Inject Role Contexts:Platform Engineer.
+
+Start by creating the repository and defining Claude's operational parameters.
+Scaffold base framework (e.g., Vite + React/TypeScript).
+Place three skill.md files into a .claude/ or docs/ directory in the project root.
+Initialize Claude Code in the terminal and explicitly map the roles:Claude, read the skill files in ./docs. 
+For all infrastructure and state questions, use platform-engineer-skill.md. 
+For component generation, use ui-ux-engineer-skill.md. For auth and data handling, use security-engineer-skill.md.
+
+2.Establish Figma MCP Connection & Extract Tokens:UI/UX Engineer.
+Connect Claude directly to your Figma environment to pull the design system without manual translation.
+Start the Figma MCP server: claude mcp add --transport http figma [https://mcp.figma.com/mcp](https://mcp.figma.com/mcp)Authenticate via /mcp.
+Instruct Claude using the UI/UX persona:Acting as the UI/UX Engineer, read the Figma variables from [URL].
+ Generate a comprehensive design token file (e.g., tailwind.config.ts) mapping all typography, color palettes, and spacing rules.
+
+ 3.Scaffold the Component Library:UI/UX Engineer.
+ Build the UI system from the atom level up, ensuring reusable components match your design specifications.
+ Feed Claude specific Figma node URLs for atomic elements (buttons, inputs, modals).
+ Prompt: Acting as the UI/UX Engineer, parse node [URL] and generate a responsive, accessible React component using our design tokens.
+
+ 4.Implement Identity, Auth & Security Boundaries:Security Engineer.Before wiring application logic, establish the security perimeter—especially critical for applications handling sensitive or enterprise data.Point Claude to the Figma frames detailing your authentication flows, single sign-on (SSO), and multi-factor authentication (MFA) screens.
+
+ Prompt: Acting as the Security Engineer, implement the SSO and MFA login flows based on [URL].
+ Instruct Claude to configure Role-Based Access Control (RBAC) routing boundaries and set up secure, HTTP-only cookie handling for JWTs.
+ Have Claude generate strict Content Security Policy (CSP) headers for the production build.
+
+ 5.Assemble Page Layouts & API Integrations:Platform Engineer & UI/UX Engineer.Combine the UI components into full page layouts and connect them to your backend services.
+Provide Claude with the main application frame URLs.
+Prompt: Acting as the UI/UX Engineer, compose the dashboard layout using our component library based on [URL].
+
+Once the UI is built, prompt: Acting as the Platform Engineer, integrate state management to connect this layout to our API gateway. Ensure all API calls handle JWT authentication seamlessly.\
+
+6.Engineer the PWA Architecture:Platform Engineer.
+Convert the web application into an installable, offline-capable PWA.
+Prompt Claude to generate a fully compliant manifest.json ensuring display: "standalone", proper theme colors, and the required icon arrays.
+Instruct Claude to implement Workbox for service worker generation.
+Define strict caching strategies:Configure a Stale-While-Revalidate strategy for static assets and a Network-First strategy for API routes.
+Implement IndexedDB (e.g., via Dexie.js) for local data persistence so users can interact with the app offline, queueing mutations for when connectivity is restored.
+
+7.Audit & Finalize Production Build:Security Engineer.
+
+Verify the build against production standards before deployment.
+Run a local build: npm run build.
+Instruct Claude: Acting as the Security Engineer, audit the build output and source code for exposed secrets, missing data encryption in IndexedDB, and proper error boundary fallback UI.
+Run Lighthouse via CLI and have Claude resolve any accessibility (a11y) or PWA capability deductions.
