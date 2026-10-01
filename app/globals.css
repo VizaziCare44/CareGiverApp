@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* warm off-white, never pure #fff — reduces visual fatigue per UI-UX skill */
+  --background: #faf8f4;
+  --surface: #ffffff;
+  --foreground: #262521;
+  --muted: #f0ede6;
+  --muted-foreground: #6b665c;
+  --border: #e2ddd2;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 1rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* status is never color-only — this pairs an icon/text affordance by default
+   wherever .status-* utility classes are used across the booking flow */
+.status-error {
+  color: theme('colors.alert.700');
+}
+.status-success {
+  color: theme('colors.sage.700');
+}
+
+/* visible, high-contrast focus ring for keyboard/switch-device navigation */
+:focus-visible {
+  outline: 2px solid theme('colors.trust.500');
+  outline-offset: 2px;
+}

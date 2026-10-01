@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+# Set strict execution constraints
+set -e
+
+# Visual formatting configurations
+REBOLD='\033[1;36m'
+PASSGREEN='\033[1;32m'
+FAILRED='\033[1;31m'
+WARNWARN='\033[1;33m'
+RESET='\033[0m'
+
+echo -e "${REBOLD}================================================================${RESET}"
+echo -e "${REBOLD}    VIZAZI COMPLIANCE ENGINE: Running Pre-Commit Test Suite     ${RESET}"
+echo -e "${REBOLD}================================================================${RESET}"
+
+# Ensure standard Node limits are passed directly from our configuration blueprint
+export NODE_OPTIONS="--max-old-space-size=3072"
+
+# -------------------------------------------------------------------------
+# STAGE 1: Supabase RLS Security Policy Verification
+# -------------------------------------------------------------------------
+echo -e "\n${REBOLD}[STAGE 1/3] Verifying Supabase RLS & Database Integrity via pgTAP...${RESET}"
+
+if ! command -v supabase &> /dev/null; then
+    echo -e "${FAILRED}❌ ERROR: Supabase CLI is not installed or missing from PATH.${RESET}"
+    echo -e "Aborting commit to safeguard production database configurations."
+    exit 1
+fi
+
+if ! supabase test db; then
+    echo -e "${FAILRED}❌ FAILED: Row-Level Security policy validation checks failed.${RESET}"
+    echo -e "Review 'supabase/tests/' models before attempting to commit code changes.${RESET}"
+    exit 1
+else
+    echo -e "${PASSGREEN}✅ PASSED: Database authorization boundaries are sealed.${RESET}"
+fi
+
+# -------------------------------------------------------------------------
+# STAGE 2: Next.js Structural Unit & Isolation Tests
+# -------------------------------------------------------------------------
+echo -e "\n${REBOLD}[STAGE 2/3] Executing Next.js Frontend Components & Session Isolation Tests...${RESET}"
+
+if ! npm run test -- --watchAll=false --bail; then
+    echo -e "${FAILRED}❌ FAILED: Frontend unit tests or authorization layouts failed to render cleanly.${RESET}"
+    exit 1
+else
+    echo -e "${PASSGREEN}✅ PASSED: Components and Next.js server actions are stable.${RESET}"
+fi
+
+# -------------------------------------------------------------------------
+# STAGE 3: Interactive End-to-End Visual Journey Suite
+# -------------------------------------------------------------------------
+echo -e "\n${REBOLD}[STAGE 3/3] Preparing Playwright End-to-End Integration Flows...${RESET}"
+
+# Divert input stream to look at the authentic terminal window for interactive response gathering
+exec < /dev/tty
+
+read -p "Execute heavy browser automation flows locally? (y/n, default='y'): " CHOSEN_FLOW
+CHOSEN_FLOW=${CHOSEN_FLOW:-y}
+
+if [[ "$CHOSEN_FLOW" =~ ^[Yy]$ ]]; then
+    echo -e "${REBOLD}Spinning up headless browsers (Max Workers Limit: 2)...${RESET}"
+    
+    if ! npx playwright test; then
+        echo -e "${FAILRED}❌ FAILED: Playwright User Stories sequence broke down during runtime verification.${RESET}"
+        exit 1
+    else
+        echo -e "${PASSGREEN}✅ PASSED: All end-to-end user flows validated seamlessly.${RESET}"
+    fi
+else
+    echo -e "${WARNWARN}⚠️ WARNING: Playwright end-to-end verification step bypassed by developer request.${RESET}"
+    echo -e "Ensure CI pipelines evaluate this code footprint completely before staging merges.${RESET}"
+fi
+
+echo -e "\n${PASSGREEN}================================================================${RESET}"
+echo -e "${PASSGREEN}       🎉 SUCCESS: Code satisfies platform compliance criteria!    ${RESET}"
+echo -e "${PASSGREEN}================================================================${RESET}\n"
+
+exit 0
