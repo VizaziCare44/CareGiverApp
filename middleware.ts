@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/sign-up', '/log-in']
+const PUBLIC_PATHS = ['/sign-up', '/log-in', '/forgot-password']
 const AUTH_PREFIX = '/auth/'
 const ADMIN_PREFIX = '/admin'
 const FAMILY_PREFIXES = ['/recipients', '/book']

@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 
 // FR-007 / AC-005. Generic invalid-credentials error (§6.5, TC-ACC-011) —
 // wrong password and non-existent email must be indistinguishable, for
-// basic account-enumeration hygiene. No password-recovery link this Beta
-// (§2.5 note) — self-service recovery is explicitly out of scope.
+// basic account-enumeration hygiene. Password recovery (DEV-027) reverses
+// FD-ACC §2.5/§3.5's original Beta-scope exclusion, per founder decision
+// 2026-10-01 — the forgot-password link below is intentional, not drift.
 const GENERIC_ERROR = 'Email or password incorrect.'
 
 export default function LogInPage() {
@@ -55,6 +56,10 @@ export default function LogInPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+
+        <Link href="/forgot-password" className="-mt-2 self-start text-base font-medium text-sage-700 underline">
+          Forgot password?
+        </Link>
 
         {error && (
           <p role="alert" className="flex items-center gap-1.5 text-sm status-error">

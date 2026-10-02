@@ -3,6 +3,7 @@ import {
   anonClient,
   apiAddRecipient,
   apiSignUp,
+  generateRecoveryTokenHash,
   logInViaUI,
   promoteToAdmin,
   randomEmail,
@@ -272,5 +273,48 @@ test.describe('AC-006 — Leave-without-finishing warning', () => {
     await page.goto('/recipients/new')
     await page.goBack()
     await expect(page.getByText("Leave without finishing?")).not.toBeVisible()
+  })
+})
+
+// DEV-027 — self-service password reset. Not in the original TC-ACC-001–014
+// table (that spec predates this scope change); numbered to continue it.
+test.describe('DEV-027 — Password reset', () => {
+  test('TC-ACC-015', async ({ page }) => {
+    const { email } = await apiSignUp({ fullName: 'Moses Kariuki', phone: '+254700000012' })
+
+    await page.goto('/log-in')
+    await page.getByRole('link', { name: 'Forgot password?' }).click()
+    await expect(page).toHaveURL(/forgot-password/)
+
+    await page.getByLabel('Email address').fill(email)
+    await page.getByRole('button', { name: 'Send reset link' }).click()
+    await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible()
+
+    // The real flow mails this token_hash; generating it directly via the
+    // admin API avoids a second real send on top of resetPasswordForEmail's
+    // own (already consumed above), against Supabase's shared send-rate
+    // limit (same constraint flagged for TC-ACC-001).
+    const tokenHash = await generateRecoveryTokenHash(email)
+    await page.goto(`/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/reset-password`)
+    await expect(page).toHaveURL(/reset-password/)
+
+    const newPassword = 'BrandNewPassword789'
+    await page.getByLabel('New password').fill(newPassword)
+    await page.getByRole('button', { name: 'Save new password' }).click()
+    await page.waitForURL('**/recipients')
+
+    const client = anonClient()
+    const { error: oldError } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD })
+    expect(oldError).toBeTruthy()
+
+    const { error: newError } = await client.auth.signInWithPassword({ email, password: newPassword })
+    expect(newError).toBeFalsy()
+  })
+
+  test('TC-ACC-016', async ({ page }) => {
+    // Unauthenticated access to /reset-password (no prior recovery session)
+    // must bounce to /log-in — it's gated like any other protected route.
+    await page.goto('/reset-password')
+    await expect(page).toHaveURL(/log-in/)
   })
 })
