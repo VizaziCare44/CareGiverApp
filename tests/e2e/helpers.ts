@@ -68,6 +68,17 @@ export async function promoteToAdmin(userId: string) {
   if (error) throw new Error(`promoteToAdmin failed: ${error.message}`)
 }
 
+/** DEV-027. Generates a real recovery token via the admin API instead of
+ * going through resetPasswordForEmail() — that sends an actual email
+ * (subject to Supabase's send-rate limit, already a known flaky point for
+ * TC-ACC-001) and this test only needs the token /auth/confirm consumes. */
+export async function generateRecoveryTokenHash(email: string) {
+  const svc = serviceClient()
+  const { data, error } = await svc.auth.admin.generateLink({ type: 'recovery', email })
+  if (error || !data.properties?.hashed_token) throw new Error(`generateRecoveryTokenHash failed: ${error?.message}`)
+  return data.properties.hashed_token
+}
+
 // expectedUrl defaults to the family-member destination; pass '**/admin/queue'
 // when logging in an account already promoted via promoteToAdmin() — the app
 // correctly routes admins there instead, so a hardcoded '**/recipients' wait
