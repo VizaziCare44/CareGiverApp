@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { LeaveWithoutFinishingModal } from './leave-without-finishing-modal'
 
 /**
@@ -15,15 +14,16 @@ import { LeaveWithoutFinishingModal } from './leave-without-finishing-modal'
  */
 export function BookingStepHeader({ title, exitTo = '/recipients' }: { title: string; exitTo?: string }) {
   const router = useRouter()
-  const draft = useBookingDraft()
   const [modalOpen, setModalOpen] = useState(false)
 
   function handleBack() {
     setModalOpen(true)
   }
 
+  // Not clearing the draft here: the provider lives in app/book/layout.tsx, so
+  // leaving /book unmounts it and discards the draft. Clearing first made the
+  // step's "no recipient" guard redirect back into the flow, racing the exit.
   function handleLeave() {
-    draft.clear()
     setModalOpen(false)
     router.push(exitTo)
   }
