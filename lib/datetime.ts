@@ -8,9 +8,12 @@ export const ZONE_LABEL = 'EAT'
 
 type DateInput = Date | string | number
 
+// en-US only for the day and month names, which are fixed to "Mon" … "Sun" and
+// "Jan" … "Dec" (en-GB abbreviates September as "Sept"); the order of the
+// parts is ours, assembled below.
 function partsOf(value: DateInput, options: Intl.DateTimeFormatOptions) {
   const parts: Partial<Record<Intl.DateTimeFormatPartTypes, string>> = {}
-  for (const part of new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, ...options }).formatToParts(new Date(value))) {
+  for (const part of new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, ...options }).formatToParts(new Date(value))) {
     parts[part.type] = part.value
   }
   return parts
