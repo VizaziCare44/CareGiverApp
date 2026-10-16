@@ -340,8 +340,7 @@ test.describe('DEV-029 — Role hardening', () => {
   })
 
   test('TC-ACC-018', async () => {
-    // Path B: a signed-in user cannot rewrite their own role, but can still
-    // change the columns they are allowed to.
+    // Path B: a signed-in user cannot rewrite their own role.
     const { userId, client } = await apiSignUp({ fullName: 'Nick Otieno', phone: '+254700000021' })
 
     const { error: roleError } = await client.from('profiles').update({ role: 'admin' }).eq('id', userId)
@@ -350,8 +349,9 @@ test.describe('DEV-029 — Role hardening', () => {
     const { data } = await serviceClient().from('profiles').select('role').eq('id', userId).single()
     expect(data?.role).toBe('family_member')
 
+    // DEV-033: no API write on profiles at all, not even the name
     const { error: nameError } = await client.from('profiles').update({ full_name: 'Nick O.' }).eq('id', userId)
-    expect(nameError).toBeNull()
+    expect(nameError?.code).toBe('42501')
   })
 
   test('TC-ACC-019', async () => {
