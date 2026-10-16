@@ -22,6 +22,8 @@ export async function submitBooking({
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
+  // Clients may send only these four columns (DEV-030); status starts as
+  // 'requested' from the column default and caregiver fields cannot be set.
   const { data, error } = await supabase
     .from('bookings')
     .insert({
@@ -29,7 +31,6 @@ export async function submitBooking({
       care_recipient_id: careRecipientId,
       bundle_code: bundleCode,
       requested_datetime: requestedDatetime,
-      status: 'requested',
     })
     .select('id')
     .single()

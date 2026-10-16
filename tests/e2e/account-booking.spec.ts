@@ -90,10 +90,11 @@ test.describe('AC-002 — Bundle restriction', () => {
       // @ts-expect-error deliberately outside the bundle_code enum (BR-001)
       bundle_code: 'full_circle',
       requested_datetime: new Date().toISOString(),
-      status: 'requested',
     })
 
-    expect(error).toBeTruthy()
+    // 22P02 = invalid input value for enum: the enum itself rejected it, not
+    // a missing right (DEV-030 limits which columns a client may send).
+    expect(error?.code).toBe('22P02')
 
     const { data: bookings } = await client.from('bookings').select('id').eq('account_id', userId)
     expect(bookings?.length ?? 0).toBe(0)
@@ -368,5 +369,75 @@ test.describe('DEV-029 — Role hardening', () => {
 
     const { data } = await serviceClient().from('profiles').select('role').eq('email', email).single()
     expect(data?.role).toBe('admin')
+  })
+})
+
+// DEV-030: the bookings write path is closed. A signed-in client holds the
+// anon key and their own session, so the database rights are the only barrier.
+test.describe('DEV-030 — Bookings write path', () => {
+  const tomorrow = () => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+  test('TC-ACC-020', async () => {
+    const { userId, client } = await apiSignUp({ fullName: 'Olive Wanjiru', phone: '+254700000023' })
+    const recipientId = await apiAddRecipient(client, userId, 'Papa Wanjiru')
+    const base = {
+      account_id: userId,
+      care_recipient_id: recipientId,
+      bundle_code: 'medicheck',
+      requested_datetime: tomorrow(),
+    }
+
+    // the four allowed columns still work, and the booking starts as requested
+    const created = await client.from('bookings').insert(base).select('id').single()
+    expect(created.error).toBeNull()
+
+    const withStatus = await client.from('bookings').insert({ ...base, status: 'assigned' })
+    expect(withStatus.error?.code).toBe('42501')
+    const withCaregiver = await client.from('bookings').insert({ ...base, assigned_caregiver_id: userId })
+    expect(withCaregiver.error?.code).toBe('42501')
+    const withCreatedAt = await client.from('bookings').insert({ ...base, created_at: '2020-01-01T00:00:00Z' })
+    expect(withCreatedAt.error?.code).toBe('42501')
+
+    const updated = await client.from('bookings').update({ bundle_code: 'doctors_day_out' }).eq('id', created.data!.id)
+    expect(updated.error?.code).toBe('42501')
+    const deleted = await client.from('bookings').delete().eq('id', created.data!.id)
+    expect(deleted.error?.code).toBe('42501')
+
+    const { data } = await serviceClient()
+      .from('bookings')
+      .select('status, bundle_code, assigned_caregiver_id')
+      .eq('account_id', userId)
+    expect(data).toEqual([{ status: 'requested', bundle_code: 'medicheck', assigned_caregiver_id: null }])
+  })
+
+  test('TC-ACC-021', async () => {
+    const a = await apiSignUp({ fullName: 'Family A', phone: '+254700000024' })
+    const b = await apiSignUp({ fullName: 'Family B', phone: '+254700000025' })
+    const recipientA = await apiAddRecipient(a.client, a.userId, 'Recipient A')
+    const recipientB = await apiAddRecipient(b.client, b.userId, 'Recipient B')
+
+    // B cannot book for A's recipient, nor on A's account
+    const foreignRecipient = await b.client.from('bookings').insert({
+      account_id: b.userId,
+      care_recipient_id: recipientA,
+      bundle_code: 'medicheck',
+      requested_datetime: tomorrow(),
+    })
+    expect(foreignRecipient.error?.code).toBe('42501')
+    const foreignAccount = await b.client.from('bookings').insert({
+      account_id: a.userId,
+      care_recipient_id: recipientB,
+      bundle_code: 'medicheck',
+      requested_datetime: tomorrow(),
+    })
+    expect(foreignAccount.error?.code).toBe('42501')
+
+    // A's booking is invisible to B
+    const own = await a.client
+      .from('bookings')
+      .insert({ account_id: a.userId, care_recipient_id: recipientA, bundle_code: 'medicheck', requested_datetime: tomorrow() })
+    expect(own.error).toBeNull()
+    const seenByB = await b.client.from('bookings').select('id')
+    expect(seenByB.data).toEqual([])
   })
 })
