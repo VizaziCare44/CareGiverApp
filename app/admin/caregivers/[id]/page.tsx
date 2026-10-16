@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StatusChip } from '@/components/ui/status-chip'
 import { ActionButton } from '@/components/ui/action-button'
+import { CaregiverActions } from '@/components/admin/caregiver-actions'
 import { formatDateTime } from '@/lib/datetime'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -36,8 +37,8 @@ const actionText = {
 
 // FR-004, FR-016 / AC-009, AC-018, frames VER-02, 02b, 02c. Admin only
 // (middleware guards /admin; the views and policies are Admin-only as well).
-// The Mark as Verified / Remove Verified / Reassign buttons are in place but
-// disabled: their dialogs and screens are DEV-038, DEV-039 and DEV-042/043.
+// Mark as Verified opens its dialog (DEV-038). Remove Verified and Reassign are
+// in place but disabled until DEV-039 and DEV-042/043.
 export default async function CaregiverDetailPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 
@@ -103,15 +104,7 @@ export default async function CaregiverDetailPage({ params }: { params: { id: st
           )}
         </div>
         {/* one action at a time, by current status */}
-        {caregiver.verified ? (
-          <ActionButton variant="destructive" disabled className="self-start">
-            Remove Verified
-          </ActionButton>
-        ) : (
-          <ActionButton variant="primary" disabled className="self-start">
-            Mark as Verified
-          </ActionButton>
-        )}
+        <CaregiverActions caregiverId={caregiver.id} name={caregiver.full_name} verified={caregiver.verified} />
       </section>
 
       <section aria-labelledby="affected-heading" className="flex flex-col gap-3">
