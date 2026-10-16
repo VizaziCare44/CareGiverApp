@@ -53,7 +53,7 @@ export async function apiSignUp({ fullName, phone }: { fullName: string; phone: 
 }
 
 /** Creates a pre-confirmed account and signs it in. A role other than
- * family_member is set through app_metadata, as provision-admin does. */
+ * family_member is set through app_metadata, as provision-account does. */
 export async function createUserWithRole(role: 'admin' | 'caregiver' | 'family_member', fullName: string) {
   const email = randomEmail()
   const { data, error } = await serviceClient().auth.admin.createUser({

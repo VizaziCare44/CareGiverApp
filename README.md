@@ -14,25 +14,17 @@ Next.js 14 (App Router) + TypeScript + Tailwind, Supabase (Postgres + Auth + Pos
 4. `supabase status` prints your local `anon` and `service_role` keys. Copy this repo's `.env.local.example` to `.env.local` and fill them in.
 5. `npm run dev` — app at http://localhost:3000.
 
-## Admin accounts
+## Admin and caregiver accounts
 
-There's no public admin signup route (FD-ACC §7.4/DEV-009 — provisioned manually, by whoever holds `SUPABASE_SERVICE_ROLE_KEY`, i.e. the founder/Tech Lead).
-
-**Create a new admin account:**
+There's no public Admin or Caregiver signup and no in-app creation screen (FD-ACC §7.4, DEV-009, DEV-035): they are provisioned by hand, by whoever holds `SUPABASE_SERVICE_ROLE_KEY` (the founder or Tech Lead). The full procedure, including marking a caregiver Verified before the first assignment and resetting a password, is in [docs/Account Provisioning Runbook.md](docs/Account%20Provisioning%20Runbook.md).
 
 ```bash
-npm run provision-admin -- --email you@example.com --name "Jane Doe" --phone "+254700000000"
+npm run provision-account -- --role admin --email you@example.com --name "Jane Doe" --phone "+254700000000"
+npm run provision-account -- --role caregiver --email you@example.com --name "Jane Doe" --phone "+254700000000"
+npm run reset-password -- --email you@example.com
 ```
 
-This creates the account via the Supabase admin API with `role: 'admin'` set in `app_metadata` (writable only with the service-role key; the role is never read from sign-up metadata) — pre-confirmed (no email round-trip needed) and ready to log in immediately. Migration 0005 in `backend-config` must be applied to the target project first; the script checks the resulting role and says so if it isn't. It prints a one-time temporary password to your terminal; hand it to the admin over a secure channel and have them change it after first login. The script doesn't store the password anywhere.
-
-**Promote an existing (already-confirmed) account to admin instead:**
-
-```sql
-update public.profiles set role = 'admin' where email = 'you@example.com';
-```
-
-Run that in the Supabase Studio SQL editor for the project named in **Deployed** below, or via `supabase db psql` once linked to it (`supabase link --project-ref <ref>`, from the `backend-config` checkout).
+The role is set in `app_metadata` (writable only with the service-role key; never read from sign-up data). Migration 0005 in `backend-config` must be applied to the target project first; the script checks the resulting role and says so if it isn't.
 
 ## Testing
 

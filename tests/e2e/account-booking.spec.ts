@@ -377,7 +377,7 @@ test.describe('DEV-029 — Role hardening', () => {
   })
 
   test('TC-ACC-019', async () => {
-    // The supported way to create an Admin (scripts/provision-admin.mjs) sets
+    // The supported way to create an Admin (scripts/provision-account.mjs) sets
     // the role in app metadata, which only the service role can write.
     const email = randomEmail()
     const { error } = await serviceClient().auth.admin.createUser({
