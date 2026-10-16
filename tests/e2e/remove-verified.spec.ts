@@ -63,7 +63,7 @@ test.describe('DEV-039 — Remove Verified dialog', () => {
     await expect(submit).toBeEnabled()
   })
 
-  test('the destructive button is set apart by wording, style and place', async ({ page }) => {
+  test('the destructive button is set apart by wording, style and place', async ({ page }, testInfo) => {
     const { dialog } = await openRemoveDialog(page, 'Placement Caregiver')
     await dialog.getByLabel('Why are you removing Verified status?').fill('Reference check failed')
 
@@ -81,6 +81,8 @@ test.describe('DEV-039 — Remove Verified dialog', () => {
     // place: Cancel takes the usual confirm position on the right, the destructive button sits to its left
     const [cancelBox, removeBox] = [await cancel.boundingBox(), await remove.boundingBox()]
     expect(cancelBox!.x).toBeGreaterThan(removeBox!.x)
+
+    await testInfo.attach('remove-verified-dialog', { body: await page.screenshot(), contentType: 'image/png' })
   })
 
   test('removing marks the caregiver not Verified and the affected-bookings panel updates', async ({ page }) => {
