@@ -7,6 +7,7 @@ import {
   logInViaUI,
   promoteToAdmin,
   randomEmail,
+  serviceClient,
   TEST_PASSWORD,
 } from './helpers'
 
@@ -316,5 +317,56 @@ test.describe('DEV-027 — Password reset', () => {
     // must bounce to /log-in — it's gated like any other protected route.
     await page.goto('/reset-password')
     await expect(page).toHaveURL(/log-in/)
+  })
+})
+
+// DEV-029 role hardening (DEV-028 audit findings A and B). These go through
+// the real Auth and REST APIs; the pgTAP file in backend-config covers the
+// same rules at the database level.
+test.describe('DEV-029 — Role hardening', () => {
+  test('TC-ACC-017', async () => {
+    // Path A: a browser-supplied role in sign-up metadata must be ignored.
+    const email = randomEmail()
+    const { error } = await anonClient().auth.signUp({
+      email,
+      password: TEST_PASSWORD,
+      options: { data: { full_name: 'Mallory', phone: '+254700000020', role: 'admin' } },
+    })
+    expect(error).toBeNull()
+
+    const { data } = await serviceClient().from('profiles').select('role').eq('email', email).single()
+    expect(data?.role).toBe('family_member')
+  })
+
+  test('TC-ACC-018', async () => {
+    // Path B: a signed-in user cannot rewrite their own role, but can still
+    // change the columns they are allowed to.
+    const { userId, client } = await apiSignUp({ fullName: 'Nick Otieno', phone: '+254700000021' })
+
+    const { error: roleError } = await client.from('profiles').update({ role: 'admin' }).eq('id', userId)
+    expect(roleError).not.toBeNull()
+
+    const { data } = await serviceClient().from('profiles').select('role').eq('id', userId).single()
+    expect(data?.role).toBe('family_member')
+
+    const { error: nameError } = await client.from('profiles').update({ full_name: 'Nick O.' }).eq('id', userId)
+    expect(nameError).toBeNull()
+  })
+
+  test('TC-ACC-019', async () => {
+    // The supported way to create an Admin (scripts/provision-admin.mjs) sets
+    // the role in app metadata, which only the service role can write.
+    const email = randomEmail()
+    const { error } = await serviceClient().auth.admin.createUser({
+      email,
+      password: TEST_PASSWORD,
+      email_confirm: true,
+      user_metadata: { full_name: 'Provisioned Admin', phone: '+254700000022' },
+      app_metadata: { role: 'admin' },
+    })
+    expect(error).toBeNull()
+
+    const { data } = await serviceClient().from('profiles').select('role').eq('email', email).single()
+    expect(data?.role).toBe('admin')
   })
 })

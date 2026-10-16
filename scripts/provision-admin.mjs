@@ -4,9 +4,14 @@
 // run locally by whoever holds the service-role key (founder/Tech Lead).
 //
 // Creates the account via the Supabase admin API with role: 'admin' in
-// user_metadata, so handle_new_user() (supabase/migrations/0001_init.sql)
-// inserts the profiles row as admin directly — pre-confirmed, no email
-// round-trip, no separate SQL promotion step needed.
+// app_metadata, so handle_new_user() inserts the profiles row as admin
+// directly — pre-confirmed, no email round-trip, no separate SQL promotion
+// step needed. app_metadata is writable only with the service-role key; the
+// role is deliberately NOT read from user_metadata, which any signed-up user
+// controls (DEV-028 finding, fixed in migration 0005 in backend-config).
+// Apply migration 0005 to the target project before running this: on an older
+// database the account would come out as a family member, which the check
+// below reports.
 //
 // Usage:
 //   node scripts/provision-admin.mjs --email you@example.com --name "Jane Doe" --phone "+254700000000"
@@ -57,11 +62,21 @@ async function main() {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: name, phone, role: 'admin' },
+    user_metadata: { full_name: name, phone },
+    app_metadata: { role: 'admin' },
   })
 
   if (error) {
     console.error(`Failed to create admin account: ${error.message}`)
+    process.exit(1)
+  }
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single()
+  if (profile?.role !== 'admin') {
+    console.error(
+      `Account ${email} (${data.user.id}) was created but its role is "${profile?.role}", not admin. ` +
+        'The target database is probably missing migration 0005; apply it, then promote this account or delete it and re-run.',
+    )
     process.exit(1)
   }
 
