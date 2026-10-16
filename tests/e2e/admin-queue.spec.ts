@@ -24,7 +24,7 @@ test.describe('DEV-040 — Admin booking queue', () => {
         .single()
       return data!.id as string
     }
-    await book('Req', '2030-01-15T06:30:00.000Z')
+    const requestedId = await book('Req', '2030-01-15T06:30:00.000Z')
     const assignedId = await book('Asg', '2030-01-16T06:30:00.000Z')
     const flaggedId = await book('Flag', '2030-01-17T06:30:00.000Z')
     const startedId = await book('Started', '2030-01-18T06:30:00.000Z')
@@ -49,13 +49,13 @@ test.describe('DEV-040 — Admin booking queue', () => {
     // assigned bookings are not in this tab
     await expect(page.getByText(`Recipient: Asg ${stamp}`)).toHaveCount(0)
 
-    // the action is its own button and the way into Booking Detail is its own link; the row itself is
-    // neither, so a stray tap on it does nothing
-    await expect(requestedRow.getByRole('link')).toHaveCount(1)
-    await expect(requestedRow.getByRole('link', { name: 'View details' })).toBeVisible()
-    await expect(requestedRow.getByRole('button')).toHaveCount(1)
-    const assign = requestedRow.getByRole('button', { name: 'Assign caregiver' })
-    await expect(assign).toBeDisabled()
+    // the action and the way into Booking Detail are links of their own; the row itself is neither a
+    // link nor a button, so a stray tap on it does nothing
+    await expect(requestedRow.getByRole('link')).toHaveCount(2)
+    await expect(requestedRow.getByRole('button')).toHaveCount(0)
+    await expect(requestedRow.getByRole('link', { name: 'View details' })).toHaveAttribute('href', `/admin/bookings/${requestedId}`)
+    const assign = requestedRow.getByRole('link', { name: 'Assign caregiver' })
+    await expect(assign).toHaveAttribute('href', `/admin/bookings/${requestedId}/choose-caregiver`)
     expect((await assign.boundingBox())!.height).toBeGreaterThanOrEqual(44)
 
     // Assigned tab
@@ -69,20 +69,21 @@ test.describe('DEV-040 — Admin booking queue', () => {
     await expect(assignedRow).toContainText('Visit: Wed 16 Jan 2030, 09:30 EAT')
     await expect(assignedRow).toContainText('Assigned')
     await expect(assignedRow.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
-    await expect(assignedRow.getByRole('button', { name: 'Reassign' })).toBeDisabled()
+    await expect(assignedRow.getByRole('link', { name: 'Reassign' })).toHaveAttribute('href', `/admin/bookings/${assignedId}/choose-caregiver`)
 
     // caregiver lost Verified, visit not started: flagged, with the reassign entry
     const flaggedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Flag ${stamp}` })
     await expect(flaggedRow).toContainText(`Caregiver: Queue B ${stamp}`)
     await expect(flaggedRow.getByText('Caregiver no longer Verified — reassign')).toBeVisible()
-    await expect(flaggedRow.getByRole('button', { name: 'Reassign' })).toBeDisabled()
+    await expect(flaggedRow.getByRole('link', { name: 'Reassign' })).toHaveAttribute('href', `/admin/bookings/${flaggedId}/choose-caregiver`)
 
     // caregiver lost Verified but the visit has started: no flag and no entry (AC-008)
     const startedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Started ${stamp}` })
     await expect(startedRow).toContainText(`Caregiver: Queue B ${stamp}`)
     await expect(startedRow).toContainText('In progress')
     await expect(startedRow.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
-    await expect(startedRow.getByRole('button')).toHaveCount(0)
+    await expect(startedRow.getByRole('link', { name: 'Reassign' })).toHaveCount(0)
+    await expect(startedRow.getByRole('link')).toHaveCount(1) // View details only
 
     await testInfo.attach('assigned-tab', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 

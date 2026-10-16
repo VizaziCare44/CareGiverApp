@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { ActionButton } from '@/components/ui/action-button'
+import { ActionLink } from '@/components/ui/action-button'
 import { StatusChip } from '@/components/ui/status-chip'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
@@ -36,9 +36,9 @@ const STATUS_LABEL = {
 
 // FR-006, FR-013 / AC-008, AC-014, frames VER-06, 06b, 06c. Admin only
 // (middleware guards /admin; the view and policies are Admin-only as well).
-// The Assign / Change caregiver button is in place but disabled until Choose
-// Caregiver (DEV-042) and its dialogs (DEV-043) exist. Care notes and the name of
-// whoever assigned are not in admin_booking_overview, so they are read here.
+// Assign / Change caregiver lead to Choose Caregiver (DEV-042); assigning there is
+// DEV-043. Care notes and the name of whoever assigned are not in
+// admin_booking_overview, so they are read here.
 export default async function AdminBookingDetailPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 
@@ -135,14 +135,14 @@ export default async function AdminBookingDetailPage({ params }: { params: { id:
 
       {/* one action at a time, by status; none once the visit has started */}
       {booking.status === 'requested' && (
-        <ActionButton variant="primary" disabled className="self-start">
+        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="primary" className="self-start">
           Assign caregiver
-        </ActionButton>
+        </ActionLink>
       )}
       {booking.status === 'assigned' && (
-        <ActionButton variant="secondary" disabled className="self-start">
+        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary" className="self-start">
           Change caregiver
-        </ActionButton>
+        </ActionLink>
       )}
       {started && <p className="text-[16px] text-figma-muted">Visit started — caregiver can&apos;t be changed here.</p>}
     </main>

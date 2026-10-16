@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StatusChip } from '@/components/ui/status-chip'
-import { ActionButton } from '@/components/ui/action-button'
+import { ActionLink } from '@/components/ui/action-button'
 import { CaregiverActions } from '@/components/admin/caregiver-actions'
 import { formatDateTime } from '@/lib/datetime'
 
@@ -38,7 +38,7 @@ const actionText = {
 // FR-004, FR-016 / AC-009, AC-018, frames VER-02, 02b, 02c. Admin only
 // (middleware guards /admin; the views and policies are Admin-only as well).
 // Mark as Verified (DEV-038) and Remove Verified (DEV-039) open their dialogs.
-// Reassign is in place but disabled until DEV-042/043.
+// Reassign opens Choose Caregiver for that booking (DEV-042).
 export default async function CaregiverDetailPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 
@@ -124,9 +124,9 @@ export default async function CaregiverDetailPage({ params }: { params: { id: st
                   <span className="text-[16px] font-semibold">{formatDateTime(booking.requested_datetime)}</span>
                   <span className="text-[16px] text-figma-muted">For {booking.care_recipient_name}</span>
                 </div>
-                <ActionButton variant="secondary" disabled>
+                <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary">
                   Reassign
-                </ActionButton>
+                </ActionLink>
               </li>
             ))}
           </ul>

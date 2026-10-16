@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '@/components/ui/card'
-import { ActionButton } from '@/components/ui/action-button'
+import { ActionLink } from '@/components/ui/action-button'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
@@ -35,8 +35,7 @@ function DetailsLink({ id }: { id: string }) {
 // list, extended (DEV-040) with an Assigned tab, an "Assign caregiver" action and
 // a requested-at line. The data comes from admin_booking_overview. The actions
 // are separate buttons, never the whole row, so a stray tap on a row does
-// nothing. The buttons are in place but disabled until Booking Detail (DEV-041)
-// and Choose Caregiver (DEV-042) exist to send the Admin somewhere.
+// nothing. Assign caregiver and Reassign open Choose Caregiver (DEV-042).
 export default async function AdminQueuePage({ searchParams }: { searchParams: { tab?: string } }) {
   const tab = searchParams.tab === 'assigned' ? 'assigned' : 'requested'
 
@@ -108,9 +107,9 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
                   <p className="text-base text-muted-foreground">Visit: {formatDateTime(row.requested_datetime)}</p>
                   <p className="text-base text-muted-foreground">Requested at: {formatDateTime(row.created_at)}</p>
                   <div className="mt-2 flex flex-wrap items-center gap-4">
-                    <ActionButton variant="primary" disabled>
+                    <ActionLink href={`/admin/bookings/${row.id}/choose-caregiver`} variant="primary">
                       Assign caregiver
-                    </ActionButton>
+                    </ActionLink>
                     <DetailsLink id={row.id} />
                   </div>
                 </Card>
@@ -151,9 +150,9 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
                   )}
                   <div className="mt-2 flex flex-wrap items-center gap-4">
                     {!started && (
-                      <ActionButton variant="secondary" disabled>
+                      <ActionLink href={`/admin/bookings/${row.id}/choose-caregiver`} variant="secondary">
                         Reassign
-                      </ActionButton>
+                      </ActionLink>
                     )}
                     <DetailsLink id={row.id} />
                   </div>
