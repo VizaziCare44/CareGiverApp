@@ -1,8 +1,8 @@
 name: Playwright tests and production deploy
 
 # DEV-024/DEV-025: quality gate for the account/booking flow (FD-ACC
-# §10/§12), and the only path to production (see vercel.json — Vercel's own
-# git-triggered auto-deploy is disabled for main). Runs on every push and PR
+# §10/§12), and the gate in front of production (see deploy-production below
+# and vercel.json). Runs on every push and PR
 # against a temporary local Supabase stack started from backend-config's
 # migrations — thrown away with the runner, so no test data ever reaches a
 # hosted project (the FD-VERIFY log tables are append-only; rows written to a
@@ -87,38 +87,26 @@ jobs:
           retention-days: 14
 
   deploy-production:
-    # DEV-025: production only goes live after this suite passes. vercel.json
-    # disables Vercel's own git-triggered auto-deploy for main — this job is
-    # the only path to production now. Needs VERCEL_TOKEN, VERCEL_ORG_ID,
-    # VERCEL_PROJECT_ID as repo secrets (not set by this workflow).
+    # DEV-025: production only goes live after the suite above passes. Once
+    # vercel.json turns off Vercel's own git-triggered deploy for main, this
+    # job is the only path to production: it calls a Vercel deploy hook, and
+    # Vercel builds main from the connected repo (VizaziCare44/CareGiverApp).
+    # A deploy hook is a single secret and creates no CLI deployment, so it
+    # avoids the commit-author permission check that blocks CLI deploys.
+    # Needs the repo secret VERCEL_DEPLOY_HOOK_URL (Vercel project -> Settings
+    # -> Git -> Deploy Hooks, branch main).
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.repository == 'VizaziCare44/CareGiverApp' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    env:
+      DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy to production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Trigger production deploy
+        run: |
+          if [ -z "$DEPLOY_HOOK_URL" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK_URL is not set. Create a deploy hook for branch main in the Vercel project and add it as a repo secret; until then nothing deploys through this gate."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "$DEPLOY_HOOK_URL" > /dev/null
+          echo "Production deploy requested for $GITHUB_SHA"
