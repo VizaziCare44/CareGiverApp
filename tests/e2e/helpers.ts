@@ -52,6 +52,25 @@ export async function apiSignUp({ fullName, phone }: { fullName: string; phone: 
   return { email, userId: data.user.id, client }
 }
 
+/** Creates a pre-confirmed account and signs it in. A role other than
+ * family_member is set through app_metadata, as provision-admin does. */
+export async function createUserWithRole(role: 'admin' | 'caregiver' | 'family_member', fullName: string) {
+  const email = randomEmail()
+  const { data, error } = await serviceClient().auth.admin.createUser({
+    email,
+    password: TEST_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, phone: '+254700000030' },
+    ...(role === 'family_member' ? {} : { app_metadata: { role } }),
+  })
+  if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`)
+
+  const client = anonClient()
+  const { error: signInError } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD })
+  if (signInError) throw new Error(`sign-in failed: ${signInError.message}`)
+  return { email, userId: data.user.id, client }
+}
+
 export async function apiAddRecipient(client: ReturnType<typeof anonClient>, accountId: string, name: string) {
   const { data, error } = await client
     .from('care_recipients')

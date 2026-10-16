@@ -1,26 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { anonClient, randomEmail, serviceClient, TEST_PASSWORD } from './helpers'
+import { anonClient, createUserWithRole, serviceClient } from './helpers'
 
 // DEV-031: verify_caregiver / remove_caregiver_verification through the real
 // REST API. The pgTAP file in backend-config covers the rules in depth; this
 // proves the functions are reachable (and refused) the way the app will call them.
-
-async function createUserWithRole(role: 'admin' | 'caregiver' | 'family_member', fullName: string) {
-  const email = randomEmail()
-  const { data, error } = await serviceClient().auth.admin.createUser({
-    email,
-    password: TEST_PASSWORD,
-    email_confirm: true,
-    user_metadata: { full_name: fullName, phone: '+254700000030' },
-    ...(role === 'family_member' ? {} : { app_metadata: { role } }),
-  })
-  if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`)
-
-  const client = anonClient()
-  const { error: signInError } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD })
-  if (signInError) throw new Error(`sign-in failed: ${signInError.message}`)
-  return { userId: data.user.id, client }
-}
 
 test.describe('DEV-031 — Caregiver verification functions', () => {
   test('only an Admin can call them', async () => {
