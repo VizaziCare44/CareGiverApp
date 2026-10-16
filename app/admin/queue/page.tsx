@@ -22,6 +22,15 @@ interface QueueRow {
 const STARTED_LABEL = { in_progress: 'In progress', completed: 'Completed' } as const
 const ASSIGNED_ORDER = { assigned: 0, in_progress: 1, completed: 2 } as const
 
+// A link of its own to Booking Detail (DEV-041); the card is not clickable.
+function DetailsLink({ id }: { id: string }) {
+  return (
+    <Link href={`/admin/bookings/${id}`} className="inline-flex h-12 items-center text-[16px] font-semibold text-figma-softtext underline">
+      View details
+    </Link>
+  )
+}
+
 // FR-006, FR-009, FR-013 / §7.6, frames VER-05 and VER-05b. DEV-022's Requested
 // list, extended (DEV-040) with an Assigned tab, an "Assign caregiver" action and
 // a requested-at line. The data comes from admin_booking_overview. The actions
@@ -98,9 +107,12 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
                   </p>
                   <p className="text-base text-muted-foreground">Visit: {formatDateTime(row.requested_datetime)}</p>
                   <p className="text-base text-muted-foreground">Requested at: {formatDateTime(row.created_at)}</p>
-                  <ActionButton variant="primary" disabled className="mt-2 self-start">
-                    Assign caregiver
-                  </ActionButton>
+                  <div className="mt-2 flex flex-wrap items-center gap-4">
+                    <ActionButton variant="primary" disabled>
+                      Assign caregiver
+                    </ActionButton>
+                    <DetailsLink id={row.id} />
+                  </div>
                 </Card>
               </li>
             ))}
@@ -137,11 +149,14 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
                       Caregiver no longer Verified — reassign
                     </p>
                   )}
-                  {!started && (
-                    <ActionButton variant="secondary" disabled className="mt-2 self-start">
-                      Reassign
-                    </ActionButton>
-                  )}
+                  <div className="mt-2 flex flex-wrap items-center gap-4">
+                    {!started && (
+                      <ActionButton variant="secondary" disabled>
+                        Reassign
+                      </ActionButton>
+                    )}
+                    <DetailsLink id={row.id} />
+                  </div>
                 </Card>
               </li>
             )

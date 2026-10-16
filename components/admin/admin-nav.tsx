@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation'
 // Main navigation for the Admin screens. Route guarding is in middleware.ts
 // (everything under /admin is Admin-only).
 const links = [
-  { href: '/admin/queue', label: 'Booking queue' },
-  { href: '/admin/caregivers', label: 'Caregivers' },
+  // Booking Detail sits under the queue, so the queue stays marked while on it
+  { href: '/admin/queue', label: 'Booking queue', alsoUnder: ['/admin/bookings'] },
+  { href: '/admin/caregivers', label: 'Caregivers', alsoUnder: [] as string[] },
 ]
 
 export function AdminNav() {
@@ -17,7 +18,7 @@ export function AdminNav() {
     <nav aria-label="Main" className="border-b border-figma-line bg-white">
       <ul className="mx-auto flex max-w-2xl gap-1 px-2">
         {links.map((link) => {
-          const current = pathname === link.href || pathname.startsWith(`${link.href}/`)
+          const current = [link.href, ...link.alsoUnder].some((base) => pathname === base || pathname.startsWith(`${base}/`))
           return (
             <li key={link.href}>
               <Link
