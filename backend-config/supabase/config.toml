@@ -18,11 +18,18 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000"]
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**"]
 jwt_expiry = 3600
 enable_signup = true
+
+# The CLI default of 2 emails/hour would throttle the sign-up test on a
+# stack that is reset every run; local mail only goes to the Mailpit inbox.
+[auth.rate_limit]
+email_sent = 100
 
 [auth.email]
 enable_signup = true
 double_confirmation_changes = false
-enable_confirmations = false
+# Matches the hosted dev project: sign-up issues no session until the email
+# link is followed, which the app's "Check your email" screen depends on.
+enable_confirmations = true

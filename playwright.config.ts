@@ -1,10 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// DEV-024: the GitHub → Playwright pipeline's quality gate. Runs against the
-// shared dev Supabase project (no separate staging environment, per FD-ACC
-// §10/§12) — see .github/workflows/playwright.yml for the CI secrets this
-// needs (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-// SUPABASE_SERVICE_ROLE_KEY).
+// DEV-024: the GitHub → Playwright pipeline's quality gate. In CI it runs
+// against a temporary local Supabase stack that .github/workflows/playwright.yml
+// starts from backend-config's migrations (no separate staging environment,
+// per FD-ACC §10/§12). Locally it uses whatever NEXT_PUBLIC_SUPABASE_URL,
+// NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY point at.
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,

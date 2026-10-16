@@ -3,12 +3,13 @@ name: Playwright tests and production deploy
 # DEV-024/DEV-025: quality gate for the account/booking flow (FD-ACC
 # §10/§12), and the only path to production (see vercel.json — Vercel's own
 # git-triggered auto-deploy is disabled for main). Runs on every push and PR
-# against the shared dev Supabase project — there is no separate staging
-# environment, per FD-ACC §10. Repeated runs against that shared project can
-# hit Supabase's email-send rate limit on TC-ACC-001 specifically (it's the
-# one test that exercises the real public signup email flow); that's a
-# known, already-flagged gap in test-data isolation, not something this
-# workflow fixes.
+# against a temporary local Supabase stack started from backend-config's
+# migrations — thrown away with the runner, so no test data ever reaches a
+# hosted project (the FD-VERIFY log tables are append-only; rows written to a
+# shared project could never be removed). No separate staging environment,
+# per FD-ACC §10. Fallback if the local stack proves unworkable: run against
+# the shared dev project (DEV-003) with the idempotent seed from
+# Test_Data_Strategy.md §4.
 on:
   push:
   pull_request:
@@ -17,20 +18,48 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       TESTDINO_TOKEN: ${{ secrets.TESTDINO_TOKEN }}
       CI: true
     steps:
       - uses: actions/checkout@v4
 
+      # backend-config lives in VizaziCare44/CareGiverApp, which is public,
+      # so no read credential is needed.
+      - name: Check out backend-config
+        uses: actions/checkout@v4
+        with:
+          repository: VizaziCare44/CareGiverApp
+          path: backend-config-src
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+
+      # A fresh runner means a fresh database: start applies every migration
+      # to an empty Postgres. Only the services the app touches are started.
+      - name: Start local Supabase
+        working-directory: backend-config-src/backend-config
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,storage-api,realtime,postgres-meta
+
+      # The local stack's keys are fixed, well-known development values, not
+      # secrets; they are exported only for this job.
+      - name: Export local Supabase connection
+        working-directory: backend-config-src/backend-config
+        run: |
+          supabase status -o env > /tmp/supabase.env
+          get() { grep "^$1=" /tmp/supabase.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+          } >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: npm ci
@@ -40,6 +69,12 @@ jobs:
 
       - name: Run Playwright tests
         run: npx playwright test
+
+      - name: Supabase logs on failure
+        if: failure()
+        run: |
+          docker ps --format '{{.Names}}\t{{.Status}}'
+          docker logs supabase_auth_vizazi-care 2>&1 | tail -60 || true
 
       - name: Upload HTML report
         if: always()
