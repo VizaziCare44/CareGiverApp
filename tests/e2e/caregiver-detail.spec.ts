@@ -31,7 +31,7 @@ test.describe('DEV-037 — Admin Caregiver Detail', () => {
     await expect(page.getByText(new RegExp(`Last changed by Ada ${stamp} on [A-Z][a-z]{2} \\d{1,2} [A-Z][a-z]{2} \\d{4}, \\d{2}:\\d{2} EAT`))).toBeVisible()
 
     // one action at a time: the caregiver is Verified, so only Remove is offered
-    await expect(page.getByRole('button', { name: 'Remove Verified' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Remove Verified' })).toBeEnabled()
     await expect(page.getByRole('button', { name: 'Mark as Verified' })).toHaveCount(0)
 
     const entries = page.getByRole('region', { name: 'Verification history' }).getByRole('listitem')

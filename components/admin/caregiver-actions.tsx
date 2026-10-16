@@ -3,22 +3,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
+import { AlertMessage } from '@/components/ui/alert-message'
 import { CheckboxField } from '@/components/ui/checkbox-field'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { TextAreaField } from '@/components/ui/text-area-field'
 import { verifyCaregiverAction } from '@/app/admin/actions'
+import { RemoveVerifiedDialog } from '@/components/admin/remove-verified-dialog'
 import { useAdminAction } from '@/components/admin/use-admin-action'
-import { missingForVerify, NOTE_MAX_LENGTH, VERIFY_DIALOG, verifyHint } from '@/lib/admin/verify-dialog-text'
+import { missingForVerify, NOTE_MAX_LENGTH, REMOVE_DIALOG, VERIFY_DIALOG, verifyHint } from '@/lib/admin/verify-dialog-text'
 
 /**
  * The action offered on the Caregiver Detail screen, by current status: "Mark as
- * Verified" (this task, DEV-038) or "Remove Verified" (disabled until DEV-039).
+ * Verified" (DEV-038) or "Remove Verified" (DEV-039), each opening its dialog.
  * It stays mounted when the page refreshes, so the confirmation below survives
- * the status changing under it.
+ * the status changing under it, and both dialogs stay mounted so a "status
+ * changed" message is not lost when the page refreshes behind them.
  */
 export function CaregiverActions({ caregiverId, name, verified }: { caregiverId: string; name: string; verified: boolean }) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState<'verify' | 'remove' | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
   const flashRef = useRef<HTMLParagraphElement>(null)
 
@@ -36,23 +39,34 @@ export function CaregiverActions({ caregiverId, name, verified }: { caregiverId:
       )}
 
       {verified ? (
-        <ActionButton variant="destructive" disabled className="self-start">
+        <ActionButton variant="destructive" className="self-start" onClick={() => setOpen('remove')}>
           Remove Verified
         </ActionButton>
       ) : (
-        <ActionButton variant="primary" className="self-start" onClick={() => setOpen(true)}>
+        <ActionButton variant="primary" className="self-start" onClick={() => setOpen('verify')}>
           {VERIFY_DIALOG.submit}
         </ActionButton>
       )}
 
       <MarkVerifiedDialog
-        open={open}
+        open={open === 'verify'}
         caregiverId={caregiverId}
         name={name}
-        onClose={() => setOpen(false)}
+        onClose={() => setOpen(null)}
         onDone={() => {
-          setOpen(false)
+          setOpen(null)
           setFlash(VERIFY_DIALOG.done(name))
+          router.refresh()
+        }}
+      />
+      <RemoveVerifiedDialog
+        open={open === 'remove'}
+        caregiverId={caregiverId}
+        name={name}
+        onClose={() => setOpen(null)}
+        onDone={() => {
+          setOpen(null)
+          setFlash(REMOVE_DIALOG.done(name))
           router.refresh()
         }}
       />
@@ -132,15 +146,7 @@ function MarkVerifiedDialog({
           error={error?.field === 'note' ? error.message : null}
         />
 
-        {error && error.field !== 'note' && (
-          <p role="alert" className="flex items-start gap-1.5 text-[14px] leading-[1.4] text-figma-danger">
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="shrink-0">
-              <circle cx="9" cy="9" r="7.5" />
-              <path d="M9 5.2v4.6M9 12.4v.1" />
-            </svg>
-            {error.message}
-          </p>
-        )}
+        {error && error.field !== 'note' && <AlertMessage>{error.message}</AlertMessage>}
 
         <div className="flex flex-col gap-2">
           {hint && !pending && !stale && (
