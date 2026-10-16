@@ -58,7 +58,7 @@ test.describe('DEV-037 — Admin Caregiver Detail', () => {
     await expect(page.getByText(/Last changed by/)).toHaveCount(0)
     await expect(page.getByText('No verification changes yet.')).toBeVisible()
     await expect(page.getByText('No upcoming bookings are affected.')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Mark as Verified' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Mark as Verified' })).toBeEnabled()
     await expect(page.getByRole('button', { name: 'Remove Verified' })).toHaveCount(0)
   })
 
@@ -98,7 +98,7 @@ test.describe('DEV-037 — Admin Caregiver Detail', () => {
     await expect(panel.getByText('Tue 15 Jan 2030, 09:30 EAT')).toBeVisible()
     await expect(panel.getByText(`For Mzee ${stamp}`)).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Reassign' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Mark as Verified' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Mark as Verified' })).toBeEnabled()
     await testInfo.attach('caregiver-detail', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 
     // reassigned: it is no longer assigned to this caregiver, so the panel clears

@@ -38,6 +38,8 @@ export interface ActionErrorInfo {
   clearSelection: boolean
   /** Sending the same request again may succeed. */
   retry: boolean
+  /** The message belongs under this input rather than at the foot of the dialog. */
+  field?: 'note'
 }
 
 /** Text on the button while the request is running (it is also disabled). */
@@ -63,10 +65,11 @@ export function describeActionError(code: ActionErrorCode, action: ActionName): 
     case 'NOTE_REQUIRED':
       return {
         ...stay,
+        field: 'note',
         message: action === 'remove' ? 'Write the reason before saving.' : 'Write what you checked before saving.',
       }
     case 'NOTE_TOO_LONG':
-      return { ...stay, message: 'That note is too long. Please shorten it to 1,000 characters or fewer.' }
+      return { ...stay, field: 'note', message: 'That note is too long. Please shorten it to 1,000 characters or fewer.' }
     case 'ALREADY_VERIFIED':
     case 'NOT_VERIFIED':
       return { ...stay, refresh: true, message: STATUS_CHANGED }
