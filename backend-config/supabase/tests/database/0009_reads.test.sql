@@ -108,7 +108,7 @@ reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select throws_ok($$select 1 from public.caregiver_verifications$$, '42501', null, 'anonymous users cannot read the history');
-select is((select count(*)::int from public.care_recipients), 0, 'anonymous users see no recipients');
+select throws_ok($$select 1 from public.care_recipients$$, '42501', null, 'anonymous users cannot read recipients');
 select throws_ok($$select 1 from public.bookings$$, '42501', null, 'anonymous users cannot read bookings');
 reset role;
 
