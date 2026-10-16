@@ -29,9 +29,13 @@ const FAMILY_PREFIXES = ['/recipients', '/book']
  * Production builds don't use eval-based Fast Refresh, so this widening
  * never reaches deployed traffic.
  */
+// connect-src follows the configured project's origin so the same build works
+// against hosted Supabase and the local stack CI starts (http://127.0.0.1:54321).
+const SUPABASE_ORIGIN = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin
+
 const CSP = `default-src 'self'; script-src 'self' 'unsafe-inline'${
   process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
-}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
+}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ${SUPABASE_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`
 
 // RBAC route guarding (FD-ACC §7.4 / DEV-012) + session refresh, per
 // docs/Platform Engineer Skill NextJS.MD's App Router pattern. Role checks
