@@ -97,7 +97,7 @@ test.describe('DEV-037 — Admin Caregiver Detail', () => {
     const panel = page.getByRole('region', { name: 'Bookings that need a new caregiver' })
     await expect(panel.getByText('Tue 15 Jan 2030, 09:30 EAT')).toBeVisible()
     await expect(panel.getByText(`For Mzee ${stamp}`)).toBeVisible()
-    await expect(panel.getByRole('button', { name: 'Reassign' })).toBeDisabled()
+    await expect(panel.getByRole('link', { name: 'Reassign' })).toHaveAttribute('href', `/admin/bookings/${booking!.id}/choose-caregiver`)
     await expect(page.getByRole('button', { name: 'Mark as Verified' })).toBeEnabled()
     await testInfo.attach('caregiver-detail', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 

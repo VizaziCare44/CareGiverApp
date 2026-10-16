@@ -56,8 +56,8 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
 
     // not assigned: no caregiver block; one action, Assign caregiver
     await expect(page.getByRole('region', { name: 'Caregiver' })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Assign caregiver' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Change caregiver' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Assign caregiver' })).toHaveAttribute('href', `/admin/bookings/${bookingId}/choose-caregiver`)
+    await expect(page.getByRole('link', { name: 'Change caregiver' })).toHaveCount(0)
     await expect(page.getByText(/Visit started/)).toHaveCount(0)
     await testInfo.attach('booking-detail', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   })
@@ -88,8 +88,8 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await expect(block.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
 
     // assigned, visit not started: Change caregiver is the one action
-    await expect(page.getByRole('button', { name: 'Change caregiver' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Assign caregiver' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Change caregiver' })).toHaveAttribute('href', `/admin/bookings/${bookingId}/choose-caregiver`)
+    await expect(page.getByRole('link', { name: 'Assign caregiver' })).toHaveCount(0)
   })
 
   test('the caregiver lost Verified: shown as Not verified, with the reassign flag, while the visit has not started', async ({ page }) => {
@@ -105,7 +105,7 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     const block = page.getByRole('region', { name: 'Caregiver' })
     await expect(block.getByText('Not verified', { exact: true })).toBeVisible()
     await expect(block.getByText('Caregiver no longer Verified — reassign')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Change caregiver' })).toBeDisabled()
+    await expect(page.getByRole('link', { name: 'Change caregiver' })).toBeVisible()
   })
 
   test('once the visit has started there is no change action, whatever the caregiver status (AC-008)', async ({ page }) => {
@@ -127,7 +127,7 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await expect(page.getByText("Visit started — caregiver can't be changed here.")).toBeVisible()
     // no reassign flag and no action at all
     await expect(page.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /caregiver/i })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: /(assign|change) caregiver/i })).toHaveCount(0)
   })
 
   test('unknown or malformed ids are not found, and only Admins can open it', async ({ page }) => {
