@@ -16,6 +16,7 @@ interface Booking {
   requested_datetime: string
   care_recipient_name: string
   caregiver_id: string | null
+  caregiver_name: string | null
 }
 
 // FR-005, FR-007, FR-008 / AC-003, AC-006, frames VER-07, 07b, 07c. Admin only.
@@ -23,8 +24,8 @@ interface Booking {
 // only: nothing is marked or blocked). The caregiver who already has this booking
 // is shown as "Currently assigned" and cannot be chosen. A line says how many
 // caregivers are not shown and why. Reached from Assign / Change caregiver on
-// Booking Detail, the queue and the Caregiver Detail panel; assigning the chosen
-// caregiver is DEV-043.
+// Booking Detail, the queue and the Caregiver Detail panel; Continue opens the
+// confirmation dialog that assigns the chosen caregiver (DEV-043).
 export default async function ChooseCaregiverPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 
@@ -32,7 +33,7 @@ export default async function ChooseCaregiverPage({ params }: { params: { id: st
 
   const { data, error } = await supabase
     .from('admin_booking_overview')
-    .select('id, status, bundle_code, requested_datetime, care_recipient_name, caregiver_id')
+    .select('id, status, bundle_code, requested_datetime, care_recipient_name, caregiver_id, caregiver_name')
     .eq('id', params.id)
     .maybeSingle()
   if (error) throw new Error(`Failed to load booking: ${error.message}`)
@@ -106,7 +107,13 @@ export default async function ChooseCaregiverPage({ params }: { params: { id: st
               </ActionLink>
             </div>
           ) : (
-            <ChooseCaregiverForm caregivers={caregivers} />
+            <ChooseCaregiverForm
+              bookingId={booking.id}
+              mode={booking.status === 'assigned' ? 'change' : 'assign'}
+              recipient={booking.care_recipient_name}
+              previousCaregiver={booking.caregiver_name}
+              caregivers={caregivers}
+            />
           )}
 
           {notShown > 0 && (

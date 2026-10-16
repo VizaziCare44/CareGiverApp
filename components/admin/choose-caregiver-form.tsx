@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActionButton } from '@/components/ui/action-button'
 import { RadioCard } from '@/components/ui/radio-field'
 import { StatusChip } from '@/components/ui/status-chip'
+import { AssignDialog } from '@/components/admin/assign-dialog'
+import type { AssignMode } from '@/lib/admin/assign-dialog-text'
 
 export interface CaregiverChoice {
   id: string
@@ -17,14 +19,43 @@ export interface CaregiverChoice {
 /**
  * Single selection among the Verified caregivers (DEV-042). Their other bookings
  * are shown so the Admin can see how busy each is; nothing is marked or blocked.
- * The Continue button is in place but disabled: the confirmation dialogs that
- * assign the chosen caregiver are DEV-043.
+ * Continue (DEV-043) opens the confirmation dialog for the chosen caregiver.
  */
-export function ChooseCaregiverForm({ caregivers }: { caregivers: CaregiverChoice[] }) {
+export function ChooseCaregiverForm({
+  bookingId,
+  mode,
+  recipient,
+  previousCaregiver,
+  caregivers,
+}: {
+  bookingId: string
+  mode: AssignMode
+  recipient: string
+  /** Who has the booking now, for the Change dialog (null when none). */
+  previousCaregiver: string | null
+  caregivers: CaregiverChoice[]
+}) {
   const [selected, setSelected] = useState<string | null>(null)
+  // the choice as it was when Continue was pressed, so the dialog's text holds still
+  const [confirming, setConfirming] = useState<{ id: string; name: string } | null>(null)
+  const [open, setOpen] = useState(false)
+
+  // the screen refreshes behind the dialog: a choice that is no longer on offer is dropped
+  useEffect(() => {
+    if (selected && !caregivers.some((c) => c.id === selected && !c.current)) setSelected(null)
+  }, [caregivers, selected])
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+    const chosen = caregivers.find((c) => c.id === selected)
+    if (!chosen) return
+    setConfirming({ id: chosen.id, name: chosen.name })
+    setOpen(true)
+  }
 
   return (
-    <form onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-5">
+    <>
+    <form onSubmit={submit} className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-3 text-[18px] font-semibold">Verified caregivers</legend>
         {caregivers.map((caregiver) => (
@@ -59,9 +90,22 @@ export function ChooseCaregiverForm({ caregivers }: { caregivers: CaregiverChoic
         ))}
       </fieldset>
 
-      <ActionButton type="submit" disabled className="self-start">
+      <ActionButton type="submit" disabled={selected === null} className="self-start">
         Continue
       </ActionButton>
     </form>
+
+    {/* outside the form: a dialog has a form of its own, and forms cannot nest */}
+    <AssignDialog
+        open={open}
+        mode={mode}
+        bookingId={bookingId}
+        caregiver={confirming}
+        previousCaregiver={previousCaregiver}
+        recipient={recipient}
+        onClose={() => setOpen(false)}
+        onSelectionCleared={() => setSelected(null)}
+      />
+    </>
   )
 }

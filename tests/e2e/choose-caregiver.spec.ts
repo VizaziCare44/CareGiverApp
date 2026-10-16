@@ -75,6 +75,9 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     const shown = line.match(/^(\d+) caregivers?/)
     expect(Number(shown![1])).toBeGreaterThanOrEqual(2)
 
+    // nothing chosen yet: Continue waits for a choice
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+
     // single selection: choosing B un-chooses A
     await radio(page, `Choose A ${stamp}`).check()
     await expect(page.getByRole('radio', { checked: true })).toHaveCount(1)
@@ -84,8 +87,8 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     await expect(radio(page, `Choose B ${stamp}`)).toBeChecked()
     await expect(radio(page, `Choose A ${stamp}`)).not.toBeChecked()
 
-    // assigning is DEV-043: the Continue button is in place but disabled
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    // a choice has been made: Continue is available (the dialog it opens is DEV-043)
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     await testInfo.attach('choose-caregiver', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   })
 
