@@ -50,6 +50,12 @@ jobs:
         working-directory: backend-config-src/backend-config
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,storage-api,realtime,postgres-meta
 
+      # pgTAP tests in backend-config/supabase/tests/database: grants, RLS,
+      # triggers and private functions, which the browser tests cannot reach.
+      - name: Database tests
+        working-directory: backend-config-src/backend-config
+        run: supabase test db
+
       # The local stack's keys are fixed, well-known development values, not
       # secrets; they are exported only for this job.
       - name: Export local Supabase connection

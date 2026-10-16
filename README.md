@@ -24,7 +24,7 @@ There's no public admin signup route (FD-ACC §7.4/DEV-009 — provisioned manua
 npm run provision-admin -- --email you@example.com --name "Jane Doe" --phone "+254700000000"
 ```
 
-This creates the account via the Supabase admin API with `role: 'admin'` set directly — pre-confirmed (no email round-trip needed) and ready to log in immediately. It prints a one-time temporary password to your terminal; hand it to the admin over a secure channel and have them change it after first login. The script doesn't store the password anywhere.
+This creates the account via the Supabase admin API with `role: 'admin'` set in `app_metadata` (writable only with the service-role key; the role is never read from sign-up metadata) — pre-confirmed (no email round-trip needed) and ready to log in immediately. Migration 0005 in `backend-config` must be applied to the target project first; the script checks the resulting role and says so if it isn't. It prints a one-time temporary password to your terminal; hand it to the admin over a secure channel and have them change it after first login. The script doesn't store the password anywhere.
 
 **Promote an existing (already-confirmed) account to admin instead:**
 

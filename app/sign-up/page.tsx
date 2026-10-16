@@ -44,7 +44,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName, phone, role: 'family_member' },
+        data: { full_name: fullName, phone },
         emailRedirectTo: `${window.location.origin}/recipients`,
       },
     })
