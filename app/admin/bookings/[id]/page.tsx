@@ -6,6 +6,7 @@ import { StatusChip } from '@/components/ui/status-chip'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
+import { bannerText } from '@/lib/admin/assign-dialog-text'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -39,7 +40,13 @@ const STATUS_LABEL = {
 // Assign / Change caregiver lead to Choose Caregiver (DEV-042); assigning there is
 // DEV-043. Care notes and the name of whoever assigned are not in
 // admin_booking_overview, so they are read here.
-export default async function AdminBookingDetailPage({ params }: { params: { id: string } }) {
+export default async function AdminBookingDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { banner?: string }
+}) {
   if (!UUID.test(params.id)) notFound()
 
   const supabase = await createClient()
@@ -67,11 +74,18 @@ export default async function AdminBookingDetailPage({ params }: { params: { id:
   const careNotes = (notesResult.data as { care_notes: string | null } | null)?.care_notes?.trim() || null
   const assignedBy = (assignerResult.data as { full_name: string } | null)?.full_name ?? null
 
+  const banner = bannerText(searchParams.banner)
   const started = booking.status === 'in_progress' || booking.status === 'completed'
   const needsNewCaregiver = !started && booking.status === 'assigned' && booking.caregiver_verified === false
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-6 text-figma-ink">
+      {banner && (
+        <p role="status" className="rounded-xl border border-figma-line bg-figma-soft p-4 text-[16px] font-semibold text-figma-softtext">
+          {banner}
+        </p>
+      )}
+
       <div>
         <Link href="/admin/queue" className="-ml-2 inline-flex h-11 items-center gap-1 rounded-lg px-2 text-[16px] font-medium">
           <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
