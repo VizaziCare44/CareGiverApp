@@ -5,7 +5,7 @@ import { apiAddRecipient, createUserWithRole, logInViaUI, serviceClient } from '
 // caregiver" action and a requested-at line (frames VER-05, 05b).
 
 test.describe('DEV-040 — Admin booking queue', () => {
-  test('Requested and Assigned tabs, the flag, and no accidental taps', async ({ page }) => {
+  test('Requested and Assigned tabs, the flag, and no accidental taps', async ({ page }, testInfo) => {
     const stamp = Date.now()
     const admin = await createUserWithRole('admin', 'Ada Admin')
     const careA = await createUserWithRole('caregiver', `Queue A ${stamp}`)
@@ -81,6 +81,8 @@ test.describe('DEV-040 — Admin booking queue', () => {
     await expect(startedRow).toContainText('In progress')
     await expect(startedRow.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
     await expect(startedRow.getByRole('button')).toHaveCount(0)
+
+    await testInfo.attach('assigned-tab', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 
     // rows that can still change come before started ones
     const texts = await page.getByRole('listitem').allInnerTexts()
