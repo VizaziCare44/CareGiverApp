@@ -123,7 +123,8 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
     await page.goto(`/admin/bookings/${booking}/choose-caregiver`)
 
-    await expect(page.getByText(`Choose A ${stamp}`)).toHaveCount(0)
+    // (the closed dialog's hidden text names the booking's caregiver, so look at what is on offer)
+    await expect(radio(page, `Choose A ${stamp}`)).toHaveCount(0)
     await expect(page.getByText('Currently assigned')).toHaveCount(0)
     await expect(radio(page, `Choose B ${stamp}`)).toBeEnabled()
   })

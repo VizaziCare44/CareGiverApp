@@ -231,7 +231,7 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     await dialog.getByRole('button', { name: 'Close' }).click()
     await expect(dialog).toBeHidden()
     // B is gone from the list, the choice is cleared, and Continue waits for a new one
-    await expect(page.getByText(`Dialog B ${stamp}`)).toHaveCount(0)
+    await expect(radio(page, `Dialog B ${stamp}`)).toHaveCount(0)
     await expect(page.getByRole('radio', { checked: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
     expect(await assignments(bookingId)).toEqual([])
