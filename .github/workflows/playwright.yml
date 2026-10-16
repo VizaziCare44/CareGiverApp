@@ -33,9 +33,11 @@ jobs:
           repository: VizaziCare44/CareGiverApp
           path: backend-config-src
 
+      # supabase-js (used by the test helpers) needs Node's native WebSocket,
+      # which arrived in Node 22.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - uses: supabase/setup-cli@v1
