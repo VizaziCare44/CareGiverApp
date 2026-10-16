@@ -49,8 +49,10 @@ test.describe('DEV-040 — Admin booking queue', () => {
     // assigned bookings are not in this tab
     await expect(page.getByText(`Recipient: Asg ${stamp}`)).toHaveCount(0)
 
-    // the action is its own button; the row itself is not a link or a button, so a stray tap does nothing
-    await expect(requestedRow.getByRole('link')).toHaveCount(0)
+    // the action is its own button and the way into Booking Detail is its own link; the row itself is
+    // neither, so a stray tap on it does nothing
+    await expect(requestedRow.getByRole('link')).toHaveCount(1)
+    await expect(requestedRow.getByRole('link', { name: 'View details' })).toBeVisible()
     await expect(requestedRow.getByRole('button')).toHaveCount(1)
     const assign = requestedRow.getByRole('button', { name: 'Assign caregiver' })
     await expect(assign).toBeDisabled()
