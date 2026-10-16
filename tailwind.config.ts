@@ -29,6 +29,9 @@ const config: Config = {
           surface: 'var(--figma-surface)',
           border: 'var(--figma-border)',
           line: 'var(--figma-line)',
+          primary: 'var(--figma-primary)',
+          danger: 'var(--figma-danger)',
+          muted: 'var(--figma-muted)',
         },
         // sage green — primary brand/action color (calm, care-oriented)
         sage: {

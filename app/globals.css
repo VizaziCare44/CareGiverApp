@@ -21,6 +21,9 @@
   --figma-surface: #f5f7fa;
   --figma-border: #7b8794;
   --figma-line: #d9dee4;
+  --figma-primary: #0b6e69;
+  --figma-danger: #b42318;
+  --figma-muted: #52606d;
 }
 
 body {

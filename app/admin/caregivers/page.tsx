@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { StatusChip } from '@/components/ui/status-chip'
 
@@ -9,8 +10,7 @@ interface CaregiverRow {
 
 // FR-001 / AC-001, frame VER-01. Name and status only: the status is always a
 // text label plus an icon. Data comes from the caregiver_overview view
-// (Admin only; DEV-034). Rows are not links yet: the Caregiver Detail screen is
-// DEV-037.
+// (Admin only; DEV-034). Each row opens the Caregiver Detail screen (DEV-037).
 export default async function AdminCaregiversPage() {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -35,12 +35,14 @@ export default async function AdminCaregiversPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((row) => (
-            <li
-              key={row.id}
-              className="flex min-h-[64px] items-center justify-between gap-4 rounded-xl border border-figma-line bg-white px-5 py-3"
-            >
-              <span className="text-[18px] font-semibold">{row.full_name}</span>
-              <StatusChip status={row.verified ? 'verified' : 'not-verified'} />
+            <li key={row.id}>
+              <Link
+                href={`/admin/caregivers/${row.id}`}
+                className="flex min-h-[64px] items-center justify-between gap-4 rounded-xl border border-figma-line bg-white px-5 py-3"
+              >
+                <span className="text-[18px] font-semibold">{row.full_name}</span>
+                <StatusChip status={row.verified ? 'verified' : 'not-verified'} />
+              </Link>
             </li>
           ))}
         </ul>
