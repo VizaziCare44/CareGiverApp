@@ -29,22 +29,17 @@ const BookingDraftContext = createContext<BookingDraft | null>(null)
 
 export function BookingDraftProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams()
-  const [recipientId, setRecipientId] = useState<string | null>(null)
-  const [recipientName, setRecipientName] = useState<string | null>(null)
+  // Seeded from the entry link (/recipients "Book care for X") in the initial
+  // state, not in an effect: a step's guard ("no recipient, go to /book/who")
+  // runs in a child effect, which fires before a parent effect would have set
+  // the recipient, so seeding later bounced every booking through /book/who.
+  const [recipientId, setRecipientId] = useState<string | null>(() => searchParams.get('recipientId'))
+  const [recipientName, setRecipientName] = useState<string | null>(() =>
+    searchParams.get('recipientId') ? searchParams.get('recipientName') : null,
+  )
   const [bundleCode, setBundleCode] = useState<BundleCode | null>(null)
   const [date, setDate] = useState<string | null>(null)
   const [time, setTime] = useState<string | null>(null)
-
-  // seed recipient from the entry link (/recipients "Book care for X") once
-  useEffect(() => {
-    const id = searchParams.get('recipientId')
-    const name = searchParams.get('recipientName')
-    if (id && !recipientId) {
-      setRecipientId(id)
-      setRecipientName(name)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const hasUnsavedSelections = Boolean(bundleCode)
 
