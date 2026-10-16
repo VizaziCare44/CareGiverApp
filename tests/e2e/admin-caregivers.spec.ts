@@ -23,12 +23,13 @@ test.describe('DEV-036 — Admin Caregivers list', () => {
     await expect(page.getByRole('heading', { name: 'Caregivers' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Caregivers' })).toHaveAttribute('aria-current', 'page')
 
-    // each caregiver shows the name and a status word (an icon sits beside it)
-    const verifiedRow = page.getByRole('listitem').filter({ hasText: `Verified Caregiver ${stamp}` })
+    // each caregiver shows the name and a status word (an icon sits beside it);
+    // rows are matched from the start of the text, since "Unverified" contains "verified"
+    const verifiedRow = page.getByRole('listitem').filter({ hasText: new RegExp(`^Verified Caregiver ${stamp}`) })
     await expect(verifiedRow.getByText('Verified', { exact: true })).toBeVisible()
     await expect(verifiedRow.locator('svg[aria-hidden="true"]')).toHaveCount(1)
 
-    const unverifiedRow = page.getByRole('listitem').filter({ hasText: `Unverified Caregiver ${stamp}` })
+    const unverifiedRow = page.getByRole('listitem').filter({ hasText: new RegExp(`^Unverified Caregiver ${stamp}`) })
     await expect(unverifiedRow.getByText('Not verified', { exact: true })).toBeVisible()
     await expect(unverifiedRow.locator('svg[aria-hidden="true"]')).toHaveCount(1)
 
