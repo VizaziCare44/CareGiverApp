@@ -321,6 +321,28 @@ test.describe('DEV-027 — Password reset', () => {
   })
 })
 
+test.describe('Booking entry', () => {
+  test('TC-ACC-022', async ({ page }) => {
+    // Starting a booking from the recipient list must land on Bundle Selection
+    // directly. It used to bounce through /book/who and back (the step's guard
+    // ran before the draft was seeded), which flickered for users and made
+    // clicks on a busy machine land on a screen that was about to be replaced.
+    const { email, userId, client } = await apiSignUp({ fullName: 'Esther Njeri', phone: '+254700000026' })
+    const recipientId = await apiAddRecipient(client, userId, 'Baba Njeri')
+    await logInViaUI(page, email)
+
+    const requested: string[] = []
+    page.on('request', (r) => requested.push(new URL(r.url()).pathname))
+
+    await page.goto(`/book/bundle?recipientId=${recipientId}&recipientName=Baba%20Njeri`)
+    await expect(page.getByTestId('bundle-card-medicheck')).toBeVisible()
+    await page.waitForLoadState('networkidle')
+
+    expect(requested.filter((p) => p === '/book/who')).toEqual([])
+    await expect(page).toHaveURL(/\/book\/bundle\?recipientId=/)
+  })
+})
+
 // DEV-029 role hardening (DEV-028 audit findings A and B). These go through
 // the real Auth and REST APIs; the pgTAP file in backend-config covers the
 // same rules at the database level.
