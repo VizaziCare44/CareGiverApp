@@ -21,6 +21,15 @@ const config: Config = {
           DEFAULT: 'var(--muted)',
           foreground: 'var(--muted-foreground)',
         },
+        // Figma design language (see app/globals.css): bg-figma-soft, text-figma-ink, ...
+        figma: {
+          ink: 'var(--figma-ink)',
+          soft: 'var(--figma-soft)',
+          softtext: 'var(--figma-softtext)',
+          surface: 'var(--figma-surface)',
+          border: 'var(--figma-border)',
+          line: 'var(--figma-line)',
+        },
         // sage green — primary brand/action color (calm, care-oriented)
         sage: {
           50: '#f1f5f0',

@@ -10,6 +10,17 @@
   --muted: #f0ede6;
   --muted-foreground: #6b665c;
   --border: #e2ddd2;
+
+  /* Figma design language ("Vizazi Care — FD-ACC + FD-VERIFY Wireframes",
+     Components page, variables color/*). The design language going forward;
+     new screens use these (Tailwind `figma-*`), older screens keep the tokens
+     above until they are redesigned. */
+  --figma-ink: #1f2933;
+  --figma-soft: #e3f4f2;
+  --figma-softtext: #0b5f5a;
+  --figma-surface: #f5f7fa;
+  --figma-border: #7b8794;
+  --figma-line: #d9dee4;
 }
 
 body {
