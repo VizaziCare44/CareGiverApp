@@ -37,8 +37,8 @@ const actionText = {
 
 // FR-004, FR-016 / AC-009, AC-018, frames VER-02, 02b, 02c. Admin only
 // (middleware guards /admin; the views and policies are Admin-only as well).
-// Mark as Verified opens its dialog (DEV-038). Remove Verified and Reassign are
-// in place but disabled until DEV-039 and DEV-042/043.
+// Mark as Verified (DEV-038) and Remove Verified (DEV-039) open their dialogs.
+// Reassign is in place but disabled until DEV-042/043.
 export default async function CaregiverDetailPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 

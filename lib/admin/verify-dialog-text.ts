@@ -36,3 +36,33 @@ export function missingForVerify(state: { first: boolean; second: boolean; note:
 export function verifyHint(missing: string[]) {
   return missing.length === 0 ? null : `Still needed: ${missing.join(', ')}.`
 }
+
+// Text of the Remove Verified dialog (DEV-039). A DRAFT, like the above: the
+// wording of frame VER-04 and the three paragraphs of FD-VERIFY §6.1 Flow B were
+// not available. The substance is fixed by the ticket and by what the system
+// does (the caregiver loses their bookings and care notes at once, even during a
+// visit, and the app does not tell them; families see the name only for a visit
+// that has started or finished); the sentences are mine.
+export const REMOVE_DIALOG = {
+  title: (name: string) => `Remove Verified status from ${name}`,
+  consequences: [
+    (name: string) =>
+      `${name} loses access to their assigned bookings and to the care notes at once, even during a visit. The app does not tell them.`,
+    (name: string) =>
+      `Bookings assigned to ${name} that have not started will be listed under "Bookings that need a new caregiver" on this page. You will need to reassign each one.`,
+    () =>
+      'Families with a visit that has not started will see that Vizazi Care is confirming their caregiver, without the name. Families whose visit has started or finished will still see the caregiver\'s name.',
+  ],
+  noteLabel: 'Why are you removing Verified status?',
+  noteHelper:
+    'Write the reason. Do not type ID numbers or other identity document details here. It is kept in the history with your name and the time.',
+  submit: 'Remove Verified status',
+  cancel: 'Cancel',
+  close: 'Close',
+  done: (name: string) => `${name} is no longer Verified.`,
+} as const
+
+/** "Still needed: write the reason." or null once the reason is written. */
+export function removeHint(note: string) {
+  return note.trim() === '' ? 'Still needed: write the reason.' : null
+}
