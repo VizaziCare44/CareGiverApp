@@ -30,6 +30,32 @@ begin
 end;
 $$;
 
+-- The admin API (auth.admin.createUser / updateUserById) inserts the user first
+-- and writes app_metadata in a second step, so the insert trigger above never
+-- sees a role passed that way. This second trigger applies a role from
+-- app_metadata whenever it changes. Removing the key leaves the role as is.
+create function public.sync_role_from_app_metadata()
+returns trigger
+language plpgsql
+security definer set search_path = ''
+as $$
+begin
+  if (new.raw_app_meta_data ->> 'role') is not null
+     and (new.raw_app_meta_data ->> 'role') is distinct from (old.raw_app_meta_data ->> 'role') then
+    update public.profiles
+       set role = (new.raw_app_meta_data ->> 'role')::public.user_role
+     where id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.sync_role_from_app_metadata() from public, anon, authenticated;
+
+create trigger on_auth_user_app_metadata_changed
+  after update of raw_app_meta_data on auth.users
+  for each row execute function public.sync_role_from_app_metadata();
+
 -- Path B: "self update" had no column limit, so a signed-in user could rewrite
 -- their own role. Signed-in users may now change only full_name and phone, and
 -- only on their own row. (email mirrors auth.users and is not editable here.)
@@ -184,6 +210,9 @@ grant execute on function private.is_verified(uuid) to authenticated;
 --   alter table public.bookings drop constraint bookings_status_caregiver_check;
 --   drop index public.bookings_assigned_caregiver_id_idx;
 --   alter table public.bookings drop column assigned_by, drop column assigned_at;
---   -- role hardening: restoring the old behavior re-opens the Admin
---   -- escalation hole, so there is intentionally no reverse for section 1.
+--   drop trigger on_auth_user_app_metadata_changed on auth.users;
+--   drop function public.sync_role_from_app_metadata();
+--   -- the rest of the role hardening has intentionally no reverse: putting
+--   -- back the old trigger or the open profiles update re-opens the Admin
+--   -- escalation hole.
 -- ---------------------------------------------------------------------------

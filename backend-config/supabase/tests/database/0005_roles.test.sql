@@ -1,7 +1,7 @@
 -- Tests for migration 0005 (DEV-029 + role hardening). Run with `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(28);
 
 -- Fixtures: a1 tries to claim admin through user metadata, a2 is provisioned
 -- as a caregiver through app metadata, a3 is an ordinary family member, a4 is
@@ -22,7 +22,19 @@ select is((select role::text from public.profiles where id = '00000000-0000-0000
 select is((select role::text from public.profiles where id = '00000000-0000-0000-0000-0000000000a4'),
   'admin', 'a provisioned admin gets admin');
 
--- 5-9: a signed-in family member
+-- The admin API writes app_metadata after the insert; a change there applies
+-- the role, a change to user metadata never does.
+update auth.users set raw_user_meta_data = '{"role":"admin","full_name":"Meta Admin"}'
+ where id = '00000000-0000-0000-0000-0000000000a3';
+select is((select role::text from public.profiles where id = '00000000-0000-0000-0000-0000000000a3'),
+  'family_member', 'changing user metadata later does not change the role');
+
+update auth.users set raw_app_meta_data = '{"role":"caregiver"}'
+ where id = '00000000-0000-0000-0000-0000000000a1';
+select is((select role::text from public.profiles where id = '00000000-0000-0000-0000-0000000000a1'),
+  'caregiver', 'changing app metadata later applies the role');
+
+-- 7-11: a signed-in family member
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-0000000000a3","role":"authenticated"}', true);
