@@ -47,6 +47,63 @@ test.describe('DEV-033 — Caregiver and family reads', () => {
     expect((await read()).data).toHaveLength(1)
   })
 
+  test('family_bookings shows the caregiver name by the rules, and only to the owning family', async () => {
+    const admin = await createUserWithRole('admin', 'Ada Admin')
+    const caregiver = await createUserWithRole('caregiver', 'Otieno Caregiver')
+    const family = await createUserWithRole('family_member', 'Grace Family')
+    const other = await createUserWithRole('family_member', 'Other Family')
+
+    const recipientId = await apiAddRecipient(family.client, family.userId, 'Mama Grace')
+    const { data: booking } = await family.client
+      .from('bookings')
+      .insert({ account_id: family.userId, care_recipient_id: recipientId, bundle_code: 'medicheck', requested_datetime: tomorrow() })
+      .select('id')
+      .single()
+    const mine = () => family.client.from('family_bookings').select('id, status, caregiver_name, caregiver_verified').eq('id', booking!.id)
+
+    // requested: no caregiver at all
+    expect((await mine()).data).toEqual([{ id: booking!.id, status: 'requested', caregiver_name: null, caregiver_verified: null }])
+
+    await admin.client.rpc('verify_caregiver', { p_caregiver_id: caregiver.userId, p_note: 'Met in person' })
+    await admin.client.rpc('assign_booking', { p_booking_id: booking!.id, p_caregiver_id: caregiver.userId })
+    expect((await mine()).data).toEqual([
+      { id: booking!.id, status: 'assigned', caregiver_name: 'Otieno Caregiver', caregiver_verified: true },
+    ])
+
+    // visit not started and the caregiver is no longer Verified: name withheld
+    await admin.client.rpc('remove_caregiver_verification', { p_caregiver_id: caregiver.userId, p_note: 'Reference failed' })
+    expect((await mine()).data).toEqual([
+      { id: booking!.id, status: 'assigned', caregiver_name: null, caregiver_verified: false },
+    ])
+
+    // nothing else about the caregiver can be asked for
+    const extra = await family.client.from('family_bookings').select('caregiver_id')
+    expect(extra.error).not.toBeNull()
+
+    // another family sees none of it, even when filtering on the hidden value
+    expect((await other.client.from('family_bookings').select('id')).data).toEqual([])
+    const probe = await other.client.from('family_bookings').select('id').like('caregiver_name', '%Otieno%')
+    expect(probe.data).toEqual([])
+  })
+
+  test('the Admin views are for Admins only', async () => {
+    const admin = await createUserWithRole('admin', 'Ada Admin')
+    const caregiver = await createUserWithRole('caregiver', 'Wanjiru Caregiver')
+    const family = await createUserWithRole('family_member', 'Sam Family')
+    await admin.client.rpc('verify_caregiver', { p_caregiver_id: caregiver.userId, p_note: 'Met in person' })
+
+    const list = await admin.client
+      .from('caregiver_overview')
+      .select('full_name, verified, last_changed_by_name')
+      .eq('id', caregiver.userId)
+    expect(list.data).toEqual([{ full_name: 'Wanjiru Caregiver', verified: true, last_changed_by_name: 'Ada Admin' }])
+
+    for (const who of [family, caregiver]) {
+      expect((await who.client.from('caregiver_overview').select('id')).data).toEqual([])
+      expect((await who.client.from('admin_booking_overview').select('id')).data).toEqual([])
+    }
+  })
+
   test('profiles are read-only and private to their owner', async () => {
     const admin = await createUserWithRole('admin', 'Ada Admin')
     const caregiver = await createUserWithRole('caregiver', 'Achieng Caregiver')
