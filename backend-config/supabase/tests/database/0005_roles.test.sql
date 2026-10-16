@@ -42,15 +42,17 @@ select set_config('request.jwt.claims',
 select throws_ok(
   $$update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000a3'$$,
   '42501', null, 'a user cannot change their own role');
-select lives_ok(
+-- 0009 (DEV-033) removed the name/phone update: no API write on profiles at all.
+select throws_ok(
   $$update public.profiles set full_name = 'Fam Renamed' where id = '00000000-0000-0000-0000-0000000000a3'$$,
-  'a user can change their own name');
+  '42501', null, 'a user cannot change their own name either (no API write on profiles)');
 select is((select full_name from public.profiles where id = '00000000-0000-0000-0000-0000000000a3'),
-  'Fam Renamed', 'the name change was saved');
-select throws_ok($$select 1 from public.caregiver_verifications$$, '42501', null,
-  'a signed-in user has no access to caregiver_verifications');
-select throws_ok($$select 1 from public.booking_assignments$$, '42501', null,
-  'a signed-in user has no access to booking_assignments');
+  'Fam Member', 'the name is unchanged');
+-- 0009 grants Admin read only: other signed-in users get no rows.
+select is((select count(*)::int from public.caregiver_verifications), 0,
+  'a signed-in non-Admin sees no caregiver_verifications');
+select is((select count(*)::int from public.booking_assignments), 0,
+  'a signed-in non-Admin sees no booking_assignments');
 
 reset role;
 
