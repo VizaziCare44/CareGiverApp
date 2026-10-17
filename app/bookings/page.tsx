@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
 import { BookingStatus } from '@/components/booking/booking-status'
@@ -50,6 +51,10 @@ export default async function MyBookingsPage() {
               <p className="text-[16px]">{BUNDLES[booking.bundle_code].name}</p>
               <p className="text-[16px] text-figma-muted">{formatDateTime(booking.requested_datetime)}</p>
               <BookingStatus status={booking.status} caregiverVerified={booking.caregiver_verified} />
+              {/* a link of its own, like the Admin queue's: a stray tap on the card does nothing */}
+              <Link href={`/bookings/${booking.id}`} className="inline-flex h-12 items-center self-start text-[16px] font-semibold text-figma-softtext underline">
+                View details
+              </Link>
             </li>
           ))}
         </ul>
