@@ -36,8 +36,12 @@ export function ChooseCaregiverForm({
   caregivers: CaregiverChoice[]
 }) {
   const [selected, setSelected] = useState<string | null>(null)
-  // the choice as it was when Continue was pressed, so the dialog's text holds still
-  const [confirming, setConfirming] = useState<{ id: string; name: string } | null>(null)
+  // the choice as it was when Continue was pressed, so the dialog's text holds still:
+  // the caregiver, and also whether this was an Assign or a Change and who had the
+  // booking. After a conflict the page behind refreshes and the booking may now be
+  // "assigned", which would otherwise turn "Assign caregiver" into "Change caregiver"
+  // under the Admin.
+  const [confirming, setConfirming] = useState<{ id: string; name: string; mode: AssignMode; previous: string | null } | null>(null)
   const [open, setOpen] = useState(false)
 
   // the screen refreshes behind the dialog: a choice that is no longer on offer is dropped
@@ -49,7 +53,7 @@ export function ChooseCaregiverForm({
     event.preventDefault()
     const chosen = caregivers.find((c) => c.id === selected)
     if (!chosen) return
-    setConfirming({ id: chosen.id, name: chosen.name })
+    setConfirming({ id: chosen.id, name: chosen.name, mode, previous: previousCaregiver })
     setOpen(true)
   }
 
@@ -98,10 +102,10 @@ export function ChooseCaregiverForm({
     {/* outside the form: a dialog has a form of its own, and forms cannot nest */}
     <AssignDialog
         open={open}
-        mode={mode}
+        mode={confirming?.mode ?? mode}
         bookingId={bookingId}
         caregiver={confirming}
-        previousCaregiver={previousCaregiver}
+        previousCaregiver={confirming ? confirming.previous : previousCaregiver}
         recipient={recipient}
         onClose={() => setOpen(false)}
         onSelectionCleared={() => setSelected(null)}
