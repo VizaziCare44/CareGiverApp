@@ -1,6 +1,19 @@
 import { CONTACT } from '@/lib/contact'
 
 /**
+ * The same address and mailto link, inline in a sentence (DEV-048's message; the
+ * founder kept it inline there, not on its own row). Underlined, so it does not
+ * rely on colour. The shared setting is the one the address row uses.
+ */
+export function ContactEmailLink() {
+  return (
+    <a href={`mailto:${CONTACT.email}`} className="text-figma-softtext underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary">
+      {CONTACT.email}
+    </a>
+  )
+}
+
+/**
  * The address row (DECIDED, founder, 2026-10-16; FD-VISIT §6.6(m); frames VER-11
  * and VER-11b): the address as an underlined mail link on its own row, at least
  * 44px high and the full width of its container, with the full stop after it.
