@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { MissingBookingHelp } from '@/components/caregiver/missing-booking-help'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
@@ -18,8 +19,8 @@ interface Assignment {
 // while it is assigned to them and they are currently Verified (migration 0009),
 // so a booking that was reassigned, or whose caregiver lost Verified, is simply
 // not returned. Under the list, and under the empty message, the line about
-// contacting Vizazi Care. A Caregiver lands here after Log In. The rows have no
-// link yet: Assignment Detail is DEV-048.
+// contacting Vizazi Care. A Caregiver lands here after Log In. Each row has a link
+// of its own to Assignment Detail (DEV-048).
 export default async function MyAssignmentsPage() {
   const supabase = await createClient()
   const {
@@ -52,6 +53,10 @@ export default async function MyAssignmentsPage() {
               <p className="text-[18px] font-semibold leading-[1.3]">{formatDateTime(assignment.requested_datetime)}</p>
               <p className="text-[16px] leading-[1.4]">{assignment.care_recipients?.name}</p>
               <p className="text-[16px] leading-[1.4] text-figma-muted">{BUNDLE_LINES[assignment.bundle_code]}</p>
+              {/* a link of its own, like My Bookings and the Admin queue: a stray tap on the card does nothing */}
+              <Link href={`/assignments/${assignment.id}`} className="inline-flex h-12 items-center self-start text-[16px] font-semibold text-figma-softtext underline">
+                View details
+              </Link>
             </li>
           ))}
         </ul>
