@@ -34,7 +34,7 @@ test.describe('factories — accounts', () => {
 })
 
 test.describe('factories — makeCaregiver({ verified })', () => {
-  test('true is one verified row, false is none, "removed" is verified then verification_removed, written in order', async () => {
+  test('true is one verified row, false is none, "removed" is verified then removed, written in order', async () => {
     const admin = await makeAdmin()
     const [yes, no, removed] = await Promise.all([makeCaregiver({ verified: true }), makeCaregiver(), makeCaregiver({ verified: 'removed' })])
 
@@ -44,10 +44,10 @@ test.describe('factories — makeCaregiver({ verified })', () => {
     expect((await rowsOf(yes.userId)).map((r) => r.action)).toEqual(['verified'])
     expect(await rowsOf(no.userId)).toEqual([])
     const history = await rowsOf(removed.userId)
-    expect(history.map((r) => r.action)).toEqual(['verified', 'verification_removed'])
+    expect(history.map((r) => r.action)).toEqual(['verified', 'removed'])
     expect(new Date(history[1].created_at).getTime()).toBeGreaterThan(new Date(history[0].created_at).getTime())
     // what the factory returns is what was written
-    expect(removed.history.map((r) => r.action)).toEqual(['verified', 'verification_removed'])
+    expect(removed.history.map((r) => r.action)).toEqual(['verified', 'removed'])
 
     // and the database agrees about who is Verified now (the Admin's own view of it)
     const overview = await admin.client.from('caregiver_overview').select('id, verified').in('id', [yes.userId, no.userId, removed.userId])

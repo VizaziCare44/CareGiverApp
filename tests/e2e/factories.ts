@@ -74,7 +74,7 @@ export type VerifiedState = true | false | 'removed'
 
 export interface HistoryRow {
   id: string
-  action: 'verified' | 'verification_removed'
+  action: 'verified' | 'removed'
   created_at: string
 }
 
@@ -87,7 +87,7 @@ export interface TestCaregiver extends TestUser {
  * A Caregiver account. `verified`:
  *   true      one `verified` history row (currently Verified)
  *   false     no history rows (never Verified; the default)
- *   'removed' a `verified` row, then a `verification_removed` row: Not verified,
+ *   'removed' a `verified` row, then a `removed` row: Not verified,
  *             with a history (the states behind Booking Detail states 3 and 4,
  *             and the Remove Verified cases)
  * Rows are written one at a time, in order, so each gets a later `created_at`
@@ -97,7 +97,7 @@ export interface TestCaregiver extends TestUser {
 export async function makeCaregiver({ verified = false, fullName }: { verified?: VerifiedState; fullName?: string } = {}): Promise<TestCaregiver> {
   const caregiver = await makeUser('caregiver', fullName ?? `Caregiver ${uniqueTag()}`)
   const admin = await factoryAdmin()
-  const actions: HistoryRow['action'][] = verified === true ? ['verified'] : verified === 'removed' ? ['verified', 'verification_removed'] : []
+  const actions: HistoryRow['action'][] = verified === true ? ['verified'] : verified === 'removed' ? ['verified', 'removed'] : []
 
   const history: HistoryRow[] = []
   for (const action of actions) {
