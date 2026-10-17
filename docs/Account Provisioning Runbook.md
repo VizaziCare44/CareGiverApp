@@ -44,7 +44,7 @@ Done in the app, by the Admin, never by script:
 
 No ID number, ID image or background-check document is stored anywhere (AC-017). The note describes what was checked, not the documents.
 
-> **Status:** the Caregivers screens (DEV-036 to DEV-039) are not built yet. The rule above is already enforced in the database: an unverified caregiver cannot be assigned, and Verified or not is always the latest entry in the history. Until the screens ship, do not promise anyone this step can be done from the app.
+> **Status:** the Caregivers screens and the Mark as Verified dialog are built (DEV-036 to DEV-039, in review). The rule is also enforced in the database: an unverified caregiver cannot be assigned, and Verified or not is always the latest entry in the history.
 
 ## 4. Hand over the login
 
@@ -81,4 +81,5 @@ It should contain exactly the people you expect and no test accounts. At the tim
 
 - A change-password screen, or a decision that the temporary password is acceptable for Beta.
 - Email delivery for **Forgot password** and for family sign-up confirmation. As I understand Supabase's built-in email service, it only delivers to members of the Supabase project's own team and is rate-limited, so real families will need a custom email provider. Check the current Supabase docs before relying on it.
-- Caregiver sign-in lands on **My Assignments** once DEV-047 is built.
+- A signed-in caregiver lands on **My assignments** (DEV-047, in review).
+- The production release steps, including the rehearsal this section was written for, are in `docs/Production Release Runbook.md` (DEV-052).
