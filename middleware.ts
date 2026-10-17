@@ -1,11 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/sign-up', '/log-in', '/forgot-password']
-const AUTH_PREFIX = '/auth/'
-const ADMIN_PREFIX = '/admin'
-const FAMILY_PREFIXES = ['/recipients', '/book']
-const CAREGIVER_PREFIXES = ['/assignments']
+import { AUTH_PREFIX, areaFor, homeFor, isPublicPath } from '@/lib/route-guard'
 
 /**
  * CSP note: nonce-based `script-src` was tried and reverted. Per Next.js's
@@ -62,7 +58,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
-  const isPublic = PUBLIC_PATHS.includes(pathname)
+  const isPublic = isPublicPath(pathname)
 
   // /auth/confirm and /auth/auth-code-error must be reachable while
   // unauthenticated regardless of the isPublic/redirect logic below — the
@@ -84,24 +80,19 @@ export async function middleware(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const role = profile?.role
 
-  // each role's own area: where a signed-in user lands, and where they are sent
-  // back to when they ask for another role's screens (DEV-047 added the Caregiver's)
-  const home = role === 'admin' ? '/admin/queue' : role === 'caregiver' ? '/assignments' : '/recipients'
+  // each role has its own area (lib/route-guard.ts): a signed-in user lands there
+  // after Log In, and is sent back there when they ask for another role's screens.
+  // A role the app does not know (no profile row) has no area: it may see the
+  // public pages, but nothing behind them, and is never sent round in a circle.
+  const home = homeFor(role)
 
   if (isPublic || pathname === '/') {
-    return NextResponse.redirect(new URL(home, request.url))
+    return home ? NextResponse.redirect(new URL(home, request.url)) : applySecurityHeaders(response)
   }
 
-  if (pathname.startsWith(ADMIN_PREFIX) && role !== 'admin') {
-    return NextResponse.redirect(new URL(home, request.url))
-  }
-
-  if (FAMILY_PREFIXES.some((p) => pathname.startsWith(p)) && role !== 'family_member') {
-    return NextResponse.redirect(new URL(role === 'admin' || role === 'caregiver' ? home : '/log-in', request.url))
-  }
-
-  if (CAREGIVER_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) && role !== 'caregiver') {
-    return NextResponse.redirect(new URL(role === 'admin' || role === 'family_member' ? home : '/log-in', request.url))
+  const area = areaFor(pathname)
+  if (area && area.role !== role) {
+    return NextResponse.redirect(new URL(home ?? '/log-in', request.url))
   }
 
   return applySecurityHeaders(response)
