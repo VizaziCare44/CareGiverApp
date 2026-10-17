@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { ActionLink } from '@/components/ui/action-button'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
 
 // FR-006. Generic confirmation — no per-visit detail is promised here yet
@@ -28,6 +29,10 @@ export default function ConfirmationPage() {
       <Link href="/recipients" className="w-full">
         <Button className="w-full">Done</Button>
       </Link>
+      {/* DEV-046: the way into My Bookings; the only addition to this screen */}
+      <ActionLink href="/bookings" variant="secondary" className="w-full">
+        View my bookings
+      </ActionLink>
     </main>
   )
 }
