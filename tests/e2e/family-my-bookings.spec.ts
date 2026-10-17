@@ -82,6 +82,27 @@ test.describe('DEV-044 — family My Bookings', () => {
       await expect(card(page, label, stamp).locator('svg')).toHaveCount(0)
     }
 
+    // the Figma chips: Chip/Clock is an amber pill (#fff3dc, text #7a4100), Chip/Check a soft-green pill
+    // (#e3f4f2, text #0b5f5a); In progress and Completed are plain text with no pill
+    const amber = { bg: 'rgb(255, 243, 220)', text: 'rgb(122, 65, 0)' }
+    const soft = { bg: 'rgb(227, 244, 242)', text: 'rgb(11, 95, 90)' }
+    for (const [label, words, colours] of [
+      ['Waiting', 'Awaiting caregiver assignment', amber],
+      ['Lost', 'Confirming your caregiver', amber],
+      ['Assigned', 'Caregiver assigned', soft],
+    ] as const) {
+      const chip = card(page, label, stamp).getByText(words)
+      await expect(chip).toHaveCSS('background-color', colours.bg)
+      await expect(chip).toHaveCSS('color', colours.text)
+      await expect(chip).toHaveCSS('font-size', '14px')
+      await expect(chip).toHaveCSS('border-top-left-radius', '9999px')
+      // the pill hugs its words (Figma's Chip/Clock is 250px wide), it does not stretch across the card
+      expect((await chip.boundingBox())!.width).toBeLessThan(300)
+    }
+    for (const [label, words] of [['Started', 'In progress'], ['Done', 'Completed']] as const) {
+      await expect(card(page, label, stamp).getByText(words, { exact: true })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+    }
+
     // the icon is decorative: the words carry the meaning
     await expect(page.locator('svg[data-icon]').first()).toHaveAttribute('aria-hidden', 'true')
     // the family is told their caregiver is being confirmed, never that the caregiver lost Verified

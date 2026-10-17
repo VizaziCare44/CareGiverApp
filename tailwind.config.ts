@@ -32,6 +32,8 @@ const config: Config = {
           primary: 'var(--figma-primary)',
           danger: 'var(--figma-danger)',
           muted: 'var(--figma-muted)',
+          amber: 'var(--figma-amber)',
+          ambertext: 'var(--figma-ambertext)',
         },
         // sage green — primary brand/action color (calm, care-oriented)
         sage: {

@@ -24,6 +24,8 @@
   --figma-primary: #0b6e69;
   --figma-danger: #b42318;
   --figma-muted: #52606d;
+  --figma-amber: #fff3dc;
+  --figma-ambertext: #7a4100;
 }
 
 body {
