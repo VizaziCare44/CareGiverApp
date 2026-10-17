@@ -5,6 +5,7 @@ const PUBLIC_PATHS = ['/sign-up', '/log-in', '/forgot-password']
 const AUTH_PREFIX = '/auth/'
 const ADMIN_PREFIX = '/admin'
 const FAMILY_PREFIXES = ['/recipients', '/book']
+const CAREGIVER_PREFIXES = ['/assignments']
 
 /**
  * CSP note: nonce-based `script-src` was tried and reverted. Per Next.js's
@@ -83,16 +84,24 @@ export async function middleware(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   const role = profile?.role
 
+  // each role's own area: where a signed-in user lands, and where they are sent
+  // back to when they ask for another role's screens (DEV-047 added the Caregiver's)
+  const home = role === 'admin' ? '/admin/queue' : role === 'caregiver' ? '/assignments' : '/recipients'
+
   if (isPublic || pathname === '/') {
-    return NextResponse.redirect(new URL(role === 'admin' ? '/admin/queue' : '/recipients', request.url))
+    return NextResponse.redirect(new URL(home, request.url))
   }
 
   if (pathname.startsWith(ADMIN_PREFIX) && role !== 'admin') {
-    return NextResponse.redirect(new URL('/recipients', request.url))
+    return NextResponse.redirect(new URL(home, request.url))
   }
 
   if (FAMILY_PREFIXES.some((p) => pathname.startsWith(p)) && role !== 'family_member') {
-    return NextResponse.redirect(new URL(role === 'admin' ? '/admin/queue' : '/log-in', request.url))
+    return NextResponse.redirect(new URL(role === 'admin' || role === 'caregiver' ? home : '/log-in', request.url))
+  }
+
+  if (CAREGIVER_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) && role !== 'caregiver') {
+    return NextResponse.redirect(new URL(role === 'admin' || role === 'family_member' ? home : '/log-in', request.url))
   }
 
   return applySecurityHeaders(response)

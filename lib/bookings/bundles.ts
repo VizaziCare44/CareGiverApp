@@ -45,3 +45,14 @@ export const BUNDLES: Record<BundleCode, BundleContent> = {
 }
 
 export const BUNDLE_LIST = Object.values(BUNDLES)
+
+/**
+ * The bundle line shown on the Caregiver's screens (FD-ACC §6.7; FD-VISIT
+ * §6.6(k)(c)): exactly these two strings, with no hyphen before "hour" in the
+ * second. One constant, so My Assignments (DEV-047), Assignment Detail (DEV-048)
+ * and the FD-VISIT screens (DEV-063) cannot drift apart.
+ */
+export const BUNDLE_LINES: Record<BundleCode, string> = {
+  medicheck: 'MediCheck · 3-hour visit',
+  doctors_day_out: "Doctor's Day Out · 4–5 hour visit",
+}
