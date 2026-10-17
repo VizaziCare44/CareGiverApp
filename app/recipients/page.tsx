@@ -22,7 +22,13 @@ export default async function RecipientsPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-10">
-      <h1 className="text-2xl text-foreground">Care recipients</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl text-foreground">Care recipients</h1>
+        {/* DEV-046: the way into My Bookings; the only addition to this screen */}
+        <Link href="/bookings" className="inline-flex h-12 items-center text-[16px] font-semibold text-figma-softtext underline">
+          My bookings
+        </Link>
+      </div>
 
       {list.length === 0 ? (
         <Card className="flex flex-col items-center gap-4 text-center">
