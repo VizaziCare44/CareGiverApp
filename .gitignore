@@ -9,6 +9,7 @@ npm-debug.log*
 test-results/
 playwright-report/
 playwright/.cache/
+playwright/.auth/
 supabase/.branches/
 supabase/.temp/
 next-env.d.ts

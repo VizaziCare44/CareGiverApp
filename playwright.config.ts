@@ -19,7 +19,25 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // DEV-055: signs in each seeded persona once, before the other tests (tests/e2e/personas.ts)
+    { name: 'setup', testMatch: /.*\.setup\.ts/, use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testIgnore: /seed-accounts\.spec\.ts/,
+    },
+    // The seed's own tests change the shared starter-set rows (passwords, roles, a booking's
+    // status) and put them back, so they run on their own, after every other test, and can
+    // never disturb a persona session another test is using.
+    {
+      name: 'seed-data',
+      testMatch: /seed-accounts\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['chromium'],
+    },
+  ],
   webServer: {
     // CI tests the production build — what's actually about to be deployed
     // — rather than next dev, which needs the dev-only CSP 'unsafe-eval'
