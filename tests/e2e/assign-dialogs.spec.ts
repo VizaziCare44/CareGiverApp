@@ -199,6 +199,10 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: 'Assign caregiver' }).click()
     await expect(dialog.getByRole('alert')).toContainText('This booking has changed since you opened it')
+    // wait for the page behind to refresh (the booking is now assigned to A), then check the
+    // dialog's own words have not turned into the Change flow's under the Admin
+    await expect(page.locator('label').filter({ hasText: `Dialog A ${stamp}` }).getByText('Currently assigned')).toBeAttached()
+    await expect(dialog.getByRole('heading', { name: `Assign Dialog B ${stamp} to this booking` })).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Assign caregiver' })).toBeDisabled()
     await expect(dialog.getByText(/BOOKING_NOT_REQUESTED/)).toHaveCount(0)
 
