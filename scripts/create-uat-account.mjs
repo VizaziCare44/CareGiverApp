@@ -22,9 +22,9 @@
 
 import { randomBytes } from 'node:crypto'
 import { fail, loadEnvLocal, parseArgs, serviceClient } from './_common.mjs'
+import { ALLOWED_HOSTS, hostOf, isAllowedHost } from './seed/allow-list.mjs'
 
 const ROLES = ['family_member', 'caregiver', 'admin']
-const ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'fzkwbajawfircwfzwbjg.supabase.co']
 const DOMAIN = 'test.vizazicare.example'
 const NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const USAGE =
@@ -44,13 +44,9 @@ async function main() {
   loadEnvLocal()
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!url) fail('NEXT_PUBLIC_SUPABASE_URL is required (set in .env.local or the environment).')
-  let host
-  try {
-    host = new URL(url).hostname
-  } catch {
-    fail(`NEXT_PUBLIC_SUPABASE_URL is not a valid address: ${url}`)
-  }
-  if (!ALLOWED_HOSTS.includes(host)) {
+  const host = hostOf(url)
+  if (!host) fail(`NEXT_PUBLIC_SUPABASE_URL is not a valid address: ${url}`)
+  if (!isAllowedHost(host)) {
     fail(
       `Refusing to run: ${host} is not on the UAT allow-list (${ALLOWED_HOSTS.join(', ')}). ` +
         'UAT accounts are only ever created on the local stack and the dev project, never on production.',
