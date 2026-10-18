@@ -69,28 +69,18 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
           } >> "$GITHUB_ENV"
 
-      # DEV-054/DEV-055: the starter set (admin1, cg1 to cg3, fm1 to fm5) is seeded
-      # into the throwaway local database before the tests, with a password made up
-      # for this run alone (masked, kept nowhere); the persona sign-in setup in
-      # Playwright then signs each one in once. The seed refuses any database that is
-      # not the local stack or the dev project.
-      - name: Make this run's seed password
-        run: |
-          PW="Seed-$(openssl rand -hex 16)"
-          echo "::add-mask::$PW"
-          echo "SEED_TEST_PASSWORD=$PW" >> "$GITHUB_ENV"
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Seed the starter set
-        run: npm run seed
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
-        run: npx playwright test
+      # DEV-056: the same one command a developer runs (tests/README.md): reset the local
+      # database from the migrations, seed the starter set with a password made up for this
+      # run (masked, kept nowhere), then run Playwright, whose setup project signs each
+      # seeded user in once (DEV-055).
+      - name: Reset, seed and run the tests (npm run e2e:fresh)
+        run: npm run e2e:fresh
 
       - name: Supabase logs on failure
         if: failure()
