@@ -11,7 +11,8 @@
     "provision-account": "node scripts/provision-account.mjs",
     "reset-password": "node scripts/reset-password.mjs",
     "create-uat-account": "node scripts/create-uat-account.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "e2e:fresh": "node scripts/e2e-fresh.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

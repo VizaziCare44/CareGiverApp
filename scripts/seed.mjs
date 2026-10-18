@@ -2,7 +2,7 @@
 // DEV-054: the test seed (Test_Data_Strategy.md §8 T2, §4, §6). Creates the starter
 // set of accounts, care recipients and bookings, by module. Today there is one
 // module, `accounts`; DEV-051's seedVerification and DEV-056's e2e:fresh wrapper
-// register theirs in the MODULES table below.
+// register theirs in scripts/seed/modules.mjs.
 //
 // THE GUARD (§6): it refuses to run unless the database address is localhost or the
 // dev project on the explicit list in scripts/seed/allow-list.mjs. Production is
@@ -22,9 +22,8 @@
 
 import { fail, loadEnvLocal, parseArgs, serviceClient } from './_common.mjs'
 import { ALLOWED_HOSTS, hostOf, isAllowedHost } from './seed/allow-list.mjs'
-import { seedAccounts } from './seed/accounts.mjs'
+import { MODULES } from './seed/modules.mjs'
 
-const MODULES = { accounts: seedAccounts }
 const MIN_PASSWORD_LENGTH = 12
 const USAGE = `Usage: SEED_TEST_PASSWORD=... node scripts/seed.mjs [--module ${Object.keys(MODULES).join('|')}]`
 
