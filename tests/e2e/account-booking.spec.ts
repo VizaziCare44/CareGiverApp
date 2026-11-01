@@ -87,7 +87,7 @@ test.describe('AC-002 — Bundle restriction', () => {
     const { error } = await client.from('bookings').insert({
       account_id: userId,
       care_recipient_id: recipientId,
-      // @ts-expect-error deliberately outside the bundle_code enum (BR-001)
+      // deliberately outside the bundle_code enum (BR-001); the client is untyped, so this compiles
       bundle_code: 'full_circle',
       requested_datetime: new Date().toISOString(),
     })
