@@ -10,7 +10,13 @@
 //     has its date moved to the new "relative to now"; one that has moved on (assigned,
 //     in progress, completed, cancelled) is left exactly as it is;
 //   - NOTHING IS EVER DELETED, and nothing outside the starter set is touched.
-// It writes no verification or assignment rows: those are DEV-051's.
+// It writes no verification or assignment rows: those are the `verification` module's
+// (verification.mjs, DEV-051).
+//
+// Two modules live here: `accounts` (everything above) and `admin` (admin1 alone: no
+// caregivers, no families, no recipients, no bookings), for the empty-state checks
+// (TC-VER-063). `accounts` on its own is the other empty state the Admin can reach:
+// caregivers exist and none is Verified.
 
 import { ACCOUNTS, BOOKINGS, RECIPIENTS } from './starter-set.mjs'
 import { nairobiTime } from './dates.mjs'
@@ -26,16 +32,24 @@ async function listEmailToId(supabase) {
   return byEmail
 }
 
-export async function seedAccounts({ supabase, password, now = new Date() }) {
-  const summary = {
-    accounts: { created: 0, restored: 0 },
-    recipients: { created: 0, restored: 0 },
-    bookings: { created: 0, redated: 0, left: 0 },
+/** The user id of every starter-set account that exists, by key (admin1, cg1, fm3, ...). */
+export async function findAccountIds(supabase) {
+  const emailToId = await listEmailToId(supabase)
+  const ids = {}
+  for (const account of ACCOUNTS) {
+    const id = emailToId.get(account.email)
+    if (id) ids[account.key] = id
   }
+  return ids
+}
+
+/** Creates, or puts back, the given accounts and their profile rows. */
+async function seedAccountRows(supabase, password, accounts) {
+  const summary = { created: 0, restored: 0 }
   const ids = {} // account key -> user id
   const emailToId = await listEmailToId(supabase)
 
-  for (const account of ACCOUNTS) {
+  for (const account of accounts) {
     const attributes = {
       password,
       email_confirm: true,
@@ -47,12 +61,12 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
     if (id) {
       const { error } = await supabase.auth.admin.updateUserById(id, attributes)
       if (error) throw new Error(`could not restore ${account.email}: ${error.message}`)
-      summary.accounts.restored += 1
+      summary.restored += 1
     } else {
       const { data, error } = await supabase.auth.admin.createUser({ email: account.email, ...attributes })
       if (error || !data.user) throw new Error(`could not create ${account.email}: ${error?.message}`)
       id = data.user.id
-      summary.accounts.created += 1
+      summary.created += 1
     }
     ids[account.key] = id
 
@@ -61,6 +75,25 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
     const { error: profileError } = await supabase.from('profiles').upsert(profile, { onConflict: 'id' })
     if (profileError) throw new Error(`could not restore the profile of ${account.email}: ${profileError.message}`)
   }
+  return { summary, ids }
+}
+
+const emptySummary = () => ({
+  accounts: { created: 0, restored: 0 },
+  recipients: { created: 0, restored: 0 },
+  bookings: { created: 0, redated: 0, left: 0 },
+})
+
+/** admin1 alone: the Admin with no caregivers, no families, no recipients and no bookings. */
+export async function seedAdmin({ supabase, password }) {
+  const { summary } = await seedAccountRows(supabase, password, ACCOUNTS.filter((account) => account.key === 'admin1'))
+  return { ...emptySummary(), accounts: summary }
+}
+
+export async function seedAccounts({ supabase, password, now = new Date() }) {
+  const result = emptySummary()
+  const { summary, ids } = await seedAccountRows(supabase, password, ACCOUNTS)
+  result.accounts = summary
 
   const recipientIds = {} // recipient key -> id
   for (const recipient of RECIPIENTS) {
@@ -76,7 +109,7 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
       if ((found.care_notes ?? null) !== recipient.careNotes) {
         const { error: updateError } = await supabase.from('care_recipients').update({ care_notes: recipient.careNotes }).eq('id', found.id)
         if (updateError) throw new Error(`could not restore ${recipient.name}: ${updateError.message}`)
-        summary.recipients.restored += 1
+        result.recipients.restored += 1
       }
       recipientIds[recipient.key] = found.id
     } else {
@@ -87,7 +120,7 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
         .single()
       if (insertError || !created) throw new Error(`could not create ${recipient.name}: ${insertError?.message}`)
       recipientIds[recipient.key] = created.id
-      summary.recipients.created += 1
+      result.recipients.created += 1
     }
   }
 
@@ -110,15 +143,15 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
         status: 'requested',
       })
       if (insertError) throw new Error(`could not create ${booking.key}: ${insertError.message}`)
-      summary.bookings.created += 1
+      result.bookings.created += 1
     } else if (found.status === 'requested') {
       const { error: updateError } = await supabase.from('bookings').update({ requested_datetime: visit }).eq('id', found.id)
       if (updateError) throw new Error(`could not re-date ${booking.key}: ${updateError.message}`)
-      summary.bookings.redated += 1
+      result.bookings.redated += 1
     } else {
-      summary.bookings.left += 1
+      result.bookings.left += 1
     }
   }
 
-  return summary
+  return result
 }

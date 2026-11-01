@@ -52,4 +52,31 @@ export const BOOKINGS = [
   { key: 'B8', recipient: 'r2', bundle: 'doctors_day_out', days: 7, hour: 9 },
 ]
 
-export const STARTER_SET = { EMAIL_DOMAIN, ACCOUNTS, RECIPIENTS, BOOKINGS }
+// The verification rows and assignments of the starter set (Test_Data_Strategy.md §3.4),
+// written by the `verification` module (verification.mjs, DEV-051). ALSO A DRAFT: the
+// document was not available, so which caregiver is Verified and which booking is in
+// which state is a guess, chosen so every FD-VERIFY state has a row to look at:
+//   cg1 Verified, cg2 Verified, cg3 was Verified and then removed (Not verified, with a history)
+//   B1 assigned to cg1, B2 assigned to cg2        a Verified caregiver (Booking Detail state 2)
+//   B4 assigned to cg3                            the caregiver is no longer Verified (state 3, and
+//                                                 the Admin queue flag "Caregiver no longer Verified")
+//   B6 in progress with cg2, B7 completed with cg1 (DEV-070 expects exactly these two)
+//   B3, B5 and B8 stay requested, so there are always requests left to assign
+// `days` and `hour` move a started or finished visit to now-ish (Nairobi time); without them the
+// booking keeps the date the accounts module gave it. A caregiver's state is one of
+// 'verified', 'removed' (a verified row, then a removed row) or 'none' (no rows).
+export const VERIFICATION = [
+  { caregiver: 'cg1', state: 'verified' },
+  { caregiver: 'cg2', state: 'verified' },
+  { caregiver: 'cg3', state: 'removed' },
+]
+
+export const ASSIGNMENTS = [
+  { booking: 'B1', caregiver: 'cg1', status: 'assigned' },
+  { booking: 'B2', caregiver: 'cg2', status: 'assigned' },
+  { booking: 'B4', caregiver: 'cg3', status: 'assigned' },
+  { booking: 'B6', caregiver: 'cg2', status: 'in_progress', days: 0, hour: 9 },
+  { booking: 'B7', caregiver: 'cg1', status: 'completed', days: -1, hour: 9 },
+]
+
+export const STARTER_SET = { EMAIL_DOMAIN, ACCOUNTS, RECIPIENTS, BOOKINGS, VERIFICATION, ASSIGNMENTS }

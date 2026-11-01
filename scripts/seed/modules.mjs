@@ -1,12 +1,26 @@
-// The registry of seed modules, in the order they run. One place: `npm run seed`
-// (scripts/seed.mjs) and the `e2e:fresh` wrapper (scripts/e2e-fresh.mjs) both read
-// it. DEV-051's seedVerification is registered by adding one line here, after
-// `accounts` (the verification rows belong to accounts that already exist).
+// The registry of seed modules. One place: `npm run seed` (scripts/seed.mjs) and the
+// `e2e:fresh` wrapper (scripts/e2e-fresh.mjs) both read it.
+//
+//   accounts      the starter set: 9 accounts, 5 care recipients, 8 bookings (all requested).
+//                 On its own it is the empty state "caregivers exist and none is Verified".
+//   admin         admin1 alone: no caregivers, no families, no bookings. The empty state
+//                 "no caregivers yet" (TC-VER-063). Not part of the default run.
+//   verification  (DEV-051) the caregivers' Verified history and the assigned, in progress
+//                 and completed bookings, on top of `accounts`. Needs `accounts` first.
+//
+// MODULES is every module there is, in the order they should run when several are asked
+// for; DEFAULT_MODULES is what a plain `npm run e2e:fresh` runs: the full set, with the
+// verification rows. `admin` stays out of it, because it is the same admin1 `accounts`
+// already makes, kept for the runs that want nothing else.
 
-import { seedAccounts } from './accounts.mjs'
+import { seedAccounts, seedAdmin } from './accounts.mjs'
+import { seedVerification } from './verification.mjs'
 
 export const MODULES = {
   accounts: seedAccounts,
+  admin: seedAdmin,
+  verification: seedVerification,
 }
 
 export const MODULE_NAMES = Object.keys(MODULES)
+export const DEFAULT_MODULES = ['accounts', 'verification']

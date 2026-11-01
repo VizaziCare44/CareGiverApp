@@ -30,6 +30,30 @@ test.describe('DEV-056 — e2e:fresh', () => {
     expect(seed).toBeGreaterThan(reset)
     expect(run).toBeGreaterThan(seed)
     expect(out).toContain('nothing was done')
+
+    // a plain run seeds the full set: accounts, then the verification rows that need them
+    const verification = out.indexOf('seed module "verification"')
+    expect(verification).toBeGreaterThan(seed)
+    expect(run).toBeGreaterThan(verification)
+    // admin1 alone is for the runs that ask for it, not a plain run
+    expect(out).not.toContain('seed module "admin"')
+  })
+
+  test('the empty states: --seed admin is admin1 alone, --seed accounts has caregivers and none Verified', () => {
+    const adminOnly = plan(['--seed', 'admin'], { NEXT_PUBLIC_SUPABASE_URL: LOCAL })
+    expect(adminOnly.status, adminOnly.stderr).toBe(0)
+    expect(adminOnly.stdout).toContain('seed module "admin"')
+    expect(adminOnly.stdout).not.toContain('seed module "accounts"')
+    expect(adminOnly.stdout).not.toContain('seed module "verification"')
+
+    const noVerification = plan(['--seed', 'accounts'], { NEXT_PUBLIC_SUPABASE_URL: LOCAL })
+    expect(noVerification.status, noVerification.stderr).toBe(0)
+    expect(noVerification.stdout).toContain('seed module "accounts"')
+    expect(noVerification.stdout).not.toContain('seed module "verification"')
+
+    // the modules named run in the order given
+    const both = plan(['--seed', 'accounts,verification'], { NEXT_PUBLIC_SUPABASE_URL: LOCAL })
+    expect(both.stdout.indexOf('seed module "accounts"')).toBeLessThan(both.stdout.indexOf('seed module "verification"'))
   })
 
   test('--no-reset keeps the database; --seed picks the modules; the rest goes to Playwright', () => {

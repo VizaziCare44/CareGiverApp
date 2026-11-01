@@ -25,7 +25,13 @@ npm run e2e:fresh -- --no-reset              # keep the database as it is (local
 npm run e2e:fresh -- --grep "route guarding" # anything else goes to Playwright
 ```
 
-Seed modules are listed in `scripts/seed/modules.mjs`. Today there is one, `accounts`: 9 profiles (admin1, cg1 to cg3, fm1 to fm5), 5 care recipients and 8 bookings, on `…@test.vizazicare.example` addresses.
+Seed modules are listed in `scripts/seed/modules.mjs`; a plain run seeds `accounts` then `verification`:
+
+- `accounts`: 9 profiles (admin1, cg1 to cg3, fm1 to fm5), 5 care recipients and 8 bookings, all requested, on `…@test.vizazicare.example` addresses. Run on its own it is the empty state "caregivers exist and none is Verified" (`--seed accounts`).
+- `verification`: on top of that, cg1 and cg2 Verified, cg3 Verified and then removed, bookings assigned (with their assignment rows), one in progress and one completed. Needs `accounts` first.
+- `admin`: admin1 alone, nothing else: the empty state "no caregivers yet" (`--seed admin`). Not in a plain run.
+
+(The data these modules write is a draft until it is checked against Test_Data_Strategy.md: see `scripts/seed/starter-set.mjs`.)
 
 ## The passwords
 

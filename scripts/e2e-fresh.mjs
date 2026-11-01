@@ -10,7 +10,9 @@
 //
 // Usage:
 //   npm run e2e:fresh                      reset, seed every module, run all tests
-//   npm run e2e:fresh -- --seed accounts   seed only these modules (comma separated)
+//   npm run e2e:fresh -- --seed accounts   seed only these modules (comma separated); the empty
+//                                          states: --seed accounts (caregivers, none Verified)
+//                                          and --seed admin (admin1 alone)
 //   npm run e2e:fresh -- --no-reset        keep the database as it is (local only)
 //   npm run e2e:fresh -- --dev-fallback    the fallback on the dev project: NO reset
 //   npm run e2e:fresh -- --dry-run         print the plan and stop
@@ -34,13 +36,13 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { fail, loadEnvLocal } from './_common.mjs'
 import { ALLOWED_HOSTS, hostOf, isAllowedHost } from './seed/allow-list.mjs'
-import { MODULE_NAMES } from './seed/modules.mjs'
+import { DEFAULT_MODULES, MODULE_NAMES } from './seed/modules.mjs'
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1']
 const BACKEND_DIR = process.env.E2E_BACKEND_CONFIG_DIR ?? 'backend-config'
 const USAGE =
   'Usage: npm run e2e:fresh -- [--seed accounts[,..]] [--no-reset] [--dev-fallback] [--dry-run] [playwright arguments]\n' +
-  `  seed modules: ${MODULE_NAMES.join(', ')}`
+  `  seed modules: ${MODULE_NAMES.join(', ')} (default: ${DEFAULT_MODULES.join(', ')})`
 
 function parseFlags(argv) {
   const flags = { dryRun: false, noReset: false, devFallback: false, seed: null, rest: [] }
@@ -98,7 +100,7 @@ async function main() {
   const flags = parseFlags(process.argv.slice(2))
 
   // which seed modules: all registered ones by default, in registry order
-  const modules = flags.seed === null ? MODULE_NAMES : flags.seed.split(',').map((name) => name.trim()).filter(Boolean)
+  const modules = flags.seed === null ? DEFAULT_MODULES : flags.seed.split(',').map((name) => name.trim()).filter(Boolean)
   if (modules.length === 0) fail(`--seed needs at least one module.\n${USAGE}`)
   const unknown = modules.filter((name) => !MODULE_NAMES.includes(name))
   if (unknown.length > 0) fail(`Unknown seed module: ${unknown.join(', ')}.\n${USAGE}`)

@@ -111,10 +111,11 @@ test.describe('DEV-054 — test seed, accounts module', () => {
     }
     expect(recipients.filter((r) => r.account_id === ownerIds['fm5@test.vizazicare.example'])).toHaveLength(0)
 
-    // eight bookings, all requested: the only status FD-ACC can write
+    // eight bookings. The accounts module makes them all requested; a run that has also seeded
+    // verification (the default) has moved some on, so only the rule is checked here: a requested
+    // booking has no caregiver (the verification module has its own tests)
     expect(bookings).toHaveLength(8)
-    expect(new Set(bookings.map((b) => b.status))).toEqual(new Set(['requested']))
-    expect(bookings.every((b) => b.assigned_caregiver_id === null)).toBe(true)
+    expect(bookings.every((b) => (b.status === 'requested') === (b.assigned_caregiver_id === null) || b.status === 'cancelled')).toBe(true)
   })
 
   test('dates are in Africa/Nairobi: B3 and B5 are on one Nairobi day, at 09:00 and 14:00', async () => {
@@ -137,13 +138,12 @@ test.describe('DEV-054 — test seed, accounts module', () => {
     }
   })
 
-  test('writes no verification or assignment rows: those are DEV-051', async () => {
-    const { ownerIds, bookings } = await seedRows()
-    const caregiverIds = ['cg1', 'cg2', 'cg3'].map((key) => ownerIds[`${key}@test.vizazicare.example`])
-    const history = await svc().from('caregiver_verifications').select('id', { count: 'exact', head: true }).in('caregiver_id', caregiverIds)
-    expect(history.count).toBe(0)
-    const assignments = await svc().from('booking_assignments').select('id', { count: 'exact', head: true }).in('booking_id', bookings.map((b) => b.id))
-    expect(assignments.count).toBe(0)
+  test('writes no verification or assignment rows of its own: those are the verification module', async () => {
+    const count = async (table: string) => (await svc().from(table).select('id', { count: 'exact', head: true })).count
+    const before = { history: await count('caregiver_verifications'), assignments: await count('booking_assignments') }
+    const run = seed({}, ['--module', 'accounts'])
+    expect(run.status, run.stderr).toBe(0)
+    expect({ history: await count('caregiver_verifications'), assignments: await count('booking_assignments') }).toEqual(before)
   })
 
   test('is idempotent: a second run creates nothing and the same rows are still there', async () => {
@@ -167,7 +167,8 @@ test.describe('DEV-054 — test seed, accounts module', () => {
     const fm1 = ownerIds['fm1@test.vizazicare.example']
     const cg2 = ownerIds['cg2@test.vizazicare.example']
     const r1 = recipients.find((r) => r.name === 'Seed Recipient 1')!
-    const b1 = bookings.find((b) => b.care_recipient_id === r1.id && b.bundle_code === 'medicheck')!
+    const r2 = recipients.find((r) => r.name === 'Seed Recipient 2')!
+    const b1 = bookings.find((b) => b.care_recipient_id === r2.id && b.bundle_code === 'medicheck')!
 
     expect((await svc().auth.admin.updateUserById(fm1, { password: 'Someone-Changed-It-1!' })).error).toBeNull()
     expect((await svc().from('profiles').update({ full_name: 'Renamed' }).eq('id', fm1)).error).toBeNull()
@@ -191,7 +192,7 @@ test.describe('DEV-054 — test seed, accounts module', () => {
 
   test('leaves a booking that has moved on exactly as it is, and never deletes', async () => {
     const { ownerIds, recipients, bookings } = await seedRows()
-    const r1 = recipients.find((r) => r.name === 'Seed Recipient 1')!
+    const r1 = recipients.find((r) => r.name === 'Seed Recipient 2')!
     const b2 = bookings.find((b) => b.care_recipient_id === r1.id && b.bundle_code === 'doctors_day_out')!
     const admin = ownerIds['admin1@test.vizazicare.example']
     const cg1 = ownerIds['cg1@test.vizazicare.example']
@@ -207,7 +208,7 @@ test.describe('DEV-054 — test seed, accounts module', () => {
       const run = seed()
       expect(run.status, run.stderr).toBe(0)
       const summary = summaryOf(run.stdout)
-      expect(summary.bookings.left).toBe(1)
+      expect(summary.bookings.left).toBeGreaterThanOrEqual(1) // this one, and any the verification module has moved on
       expect(summary.bookings.created).toBe(0)
 
       const after = (await svc().from('bookings').select('status, requested_datetime, assigned_caregiver_id').eq('id', b2.id).single()).data!

@@ -26,16 +26,23 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
-      testIgnore: /seed-accounts\.spec\.ts/,
+      testIgnore: /seed-(accounts|verification)\.spec\.ts/,
     },
     // The seed's own tests change the shared starter-set rows (passwords, roles, a booking's
     // status) and put them back, so they run on their own, after every other test, and can
-    // never disturb a persona session another test is using.
+    // never disturb a persona session another test is using. The accounts tests come first
+    // and the verification tests after them: both change the same rows, so never together.
     {
       name: 'seed-data',
       testMatch: /seed-accounts\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['chromium'],
+    },
+    {
+      name: 'seed-verification',
+      testMatch: /seed-verification\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['seed-data'],
     },
   ],
   webServer: {

@@ -73,8 +73,9 @@ test.describe('DEV-055 — persona sessions', () => {
       await page.goto('/')
       await page.waitForURL('**/admin/queue')
       await expect(page.getByRole('heading', { name: 'Booking queue' })).toBeVisible()
+      // the requests that stay requested whatever else is seeded (B5 and B3)
       await expect(page.getByText('Recipient: Seed Recipient 4')).toBeVisible()
-      await expect(page.getByText('Recipient: Seed Recipient 5')).toBeVisible()
+      await expect(page.getByText('Recipient: Seed Recipient 2').first()).toBeVisible()
     })
   })
 
