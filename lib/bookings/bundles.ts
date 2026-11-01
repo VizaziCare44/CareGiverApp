@@ -27,7 +27,13 @@ export const BUNDLES: Record<BundleCode, BundleContent> = {
     name: 'MediCheck',
     durationLabel: '3-hour visit',
     frequencyLabel: 'Daily',
-    inclusions: ['Medication administration', 'Vitals check (blood pressure, glucose)', 'Companionship'],
+    // DEV-058: exactly these four, in this order (FD-VISIT §5.7(j), §6.6(b); Figma ACC-07 and ACC-11).
+    inclusions: [
+      'Medication assistance',
+      'Vitals check (blood pressure and glucose)',
+      'Companionship',
+      'MediCheck Report in the app',
+    ],
     sla: ['Emergency response under 30 minutes', 'Missed-medication alert under 15 minutes'],
     reportName: 'MediCheck Report',
     dateTimeCopy: 'Select the daily visit time',
