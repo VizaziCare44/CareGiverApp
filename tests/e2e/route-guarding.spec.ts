@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect, type Page } from '@playwright/test'
 import { AREAS, AUTH_PREFIX, PUBLIC_PATHS, areaFor, homeFor, type Role } from '../../lib/route-guard'
-import { createUserWithRole, logInViaUI, serviceClient } from './helpers'
+import { TEST_PASSWORD, createUserWithRole, logInViaUI, serviceClient } from './helpers'
 
 // DEV-049: route guarding for the new screens (extends DEV-012). Every Admin,
 // Family Member and Caregiver route is reachable only by the matching role; each
@@ -147,7 +147,7 @@ test.describe('DEV-049 — route guarding', () => {
 
     await page.goto('/log-in')
     await page.getByLabel('Email address').fill(user.email)
-    await page.getByLabel('Password').fill('REMOVED-FROM-HISTORY')
+    await page.getByLabel('Password').fill(TEST_PASSWORD)
     await page.getByRole('button', { name: 'Log in' }).click()
     await page.waitForTimeout(2500)
     expect(pathOf(page)).toBe('/log-in')

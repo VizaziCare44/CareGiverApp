@@ -1,4 +1,9 @@
+import { randomBytes } from 'node:crypto'
 import { defineConfig, devices } from '@playwright/test'
+
+// DEV-057: the password the tests create their accounts with is made up here, once per run,
+// and handed to the workers through the environment; it is not written anywhere in the repository.
+process.env.E2E_TEST_PASSWORD ??= `Tp-${randomBytes(12).toString('hex')}-Aa1!`
 
 // DEV-024: the GitHub → Playwright pipeline's quality gate. In CI it runs
 // against a temporary local Supabase stack that .github/workflows/playwright.yml

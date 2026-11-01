@@ -170,7 +170,7 @@ test.describe('DEV-054 — test seed, accounts module', () => {
     const r2 = recipients.find((r) => r.name === 'Seed Recipient 2')!
     const b1 = bookings.find((b) => b.care_recipient_id === r2.id && b.bundle_code === 'medicheck')!
 
-    expect((await svc().auth.admin.updateUserById(fm1, { password: 'Someone-Changed-It-1!' })).error).toBeNull()
+    expect((await svc().auth.admin.updateUserById(fm1, { password: 'Someone-Changed-It-1!' })).error).toBeNull() // not a secret: a throwaway value
     expect((await svc().from('profiles').update({ full_name: 'Renamed' }).eq('id', fm1)).error).toBeNull()
     expect((await svc().from('profiles').update({ role: 'family_member' }).eq('id', cg2)).error).toBeNull()
     expect((await svc().from('care_recipients').update({ care_notes: 'Changed notes' }).eq('id', r1.id)).error).toBeNull()

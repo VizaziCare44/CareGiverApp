@@ -12,7 +12,7 @@ function plan(args: string[], env: Record<string, string | undefined>) {
   const result = spawnSync(process.execPath, ['scripts/e2e-fresh.mjs', '--dry-run', ...args], {
     encoding: 'utf8',
     // the real environment minus anything that would decide the target, plus what the case sets
-    env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: undefined, SEED_TEST_PASSWORD: 'never-printed-password-1', ...env },
+    env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: undefined, SEED_TEST_PASSWORD: 'never-printed-password-1', ...env }, // not a secret: a marker the test looks for
   })
   return { status: result.status, stdout: result.stdout ?? '', stderr: result.stderr ?? '' }
 }

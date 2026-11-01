@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import type { Page } from '@playwright/test'
 
@@ -16,7 +17,12 @@ export function randomEmail() {
   return `fm-${Date.now()}-${Math.floor(Math.random() * 100000)}@vizazi-qa.test`
 }
 
-export const TEST_PASSWORD = 'REMOVED-FROM-HISTORY'
+// DEV-057: the password every test account is created with. It is never written in the
+// repository (which is public): it comes from E2E_TEST_PASSWORD, which playwright.config.ts
+// makes up once per run so every worker shares it, and a fallback made up per process when
+// a file is run some other way. See docs/CI Secrets and Keys.md.
+export const TEST_PASSWORD =
+  process.env.E2E_TEST_PASSWORD ?? `Tp-${randomBytes(12).toString('hex')}-Aa1!`
 
 export function anonClient() {
   return createClient(SUPABASE_URL, ANON_KEY)
