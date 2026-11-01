@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { BUNDLES } from '@/lib/bookings/bundles'
+import { formatDateTime, slotToInstant } from '@/lib/datetime'
 import { BookingStepHeader } from './booking-step-header'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -40,7 +41,7 @@ export function BookingReview() {
       result = await submitBooking({
         careRecipientId: draft.recipientId!,
         bundleCode: draft.bundleCode!,
-        requestedDatetime: new Date(`${draft.date}T${draft.time}`).toISOString(),
+        requestedDatetime: slotToInstant(draft.date!, draft.time!),
       })
     } catch {
       // A genuine connection failure (not a Supabase-level error, which
@@ -97,7 +98,7 @@ export function BookingReview() {
           <div>
             <p className="text-sm text-muted-foreground">Date &amp; time</p>
             <p className="text-lg text-foreground">
-              {draft.date} at {draft.time}
+              {formatDateTime(slotToInstant(draft.date, draft.time))}
             </p>
           </div>
           <Link href="/book/datetime" className="text-base font-medium text-sage-700 underline">

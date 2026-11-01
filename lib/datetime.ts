@@ -35,3 +35,28 @@ export function formatTime(value: DateInput) {
 export function formatDateTime(value: DateInput) {
   return `${formatDate(value)}, ${formatTime(value)}`
 }
+
+// A slot typed in the booking flow (a date and a time of day from the pickers) is
+// Nairobi time, whatever zone the browser is in (FD-VERIFY §7.8(k)). Nairobi is UTC+3
+// all year, with no daylight saving.
+const OFFSET = '+03:00'
+
+/** Today's date in Nairobi as "2026-10-14", for the date picker's earliest day. */
+export function nairobiToday(now: Date = new Date()) {
+  const p = partsOf(now, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  return `${p.year}-${p.month}-${p.day}`
+}
+
+/**
+ * The moment a typed slot means, as an ISO timestamp to store: "2026-10-14" and
+ * "09:00" are 09:00 in Nairobi, that is 06:00 UTC. Throws on a value that is not a
+ * real date and time.
+ */
+export function slotToInstant(date: string, time: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+    throw new Error(`Not a date and time: "${date}" "${time}"`)
+  }
+  const instant = new Date(`${date}T${time.length === 5 ? `${time}:00` : time}${OFFSET}`)
+  if (Number.isNaN(instant.getTime())) throw new Error(`Not a date and time: "${date}" "${time}"`)
+  return instant.toISOString()
+}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { BUNDLES } from '@/lib/bookings/bundles'
+import { nairobiToday, slotToInstant } from '@/lib/datetime'
 import { BookingStepHeader } from './booking-step-header'
 import { Button } from '@/components/ui/button'
 
@@ -25,11 +26,16 @@ export function DateTimeSelect() {
 
   function handleContinue() {
     if (!date || !time) return
+    try {
+      slotToInstant(date, time) // a value the review step can show and store
+    } catch {
+      return
+    }
     draft.setDateTime(date, time)
     router.push('/book/review')
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = nairobiToday()
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-10">
