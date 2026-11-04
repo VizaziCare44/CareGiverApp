@@ -23,8 +23,9 @@ grant select on public.checklist_items to authenticated;
 
 -- Where today stands against the day of a visit, in Africa/Nairobi, by the visit clock. It takes
 -- the visit's time as an argument on purpose: a function with no arguments would be worked out
--- once while the query is planned, with the CALLER's rights, and a Caregiver may not run
--- private.visit_now(). With an argument it runs per row, as its owner, like check_in.
+-- once while the query is planned, as the CALLER, and a Caregiver may not run
+-- private.visit_now(). With an argument it runs per row, and inside it visit_now() is
+-- run as the function's owner, like check_in.
 create function private.visit_day_state(p_visit_at timestamptz)
 returns text
 language sql
@@ -38,7 +39,11 @@ as $$
   end;
 $$;
 
-revoke all on function private.visit_day_state(timestamptz) from public, anon, authenticated;
+-- PostgreSQL checks the right to run a function that a view calls as the CALLER, not the view's
+-- owner, so signed-in users need execute here. It is safe to give: it runs as its owner and
+-- returns only "before", "today" or "passed". private.visit_now() itself stays closed.
+revoke all on function private.visit_day_state(timestamptz) from public, anon;
+grant execute on function private.visit_day_state(timestamptz) to authenticated;
 
 create view public.caregiver_visit
 with (security_barrier = true) as
