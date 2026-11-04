@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { toCheckInFailure, type CheckInResult } from '@/lib/visits/check-in-errors'
+import { toCheckOutFailure, type CheckOutResult } from '@/lib/visits/check-out-errors'
 
 // check_in as a Server Action (DEV-064). It returns a CheckInResult, never a raw error: the
 // screen turns the code into text with describeCheckInError. The time of check-in is the
@@ -19,4 +20,21 @@ export async function checkInAction(bookingId: string): Promise<CheckInResult> {
   const checkedInAt = (data as { checked_in_at?: unknown } | null)?.checked_in_at
   if (typeof checkedInAt !== 'string') return { ok: false, code: 'UNKNOWN' }
   return { ok: true, checkedInAt }
+}
+
+// check_out as a Server Action (DEV-067). The time is the server's; the note about the visit is
+// optional and sent as typed (the database trims it and holds the limit).
+export async function checkOutAction(bookingId: string, visitNote: string): Promise<CheckOutResult> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, code: 'NOT_SIGNED_IN' }
+
+  const { data, error } = await supabase.rpc('check_out', { p_booking_id: bookingId, p_visit_note: visitNote })
+  if (error) return { ok: false, code: toCheckOutFailure(error) }
+
+  const checkedOutAt = (data as { checked_out_at?: unknown } | null)?.checked_out_at
+  if (typeof checkedOutAt !== 'string') return { ok: false, code: 'UNKNOWN' }
+  return { ok: true, checkedOutAt }
 }

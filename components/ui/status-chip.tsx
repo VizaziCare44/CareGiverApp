@@ -27,6 +27,12 @@ const chips = {
     className: 'bg-figma-amber text-figma-ambertext',
     icon: 'clock',
   },
+  // a visit that is finished (Chip/Check)
+  completed: {
+    label: 'Completed',
+    className: 'bg-figma-soft text-figma-softtext',
+    icon: 'check',
+  },
   // a booking that has its caregiver (Chip/Check)
   assigned: {
     label: 'Caregiver assigned',

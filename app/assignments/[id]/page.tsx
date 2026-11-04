@@ -10,7 +10,7 @@ import { CheckOutBar } from '@/components/caregiver/check-out-bar'
 import { VisitChecklist, type ChecklistRow } from '@/components/caregiver/visit-checklist'
 import { VisitTasks } from '@/components/caregiver/visit-tasks'
 import { StatusChip } from '@/components/ui/status-chip'
-import type { VisitTask } from '@/lib/visits/progress'
+import { VisitSummary, type SummaryTask } from '@/components/caregiver/visit-summary'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime, formatTime } from '@/lib/datetime'
@@ -31,6 +31,8 @@ interface AssignmentDetail {
 interface VisitState {
   day_state: 'before' | 'today' | 'passed'
   checked_in_at: string | null
+  checked_out_at: string | null
+  visit_note: string | null
   other_booking_id: string | null
   other_recipient_name: string | null
   other_bundle_code: BundleCode | null
@@ -75,7 +77,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
 
   const { data: stateRow, error: stateError } = await supabase
     .from('caregiver_visit')
-    .select('day_state, checked_in_at, other_booking_id, other_recipient_name, other_bundle_code')
+    .select('day_state, checked_in_at, checked_out_at, visit_note, other_booking_id, other_recipient_name, other_bundle_code')
     .eq('booking_id', booking.id)
     .maybeSingle()
   if (stateError) throw new Error(`Failed to load the visit: ${stateError.message}`)
@@ -91,16 +93,37 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   const assigned = booking.status === 'assigned'
   const inProgress = booking.status === 'in_progress'
 
-  // The tasks of a visit in progress, each with the entry that counts (migration 0014).
-  let tasks: VisitTask[] = []
-  if (inProgress) {
+  // The visit summary (DEV-067, VIS-09) replaces the assignment once the visit is checked out.
+  const summary = booking.status === 'completed' && visit?.checked_in_at && visit.checked_out_at ? { checkedInAt: visit.checked_in_at, checkedOutAt: visit.checked_out_at } : null
+
+  // The tasks of a visit in progress or finished, each with the entry that counts (migration 0014).
+  let tasks: SummaryTask[] = []
+  if (inProgress || summary) {
     const { data: taskRows, error: tasksError } = await supabase
       .from('caregiver_visit_tasks')
-      .select('task_id, name, required, outcome')
+      .select('task_id, name, required, outcome, note, reason')
       .eq('booking_id', booking.id)
       .order('sort_order', { ascending: true })
     if (tasksError) throw new Error(`Failed to load the tasks: ${tasksError.message}`)
-    tasks = (taskRows ?? []) as VisitTask[]
+    tasks = (taskRows ?? []) as SummaryTask[]
+  }
+
+  if (summary) {
+    return (
+      <div className="min-h-screen text-figma-ink">
+        <AppBar title="Assignment" backHref="/assignments" backLabel="Back to my assignments" />
+        <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6">
+          <VisitSummary
+            recipientName={booking.care_recipients?.name ?? ''}
+            bundleLine={BUNDLE_LINES[booking.bundle_code]}
+            checkedInAt={summary.checkedInAt}
+            checkedOutAt={summary.checkedOutAt}
+            visitNote={visit?.visit_note ?? null}
+            tasks={tasks}
+          />
+        </main>
+      </div>
+    )
   }
 
   // Check-in is offered only to a booking still assigned, with no visit, on the day, and
@@ -173,11 +196,10 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
           )}
         </section>
 
-        {/* DEV-066 on: logging a task; DEV-067: the check-out confirmation and the summary */}
       </main>
 
       {/* a booking marked in progress without a visit (only test data) has no tasks and so no check-out */}
-      {inProgress && tasks.length > 0 && <CheckOutBar tasks={tasks} />}
+      {inProgress && tasks.length > 0 && <CheckOutBar bookingId={booking.id} tasks={tasks} />}
 
       {canCheckIn && (
         <CheckInBar bookingId={booking.id} recipientName={booking.care_recipients?.name ?? ''} bundleLine={BUNDLE_LINES[booking.bundle_code]} />
