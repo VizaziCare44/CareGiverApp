@@ -8,8 +8,9 @@
 //   STATUS_MISMATCH            an open visit whose booking is not in progress, or a closed one whose
 //                              booking is not completed
 //   WRONG_CAREGIVER            the visit's Caregiver is not the booking's assigned Caregiver
-//   SNAPSHOT_MISMATCH          the visit's tasks are not the bundle's checklist (names, order,
-//                              Required, note needed)
+//   SNAPSHOT_MISMATCH          the visit's tasks are not one per checklist item of its bundle (by item,
+//                              not by name: a later rename of an item does not change a visit that was
+//                              already started)
 //   REQUIRED_TASK_NOT_LOGGED   a closed visit with a Required task that has no entry
 //   ENTRY_OUTSIDE_VISIT        an entry logged before check-in or after check-out
 //   ENTRY_WITHOUT_TEXT         a Done entry without the note its task needs, or a Not done entry
@@ -83,11 +84,9 @@ export async function probe(supabase, { bookingIds } = {}) {
     if (!closed) open.set(visit.caregiver_id, [...(open.get(visit.caregiver_id) ?? []), visit.id])
 
     const own = (tasksByVisit.get(visit.id) ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)
-    const checklist = booking ? items.filter((i) => i.bundle_code === booking.bundle_code).sort((a, b) => a.sort_order - b.sort_order) : []
-    const same =
-      own.length === checklist.length &&
-      own.every((t, i) => t.name === checklist[i].name && t.sort_order === checklist[i].sort_order && t.required === checklist[i].required && t.note_required === checklist[i].note_required)
-    if (booking && !same) add('SNAPSHOT_MISMATCH', { visitId: visit.id })
+    const wanted = booking ? items.filter((i) => i.bundle_code === booking.bundle_code).map((i) => i.id).sort((a, b) => a - b) : []
+    const have = own.map((t) => t.checklist_item_id).sort((a, b) => a - b)
+    if (booking && JSON.stringify(wanted) !== JSON.stringify(have)) add('SNAPSHOT_MISMATCH', { visitId: visit.id })
 
     for (const task of own) {
       const list = entriesByTask.get(task.id) ?? []
