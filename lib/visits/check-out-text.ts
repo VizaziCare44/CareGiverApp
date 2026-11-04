@@ -11,13 +11,8 @@ export const CHECK_OUT_DIALOG = {
   noteLabel: 'Note about the visit (optional)',
   confirm: 'Check out',
   back: 'Go back',
-  pending: 'Checking out…',
   /** DRAFT */
   tooLong: 'This is too long. The limit is 2,000 characters. Shorten it to check out.',
-  /** DRAFT */
-  notCheckedOut: "Not checked out. Check your connection and try again. What you typed is still here.",
-  /** DRAFT */
-  unknownError: 'Not checked out. Something went wrong. Try again. What you typed is still here.',
 }
 
 export const SUMMARY = {

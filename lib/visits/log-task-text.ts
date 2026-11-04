@@ -19,16 +19,12 @@ export const LOG_TASK = {
   changeLine: 'You can change this until you check out.',
   save: 'Save',
   saveChange: 'Save change',
-  saving: 'Saving…',
   loggedAs: (outcome: 'Done' | 'Not done', time: string) =>
     `Logged as ${outcome} on ${time}. You can change it until you check out. The earlier entry stays in the visit record.`,
-  notSaved: 'Not saved. Check your connection and try again. What you typed is still here.',
   tryAgain: 'Try again',
   /** DRAFT */
   alreadyCheckedOut: 'This visit is already checked out, so its tasks can no longer be changed.',
   backToAssignment: 'Back to the assignment',
-  /** DRAFT */
-  unknownError: 'Not saved. Something went wrong. Try again. What you typed is still here.',
 }
 
 export interface TaskField {

@@ -1,12 +1,12 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
 import { AlertMessage } from '@/components/ui/alert-message'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { checkInAction } from '@/app/assignments/[id]/actions'
-import { CHECK_IN_PENDING_TEXT, describeCheckInError, type CheckInResult } from '@/lib/visits/check-in-errors'
+import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { CHECK_IN_DIALOG, checkedInLine } from '@/lib/visits/assignment-text'
 import { formatTime } from '@/lib/datetime'
 
@@ -20,47 +20,26 @@ import { formatTime } from '@/lib/datetime'
  */
 export function CheckInBar({ bookingId, recipientName, bundleLine }: { bookingId: string; recipientName: string; bundleLine: string }) {
   const router = useRouter()
-  const busy = useRef(false)
+  const { run, pending, pendingText, error, clearError } = useVisitAction('check-in')
   const [open, setOpen] = useState(false)
-  const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [checkedInAt, setCheckedInAt] = useState<string | null>(null)
 
   async function confirm() {
-    if (busy.current) return
-    busy.current = true
-    setPending(true)
-    setMessage(null)
-
-    let result: CheckInResult
-    try {
-      result = await checkInAction(bookingId)
-    } catch {
-      result = { ok: false, code: 'CONNECTION' }
-    }
-
-    if (result.ok) {
-      setCheckedInAt(result.checkedInAt)
+    const outcome = await run(() => checkInAction(bookingId))
+    if (!outcome) return
+    if (outcome.result.ok) {
+      setCheckedInAt(outcome.result.checkedInAt)
       setOpen(false)
       router.refresh()
-    } else {
-      const info = describeCheckInError(result.code)
-      if (info.refresh) {
-        setOpen(false)
-        router.refresh()
-      } else {
-        setMessage(info.message)
-      }
+    } else if (outcome.info?.refresh) {
+      setOpen(false)
     }
-
-    busy.current = false
-    setPending(false)
   }
 
   function close() {
     if (pending) return
     setOpen(false)
-    setMessage(null)
+    clearError()
   }
 
   return (
@@ -87,13 +66,13 @@ export function CheckInBar({ bookingId, recipientName, bundleLine }: { bookingId
           <p className="font-medium">{CHECK_IN_DIALOG.detail(recipientName, bundleLine)}</p>
           <p>{CHECK_IN_DIALOG.body}</p>
         </div>
-        {message && <AlertMessage>{message}</AlertMessage>}
+        {error?.message && <AlertMessage>{error.message}</AlertMessage>}
         <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
           <ActionButton variant="secondary" disabled={pending} onClick={close}>
             {CHECK_IN_DIALOG.cancel}
           </ActionButton>
           <ActionButton disabled={pending} onClick={confirm}>
-            {pending ? CHECK_IN_PENDING_TEXT : CHECK_IN_DIALOG.confirm}
+            {pending ? pendingText : CHECK_IN_DIALOG.confirm}
           </ActionButton>
         </div>
       </ModalDialog>

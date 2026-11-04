@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
 import { AlertMessage } from '@/components/ui/alert-message'
@@ -9,7 +9,7 @@ import { TextAreaField } from '@/components/ui/text-area-field'
 import { checkOutAction } from '@/app/assignments/[id]/actions'
 import { CHECK_OUT } from '@/lib/visits/assignment-text'
 import { CHECK_OUT_DIALOG, VISIT_NOTE_LIMIT } from '@/lib/visits/check-out-text'
-import { checkOutReaction, type CheckOutResult } from '@/lib/visits/check-out-errors'
+import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { lengthOf } from '@/lib/visits/log-task-text'
 import { canCheckOut, stillToLog, unloggedOptionalName, type VisitTask } from '@/lib/visits/progress'
 
@@ -29,11 +29,10 @@ import { canCheckOut, stillToLog, unloggedOptionalName, type VisitTask } from '@
  */
 export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: VisitTask[] }) {
   const router = useRouter()
-  const busy = useRef(false)
+  // after a success the screen reloads into the summary, so the dialog stays locked until it does
+  const { run, pending, pendingText, error, clearError } = useVisitAction('check-out', { lockOnSuccess: true })
   const [open, setOpen] = useState(false)
   const [note, setNote] = useState('')
-  const [pending, setPending] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
 
   const ready = canCheckOut(tasks)
   const optional = unloggedOptionalName(tasks)
@@ -42,41 +41,17 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
   const tooLong = lengthOf(note) > VISIT_NOTE_LIMIT
 
   async function confirm() {
-    if (busy.current || tooLong) return
-    busy.current = true
-    setPending(true)
-    setMessage(null)
-
-    let result: CheckOutResult
-    try {
-      result = await checkOutAction(bookingId, note)
-    } catch {
-      result = { ok: false, code: 'CONNECTION' }
-    }
-
-    if (result.ok) {
-      router.refresh()
-      // stay locked while the summary loads, so a second tap cannot send again
-      return
-    }
-
-    const reaction = checkOutReaction(result.code)
-    if (reaction === 'reload') {
-      setOpen(false)
-      router.refresh()
-    } else if (reaction === 'sign-in') {
-      setMessage('Your session has ended. Please log in again.')
-    } else {
-      setMessage(result.code === 'UNKNOWN' ? CHECK_OUT_DIALOG.unknownError : CHECK_OUT_DIALOG.notCheckedOut)
-    }
-    busy.current = false
-    setPending(false)
+    if (tooLong) return
+    const outcome = await run(() => checkOutAction(bookingId, note))
+    if (!outcome) return
+    if (outcome.result.ok) router.refresh()
+    else if (outcome.info?.refresh) setOpen(false)
   }
 
   function close() {
     if (pending) return
     setOpen(false)
-    setMessage(null)
+    clearError()
   }
 
   return (
@@ -129,14 +104,14 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
             )}
           </div>
 
-          {message && <AlertMessage>{message}</AlertMessage>}
+          {error?.message && <AlertMessage>{error.message}</AlertMessage>}
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
             <ActionButton variant="secondary" disabled={pending} onClick={close}>
               {CHECK_OUT_DIALOG.back}
             </ActionButton>
             <ActionButton type="submit" disabled={pending || tooLong}>
-              {pending ? CHECK_OUT_DIALOG.pending : CHECK_OUT_DIALOG.confirm}
+              {pending ? pendingText : CHECK_OUT_DIALOG.confirm}
             </ActionButton>
           </div>
         </form>

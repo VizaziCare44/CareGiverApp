@@ -1,12 +1,12 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton, ActionLink } from '@/components/ui/action-button'
 import { AlertMessage } from '@/components/ui/alert-message'
 import { TextAreaField } from '@/components/ui/text-area-field'
 import { logTaskAction } from '@/app/assignments/[id]/tasks/[taskId]/actions'
-import { reactionTo, type LogTaskResult } from '@/lib/visits/log-task-errors'
+import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { LOG_TASK, NOTE_LIMIT, REASON_LIMIT, fieldFor, lengthOf } from '@/lib/visits/log-task-text'
 import { formatTime } from '@/lib/datetime'
 
@@ -43,14 +43,11 @@ export function LogTaskForm({
   current: CurrentEntry | null
 }) {
   const router = useRouter()
-  const busy = useRef(false)
+  // after a success the screen moves to the assignment, so the form stays locked until it does
+  const { run, pending, pendingText, error } = useVisitAction('log-task', { lockOnSuccess: true })
   const [outcome, setOutcome] = useState<Outcome | null>(current?.outcome ?? null)
   const [note, setNote] = useState(current?.note ?? '')
   const [reason, setReason] = useState(current?.reason ?? '')
-  const [pending, setPending] = useState(false)
-  const [banner, setBanner] = useState<string | null>(null)
-  const [closed, setClosed] = useState(false)
-  const [signedOut, setSignedOut] = useState(false)
 
   const field = outcome ? fieldFor(taskName, outcome, noteRequired) : null
 
@@ -63,40 +60,15 @@ export function LogTaskForm({
   const canSave = outcome !== null && !missing && !tooLong && !pending
 
   async function save() {
-    if (!outcome || !canSave || busy.current) return
-    busy.current = true
-    setPending(true)
-    setBanner(null)
-
-    let result: LogTaskResult
-    try {
-      result = await logTaskAction(taskId, outcome, text)
-    } catch {
-      result = { ok: false, code: 'CONNECTION' }
-    }
-
-    if (result.ok) {
+    if (!outcome || !canSave) return
+    const done = await run(() => logTaskAction(taskId, outcome, text))
+    if (done?.result.ok) {
       router.push(`/assignments/${bookingId}`)
       router.refresh()
-      // stay locked while the next screen loads, so a second tap cannot send again
-      return
     }
-
-    const reaction = reactionTo(result.code)
-    if (reaction === 'reload') {
-      router.refresh()
-    } else if (reaction === 'closed') {
-      setClosed(true)
-    } else if (reaction === 'sign-in') {
-      setSignedOut(true)
-    } else {
-      setBanner(result.code === 'UNKNOWN' ? LOG_TASK.unknownError : LOG_TASK.notSaved)
-    }
-    busy.current = false
-    setPending(false)
   }
 
-  if (closed) {
+  if (error?.closed) {
     return (
       <div className="flex flex-col gap-4" data-testid="already-checked-out">
         <p className="text-[16px] leading-[1.4]">{LOG_TASK.alreadyCheckedOut}</p>
@@ -175,18 +147,11 @@ export function LogTaskForm({
           {current ? LOG_TASK.loggedAs(current.outcome === 'done' ? 'Done' : 'Not done', formatTime(current.loggedAt)) : LOG_TASK.changeLine}
         </p>
 
-        {banner && <AlertMessage>{banner}</AlertMessage>}
-        {signedOut && <AlertMessage>Your session has ended. Please log in again.</AlertMessage>}
+        {error?.message && <AlertMessage>{error.message}</AlertMessage>}
 
-        {banner ? (
-          <ActionButton type="submit" disabled={!canSave} className="w-full">
-            {pending ? LOG_TASK.saving : LOG_TASK.tryAgain}
-          </ActionButton>
-        ) : (
-          <ActionButton type="submit" disabled={!canSave} className="w-full">
-            {pending ? LOG_TASK.saving : current ? LOG_TASK.saveChange : LOG_TASK.save}
-          </ActionButton>
-        )}
+        <ActionButton type="submit" disabled={!canSave} className="w-full">
+          {pending ? pendingText : error?.retry ? LOG_TASK.tryAgain : current ? LOG_TASK.saveChange : LOG_TASK.save}
+        </ActionButton>
       </div>
     </form>
   )
