@@ -75,6 +75,17 @@ select is(not has_table_privilege('authenticated', 'private.test_clock', 'select
       and not has_function_privilege('authenticated', 'private.visit_now()', 'execute'),
   true, '0017: the API roles cannot read or use the test clock');
 
+-- 0018 family_visit_views
+select is((select count(*) from pg_views where schemaname = 'public' and viewname in ('family_visit', 'family_visit_tasks')),
+  2::bigint, '0018: the two family views exist');
+select is(has_table_privilege('authenticated', 'public.family_visit', 'select') and has_table_privilege('authenticated', 'public.family_visit_tasks', 'select')
+      and not has_table_privilege('anon', 'public.family_visit', 'select') and not has_table_privilege('anon', 'public.family_visit_tasks', 'select'),
+  true, '0018: signed-in users read the family views and anon cannot');
+select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'family_visit'),
+  'booking_id,checked_in_at,checked_out_at,visit_note', '0018: the exact columns of family_visit');
+select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'family_visit_tasks'),
+  'booking_id,sort_order,name,outcome,logged_at,reason,note', '0018: the exact columns of family_visit_tasks');
+
 -- the whole database, after all of them
 select is((select count(*) from pg_tables where schemaname = 'public' and not rowsecurity),
   0::bigint, 'every public table has row-level security on');

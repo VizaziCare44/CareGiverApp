@@ -5,10 +5,10 @@
 **Who:** David defines it; the Tech Lead runs it.
 **Status:** written, **not rehearsed, and a DRAFT.** Two things make it a draft:
 
-1. **The visit schema it describes (migrations 0011 to 0017) is itself a draft.** It was written from the task texts while FD-VISIT was not available, and is to be checked against FD-VISIT section 7 (Linear VIZ-91 lists the corrections to make). Migrations are append-only, so a correction is a new file, and this addendum then gains a line. **Do not release the visit migrations to production until that check is done.**
+1. **The visit schema it describes (migrations 0011 to 0018) is itself a draft.** It was written from the task texts while FD-VISIT was not available, and is to be checked against FD-VISIT section 7 (Linear VIZ-91 lists the corrections to make). Migrations are append-only, so a correction is a new file, and this addendum then gains a line. **Do not release the visit migrations to production until that check is done.**
 2. **Parts 3 and 5 are proposals for the Tech Lead's confirmation**, marked **TO CONFIRM**. The wording of FD-VISIT §5.7(i) and FD-ADMINEXC §9 was not available, and the exception-settings table does not exist yet.
 
-The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all seventeen migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
+The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all eighteen migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
 
 Run every query in the Supabase SQL editor **as the project's owner**, after checking which project the editor is on.
 
@@ -16,12 +16,12 @@ Run every query in the Supabase SQL editor **as the project's owner**, after che
 
 # Part 1. The FD-VISIT migrations, in order, with the check after each
 
-Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (17 files, 0001 to 0017); on a project that already has 0001 to 0010 it applies seven.
+Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (18 files, 0001 to 0018); on a project that already has 0001 to 0010 it applies eight.
 
 ```bash
-supabase db push --dry-run     # lists what it would apply: 0011 to 0017 on a project that has 0001 to 0010, nothing else
+supabase db push --dry-run     # lists what it would apply: 0011 to 0018 on a project that has 0001 to 0010, nothing else
 supabase db push
-supabase migration list        # Local and Remote both show 0001 to 0017
+supabase migration list        # Local and Remote both show 0001 to 0018
 ```
 
 The checks stay true after later migrations. **Nothing in this part writes a visit, and no migration inserts test data.** The only rows the migrations insert are the 7 `checklist_items` rows.
@@ -105,7 +105,18 @@ The test clock (zero rows in production) now belongs to one Caregiver, so a test
 
 Reverse step: in the file (puts back the single-row clock of 0011).
 
-### The whole database, after all seventeen
+### 0018 `family_visit_views` (DEV-073, draft)
+
+`public.family_visit` and `public.family_visit_tasks`: what a family reads of a visit. Both are composed on `public.family_bookings` (which keeps only the signed-in family's own bookings). `family_visit` gives the check-in time for a booking in progress or completed, and the check-out time and the note about the visit only when the booking is completed **and** the visit is closed. `family_visit_tasks` gives rows only under that same completed-and-closed condition: one per task, with the outcome (`done`, `not_done`, or `not_recorded` for an Optional task never logged), the reason only for Not done, the note only for Done, and no Required flag, no ids, no earlier entry. If a closed visit has a Required task with no outcome (a hand edit), it gives no task rows at all rather than a Required task shown as Not recorded. **Both views run with their owner's rights**, and the family composition plus the completed-and-closed condition are the only barrier: the Tech Lead should read them, with `family_bookings`, `caregiver_visit` and `caregiver_visit_tasks`. The column list is a draft: FD-FAMVIS §7.2 was not available.
+
+| Check | Expect |
+|---|---|
+| `select count(*) from pg_views where schemaname = 'public' and viewname in ('family_visit', 'family_visit_tasks');` | `2` |
+| `select has_table_privilege('authenticated', 'public.family_visit', 'select') and has_table_privilege('authenticated', 'public.family_visit_tasks', 'select') and not has_table_privilege('anon', 'public.family_visit', 'select') and not has_table_privilege('anon', 'public.family_visit_tasks', 'select');` | `true` |
+
+Reverse step: in the file (drops the two views).
+
+### The whole database, after all eighteen
 
 | Check | Expect |
 |---|---|
@@ -113,7 +124,7 @@ Reverse step: in the file (puts back the single-row clock of 0011).
 
 ### Reverse steps: the order
 
-Run by hand, in this order, never more than you need: **0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
+Run by hand, in this order, never more than you need: **0018, 0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
 
 - **A reverse step loses data.** Dropping the visit tables (0011) deletes every visit; visits and their entries can never be deleted by the app. Prefer a new forward migration that fixes the problem.
 - **Do not reverse a migration to fix an app problem.** Fix forward (see "After the release" in the main runbook).
