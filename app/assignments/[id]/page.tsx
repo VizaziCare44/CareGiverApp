@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
-import { ActionLink } from '@/components/ui/action-button'
+import { BookingUnavailable } from '@/components/caregiver/booking-unavailable'
 import { CheckInBar } from '@/components/caregiver/check-in-bar'
-import { ContactAddressRow, ContactEmailLink } from '@/components/caregiver/missing-booking-help'
+import { ContactAddressRow } from '@/components/caregiver/missing-booking-help'
 import { Notice } from '@/components/caregiver/notice'
 import { CheckOutBar } from '@/components/caregiver/check-out-bar'
 import { VisitChecklist, type ChecklistRow } from '@/components/caregiver/visit-checklist'
@@ -69,19 +69,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   if (error) throw new Error(`Failed to load assignment: ${error.message}`)
   const booking = data as unknown as AssignmentDetail | null
 
-  if (!booking) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 px-6 py-10 text-figma-ink">
-        <h1 className="text-[28px] font-bold leading-9">This booking is no longer available to you.</h1>
-        <p className="text-[16px] leading-[1.4]">
-          Its details and care notes are no longer shown. If you weren&apos;t expecting this, contact Vizazi Care at <ContactEmailLink />.
-        </p>
-        <ActionLink href="/assignments" variant="secondary" className="self-start">
-          Back to my assignments
-        </ActionLink>
-      </main>
-    )
-  }
+  if (!booking) return <BookingUnavailable />
 
   const careNotes = booking.care_recipients?.care_notes?.trim() || null
 

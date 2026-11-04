@@ -66,7 +66,7 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
     const tasks = page.getByRole('region', { name: 'Visit checklist' }).getByTestId('checklist-task')
     await expect(tasks).toHaveCount(4)
     await expect(tasks.nth(0)).toContainText('Pre-visit preparation')
-    await expect(tasks.nth(3)).toContainText('Post-visit report')
+    await expect(tasks.nth(3)).toContainText('Post-visit summary')
   })
 
   test('VIS-02, before the day: the notice with the date, directly under the summary, and no button at all', async ({ page }) => {
