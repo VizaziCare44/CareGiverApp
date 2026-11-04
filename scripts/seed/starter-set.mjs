@@ -31,11 +31,22 @@ export const ACCOUNTS = [
   { key: 'fm5', role: 'family_member', fullName: 'Family Five', phone: '+254700000125' },
 ].map((account) => ({ ...account, email: `${account.key}@${EMAIL_DOMAIN}` }))
 
+// DEV-070 item 4: recipient 4's care note is exactly 2,000 characters, with apostrophes, accents and line
+// breaks, to check a long note is stored and shown in full. It is a size check, not a boundary test:
+// FD-ACC sets no care-notes limit (care_notes is plain text).
+export const LONG_CARE_NOTE_LENGTH = 2000
+export function longCareNote(head = 'Seed care note 4: allergic to penicillin.') {
+  const line = "\nMaman’s tea at 4 o'clock, café au lait, no sugar; she doesn't like the décor changed."
+  let note = head
+  while (note.length < LONG_CARE_NOTE_LENGTH - 1) note += line
+  return note.slice(0, LONG_CARE_NOTE_LENGTH - 1) + '.'
+}
+
 export const RECIPIENTS = [
   { key: 'r1', owner: 'fm1', name: 'Seed Recipient 1', careNotes: 'Seed care note 1: takes tablets with breakfast.' },
   { key: 'r2', owner: 'fm1', name: 'Seed Recipient 2', careNotes: null },
   { key: 'r3', owner: 'fm2', name: 'Seed Recipient 3', careNotes: 'Seed care note 3: prefers the radio on.' },
-  { key: 'r4', owner: 'fm3', name: 'Seed Recipient 4', careNotes: 'Seed care note 4: allergic to penicillin.' },
+  { key: 'r4', owner: 'fm3', name: 'Seed Recipient 4', careNotes: longCareNote() },
   { key: 'r5', owner: 'fm4', name: 'Seed Recipient 5', careNotes: null },
 ]
 
@@ -45,7 +56,7 @@ export const BOOKINGS = [
   { key: 'B1', recipient: 'r1', bundle: 'medicheck', days: 2, hour: 9 },
   { key: 'B2', recipient: 'r1', bundle: 'doctors_day_out', days: 4, hour: 9 },
   { key: 'B3', recipient: 'r2', bundle: 'medicheck', days: 3, hour: 9 },
-  { key: 'B4', recipient: 'r3', bundle: 'medicheck', days: 5, hour: 9 },
+  { key: 'B4', recipient: 'r3', bundle: 'medicheck', days: 3, hour: 11 },
   { key: 'B5', recipient: 'r4', bundle: 'doctors_day_out', days: 3, hour: 14 },
   { key: 'B6', recipient: 'r5', bundle: 'medicheck', days: 1, hour: 9 },
   { key: 'B7', recipient: 'r3', bundle: 'doctors_day_out', days: 6, hour: 9 },
@@ -75,8 +86,43 @@ export const ASSIGNMENTS = [
   { booking: 'B1', caregiver: 'cg1', status: 'assigned' },
   { booking: 'B2', caregiver: 'cg2', status: 'assigned' },
   { booking: 'B4', caregiver: 'cg3', status: 'assigned' },
-  { booking: 'B6', caregiver: 'cg2', status: 'in_progress', days: 0, hour: 9 },
-  { booking: 'B7', caregiver: 'cg1', status: 'completed', days: -1, hour: 9 },
+  { booking: 'B6', caregiver: 'cg2', status: 'in_progress', days: -1, hour: 9 },
+  { booking: 'B7', caregiver: 'cg1', status: 'completed', days: -2, hour: 9 },
 ]
 
-export const STARTER_SET = { EMAIL_DOMAIN, ACCOUNTS, RECIPIENTS, BOOKINGS, VERIFICATION, ASSIGNMENTS }
+// The visits of the starter set (DEV-070 item 1), written by the `visit` module (visit.mjs). B6 is open
+// (cg2): Medication assistance is Done after one earlier entry was changed (so the append-only history
+// has a case), and the Required task left unlogged is Vitals check (TECHNICAL DECISION, PROPOSED, so
+// that every run is the same); Companionship has no entry either. B7 is closed (cg1): every task has an
+// entry, there is a note about the visit and both times. B6 and B7 are dated in the past in Nairobi
+// (the ASSIGNMENTS above), and every time here is inside the booked day: `h`:`m` is Nairobi time on
+// that day. The tasks are named as the checklist names them (checklist_items); the snapshot is copied
+// from there. The wording of the notes is draft test data, like the rest of the set.
+export const VISITS = [
+  {
+    booking: 'B6',
+    caregiver: 'cg2',
+    checkedIn: { h: 9, m: 5 },
+    checkedOut: null,
+    visitNote: null,
+    entries: [
+      { task: 'Medication assistance', outcome: 'not_done', reason: 'The tablets had not been delivered yet.', at: { h: 9, m: 20 } },
+      { task: 'Medication assistance', outcome: 'done', note: 'Gave the morning tablets with water once they arrived.', at: { h: 9, m: 50 } },
+    ],
+  },
+  {
+    booking: 'B7',
+    caregiver: 'cg1',
+    checkedIn: { h: 9, m: 10 },
+    checkedOut: { h: 13, m: 30 },
+    visitNote: 'Clinic ran late; we were home by half past one.',
+    entries: [
+      { task: 'Pre-visit preparation', outcome: 'done', note: null, at: { h: 9, m: 25 } },
+      { task: 'Transport & escort', outcome: 'done', note: null, at: { h: 10, m: 40 } },
+      { task: 'Advocacy and note-taking', outcome: 'done', note: 'Asked about the dizziness; the doctor will review it in two weeks.', at: { h: 12, m: 15 } },
+      { task: 'Post-visit summary', outcome: 'done', note: 'New prescription: one tablet each evening. Next visit in two weeks.', at: { h: 13, m: 20 } },
+    ],
+  },
+]
+
+export const STARTER_SET = { EMAIL_DOMAIN, ACCOUNTS, RECIPIENTS, BOOKINGS, VERIFICATION, ASSIGNMENTS, VISITS }

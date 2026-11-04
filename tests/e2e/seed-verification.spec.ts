@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { spawnSync } from 'node:child_process'
-import { formatTime } from '../../lib/datetime'
+import { formatDate, formatTime } from '../../lib/datetime'
 import { ACCOUNTS, ASSIGNMENTS, BOOKINGS, RECIPIENTS, VERIFICATION } from '../../scripts/seed/starter-set.mjs'
 import { anonClient, serviceClient } from './helpers'
-import { makeAdmin } from './factories'
+import { makeAdmin, nairobiTime } from './factories'
 
 // DEV-051 (items 1 and 5): the verification module of the test seed, run for real
 // through `npm run seed`: the caregivers' Verified history and the assigned, in
@@ -100,12 +100,13 @@ test.describe('DEV-051 — test seed, verification module', () => {
       expect(bookings[key].caregiver, key).toBeNull()
     }
 
-    // a visit in progress is today, one completed was yesterday (Nairobi time)
+    // a visit in progress and one completed are both in the past in Nairobi (DEV-070): B6 yesterday, B7 the day before
     expect(formatTime(bookings.B6.visit)).toBe('09:00 EAT')
-    expect(Math.abs(new Date(bookings.B6.visit).getTime() - Date.now())).toBeLessThan(36 * 3600 * 1000)
     expect(formatTime(bookings.B7.visit)).toBe('09:00 EAT')
+    expect([-1, -2].some((offset) => formatDate(bookings.B6.visit) === formatDate(nairobiTime({ days: offset }))), 'B6 is yesterday').toBe(true)
+    expect([-2, -3].some((offset) => formatDate(bookings.B7.visit) === formatDate(nairobiTime({ days: offset }))), 'B7 is the day before yesterday').toBe(true)
+    expect(Date.now() - new Date(bookings.B6.visit).getTime()).toBeGreaterThan(0)
     expect(Date.now() - new Date(bookings.B7.visit).getTime()).toBeGreaterThan(0)
-    expect(Date.now() - new Date(bookings.B7.visit).getTime()).toBeLessThan(48 * 3600 * 1000)
   })
 
   test('is idempotent: a second run adds nothing, and nothing is deleted', async () => {

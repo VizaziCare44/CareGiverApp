@@ -39,7 +39,7 @@ async function appendHistory(supabase, caregiverId, adminId, action) {
 }
 
 /** The starter-set bookings that exist, by key (B1 ...): id, status and caregiver. */
-async function findSeedBookings(supabase, ids) {
+export async function findSeedBookings(supabase, ids) {
   const found = {}
   for (const booking of BOOKINGS) {
     const recipient = RECIPIENTS.find((r) => r.key === booking.recipient)

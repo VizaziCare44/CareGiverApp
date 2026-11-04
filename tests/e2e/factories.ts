@@ -12,14 +12,22 @@ import { TEST_PASSWORD, anonClient, serviceClient } from './helpers'
 //
 // What they deliberately do not do is go through assign_booking or
 // verify_caregiver: a factory has to be able to build states those functions
-// refuse to produce (a booking whose caregiver has since lost Verified; a visit
-// that has started, since FD-VISIT's check-in does not exist yet). The rows they
-// write are the ones the real functions would have written; factories.spec.ts
+// refuse to produce (a booking whose caregiver has since lost Verified). The rows
+// they write are the ones the real functions would have written; factories.spec.ts
 // checks that against the real functions.
 //
-// NOT here yet (waiting for Test_Data_Strategy.md): the starter-set seed (admin1,
-// cg1 to cg3, fm1 to fm5, B1 to B8), the e2e:fresh wrapper, and registering
-// seedVerification in it.
+// THE ONE EXCEPTION IS A VISIT (DEV-070). makeVisit, and so makeBooking with the
+// status in_progress or completed, goes through the real check_in, log_visit_task
+// and check_out as the caregiver's own session, never the service role, so the
+// rules are the rules. For that the booking must be dated today in Nairobi (the
+// default), or the test clock must be set for the caregiver (setClock in
+// visit-helpers.ts); otherwise it stops with a clear message and does not fall
+// back to inserting rows. Only ONE visit can be open per caregiver (BR-007), so a
+// test that needs an open visit uses a fresh makeCaregiver. Tests that check in,
+// log or check out use a factory booking and caregiver, never the starter set's
+// B1 to B8 (Test_Data_Strategy.md §5).
+
+import { getVisit, getVisitTasks, hasClock } from './visit-helpers'
 
 export const TEST_EMAIL_DOMAIN = 'test.vizazicare.example'
 
@@ -173,6 +181,25 @@ export function nairobiTime({ days = 0, hour = 9, minute = 0, now = new Date() }
   return new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + days, hour - NAIROBI_OFFSET_HOURS, minute))
 }
 
+/** Day offsets for nairobiDay: yesterday, today and tomorrow in Nairobi. */
+export const yesterday = -1
+export const today = 0
+export const tomorrow = 1
+
+/**
+ * The instant of the Nairobi calendar day `offsetDays` from today, at `time` ('HH:MM', default
+ * '09:00' EAT). Computed in Africa/Nairobi, not in UTC, so it is right at the UTC date change
+ * (21:00 UTC is already tomorrow there). It needs no clock. `now` is for tests of this function.
+ */
+export function nairobiDay(offsetDays = today, time = '09:00', now = new Date()) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time)
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) throw new Error(`nairobiDay: "${time}" is not a time like "09:00"`)
+  return nairobiTime({ days: offsetDays, hour: Number(match[1]), minute: Number(match[2]), now })
+}
+
+/** The Nairobi calendar date (YYYY-MM-DD) of an instant. */
+const nairobiDate = (instant: Date | string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(instant))
+
 // ---------------------------------------------------------------------------
 // Bookings
 // ---------------------------------------------------------------------------
@@ -189,6 +216,8 @@ export interface TestBooking {
   caregiverId: string | null
   assignedBy: string | null
   assignedAt: string | null
+  /** The visit row, for a booking made in progress or completed; null otherwise. */
+  visitId: string | null
 }
 
 /**
@@ -196,13 +225,18 @@ export interface TestBooking {
  * enforces (bookings_status_caregiver_check) is respected, and refused here with a
  * clearer message:
  *   requested                      no caregiver
- *   assigned, in_progress, completed   a caregiver (in_progress and completed come from
- *                                      here because FD-VISIT's check-in does not exist yet)
+ *   assigned, in_progress, completed   a caregiver
  *   cancelled                      with or without one
  * With a caregiver it writes `assigned_by`, `assigned_at` and the matching
  * `booking_assignments` row (previous caregiver none), as assign_booking would have.
  * It does not check that the caregiver is Verified: building a booking whose
  * caregiver has since lost Verified is the point.
+ *
+ * in_progress and completed (DEV-070) make the booking assigned and then the visit through
+ * makeVisit, so the real check_in (and, for completed, log_visit_task and check_out) run as the
+ * caregiver's own session: the caregiver must be a makeCaregiver result and Verified, and the
+ * visit defaults to today 09:00 in Nairobi, because check-in is possible only on the day (or
+ * with a clock set for the caregiver). A completed visit has its Required tasks logged Done.
  */
 export async function makeBooking({
   family,
@@ -218,7 +252,7 @@ export async function makeBooking({
   recipient?: TestRecipient
   bundle?: TestBooking['bundle']
   status?: BookingStatus
-  caregiver?: { userId: string }
+  caregiver?: { userId: string; client?: SupabaseClient }
   visit?: Date | string
   assignedBy?: { userId: string }
   assignedAt?: Date | string
@@ -228,7 +262,9 @@ export async function makeBooking({
   if (status === 'requested' && caregiver) throw new Error('makeBooking: a "requested" booking has no caregiver (the status/caregiver rule)')
 
   const bookedRecipient = recipient ?? (await makeRecipient({ family }))
-  const visitAt = new Date(visit ?? nairobiTime({ days: 3, hour: 9 })).toISOString()
+  const hasVisit = status === 'in_progress' || status === 'completed'
+  if (hasVisit && !caregiver?.client) throw new Error(`makeBooking: a "${status}" booking is checked in through the real check_in, so the caregiver must be a makeCaregiver result (it needs its own session)`)
+  const visitAt = new Date(visit ?? (hasVisit ? nairobiDay(today) : nairobiTime({ days: 3, hour: 9 }))).toISOString()
   const admin = caregiver ? (assignedBy ?? (await factoryAdmin())) : null
   const assignedAtIso = caregiver ? new Date(assignedAt ?? new Date()).toISOString() : null
 
@@ -239,7 +275,7 @@ export async function makeBooking({
       care_recipient_id: bookedRecipient.id,
       bundle_code: bundle,
       requested_datetime: visitAt,
-      status,
+      status: hasVisit ? 'assigned' : status,
       assigned_caregiver_id: caregiver?.userId ?? null,
       assigned_by: admin?.userId ?? null,
       assigned_at: assignedAtIso,
@@ -255,6 +291,12 @@ export async function makeBooking({
     if (assignment.error) throw new Error(`makeBooking assignment row failed: ${assignment.error.message}`)
   }
 
+  let visitId: string | null = null
+  if (hasVisit) {
+    const made = await makeVisit({ booking: { id: data.id as string, visit: visitAt }, caregiver: caregiver as { userId: string; client: SupabaseClient }, closed: status === 'completed' })
+    visitId = made.id
+  }
+
   return {
     id: data.id as string,
     status,
@@ -264,5 +306,98 @@ export async function makeBooking({
     caregiverId: caregiver?.userId ?? null,
     assignedBy: admin?.userId ?? null,
     assignedAt: assignedAtIso,
+    visitId,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Visits (DEV-070 item 2)
+// ---------------------------------------------------------------------------
+
+/** One task already logged: `key` is the task's name as the checklist has it ("Vitals check"). */
+export interface VisitTaskPlan {
+  key: string
+  outcome: 'done' | 'not_done'
+  note?: string
+  reason?: string
+}
+
+export interface TestVisit {
+  id: string
+  bookingId: string
+  checkedInAt: string
+  checkedOutAt: string | null
+  visitNote: string | null
+}
+
+/**
+ * A visit, made the way a Caregiver makes one: the real check_in, then the real log_visit_task for
+ * each of `tasks`, and with `closed` also the real check_out (with `visitNote`), all through the
+ * caregiver's own session and never the service role. So the rules are the rules, and what is
+ * refused is refused with the function's own message.
+ *
+ * It needs the booking to be assigned to this caregiver, who must be Verified, and the day to be
+ * right: the booking is dated today in Nairobi, or a test clock is set for the caregiver
+ * (setClock). Otherwise it stops with a clear message and does NOT fall back to inserting rows.
+ * A caregiver can have only one visit open (BR-007), so use a fresh makeCaregiver for each open
+ * visit.
+ *
+ * `closed` logs Done, with a one-line note, any Required task that `tasks` does not cover (the
+ * real check_out refuses a visit with a Required task unlogged); the Optional task is left alone.
+ */
+export async function makeVisit({
+  booking,
+  caregiver,
+  tasks = [],
+  closed = false,
+  visitNote,
+}: {
+  booking: { id: string; visit: Date | string }
+  caregiver: { userId: string; client: SupabaseClient }
+  tasks?: VisitTaskPlan[]
+  closed?: boolean
+  visitNote?: string
+}): Promise<TestVisit> {
+  if (!caregiver.client) throw new Error('makeVisit: the caregiver needs its own session (a makeCaregiver result): the visit is made through the caregiver calls, never the service role')
+
+  const bookedDay = nairobiDate(booking.visit)
+  if (bookedDay !== nairobiDate(new Date()) && !(await hasClock(caregiver))) {
+    throw new Error(
+      `makeVisit: the booking is dated ${bookedDay} (Nairobi), not today (${nairobiDate(new Date())}), and no test clock is set for this caregiver, so check_in would refuse it. ` +
+        'Date the booking today (nairobiDay(today)) or call setClock(caregiver, instant) first. makeVisit never falls back to inserting rows.',
+    )
+  }
+
+  const checkedIn = await caregiver.client.rpc('check_in', { p_booking_id: booking.id })
+  if (checkedIn.error) throw new Error(`makeVisit: check_in refused: ${checkedIn.error.message}`)
+  const visit = await getVisit(booking.id)
+  if (!visit) throw new Error('makeVisit: check_in succeeded but there is no visit row')
+  const snapshot = await getVisitTasks(visit.id)
+  const taskIdOf = (key: string) => {
+    const task = snapshot.find((t) => t.name === key)
+    if (!task) throw new Error(`makeVisit: this visit has no task "${key}" (it has: ${snapshot.map((t) => t.name).join(', ')})`)
+    return task.id
+  }
+
+  const log = async (plan: VisitTaskPlan) => {
+    const result = await caregiver.client.rpc('log_visit_task', {
+      p_task_id: taskIdOf(plan.key),
+      p_outcome: plan.outcome,
+      p_note: plan.outcome === 'done' ? (plan.note ?? null) : null,
+      p_reason: plan.outcome === 'not_done' ? (plan.reason ?? null) : null,
+    })
+    if (result.error) throw new Error(`makeVisit: log_visit_task refused "${plan.key}": ${result.error.message}`)
+  }
+  for (const plan of tasks) await log(plan)
+
+  if (closed) {
+    for (const task of snapshot.filter((t) => t.required && !tasks.some((plan) => plan.key === t.name))) {
+      await log({ key: task.name, outcome: 'done', note: 'Factory: done' })
+    }
+    const out = await caregiver.client.rpc('check_out', { p_booking_id: booking.id, p_visit_note: visitNote ?? '' })
+    if (out.error) throw new Error(`makeVisit: check_out refused: ${out.error.message}`)
+  }
+
+  const made = await getVisit(booking.id)
+  return { id: made!.id, bookingId: booking.id, checkedInAt: made!.checked_in_at, checkedOutAt: made!.checked_out_at, visitNote: made!.visit_note }
 }

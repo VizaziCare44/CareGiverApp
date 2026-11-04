@@ -7,6 +7,9 @@
 //                 "no caregivers yet" (TC-VER-063). Not part of the default run.
 //   verification  (DEV-051) the caregivers' Verified history and the assigned, in progress
 //                 and completed bookings, on top of `accounts`. Needs `accounts` first.
+//   visit         (DEV-070) the visit of B6 (open, cg2, partly logged) and of B7 (closed, cg1, fully
+//                 logged): the visit row, the checklist snapshot and the entries. Needs `accounts` and
+//                 `verification` first, and migrations 0011 to 0016.
 //
 // MODULES is every module there is, in the order they should run when several are asked
 // for; DEFAULT_MODULES is what a plain `npm run e2e:fresh` runs: the full set, with the
@@ -15,12 +18,14 @@
 
 import { seedAccounts, seedAdmin } from './accounts.mjs'
 import { seedVerification } from './verification.mjs'
+import { seedVisit } from './visit.mjs'
 
 export const MODULES = {
   accounts: seedAccounts,
   admin: seedAdmin,
   verification: seedVerification,
+  visit: seedVisit,
 }
 
 export const MODULE_NAMES = Object.keys(MODULES)
-export const DEFAULT_MODULES = ['accounts', 'verification']
+export const DEFAULT_MODULES = ['accounts', 'verification', 'visit']

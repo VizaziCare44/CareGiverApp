@@ -31,7 +31,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
-      testIgnore: /seed-(accounts|verification)\.spec\.ts/,
+      testIgnore: /seed-(accounts|verification|visit)\.spec\.ts/,
     },
     // The seed's own tests change the shared starter-set rows (passwords, roles, a booking's
     // status) and put them back, so they run on their own, after every other test, and can
@@ -48,6 +48,15 @@ export default defineConfig({
       testMatch: /seed-verification\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['seed-data'],
+    },
+    // DEV-070: the visit module of the seed (B6 open, B7 closed) builds on the verification rows, so
+    // it runs after them, and last of all: it is where the test clock is counted at the end of the
+    // suite (TC-VIS-045)
+    {
+      name: 'seed-visit',
+      testMatch: /seed-visit\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['seed-verification'],
     },
   ],
   webServer: {
