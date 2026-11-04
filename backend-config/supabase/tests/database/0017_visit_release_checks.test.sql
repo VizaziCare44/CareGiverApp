@@ -86,6 +86,12 @@ select is((select string_agg(column_name::text, ',' order by ordinal_position) f
 select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'family_visit_tasks'),
   'booking_id,sort_order,name,outcome,logged_at,reason,note', '0018: the exact columns of family_visit_tasks');
 
+-- 0019 ddo_optional_task
+select is((select string_agg(name, ', ') from public.checklist_items where bundle_code = 'doctors_day_out' and not required),
+  'Pre-visit preparation', '0019: the Optional Doctor''s Day Out task is Pre-visit preparation');
+select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and required),
+  3::bigint, '0019: the other three are Required');
+
 -- the whole database, after all of them
 select is((select count(*) from pg_tables where schemaname = 'public' and not rowsecurity),
   0::bigint, 'every public table has row-level security on');

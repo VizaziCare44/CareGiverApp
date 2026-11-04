@@ -5,10 +5,10 @@
 **Who:** David defines it; the Tech Lead runs it.
 **Status:** written, **not rehearsed, and a DRAFT.** Two things make it a draft:
 
-1. **The visit schema it describes (migrations 0011 to 0018) is itself a draft.** It was written from the task texts while FD-VISIT was not available, and is to be checked against FD-VISIT section 7 (Linear VIZ-91 lists the corrections to make). Migrations are append-only, so a correction is a new file, and this addendum then gains a line. **Do not release the visit migrations to production until that check is done.**
+1. **The visit schema it describes (migrations 0011 to 0019) is itself a draft.** It was written from the task texts while FD-VISIT was not available, and is to be checked against FD-VISIT section 7 (Linear VIZ-91 lists the corrections to make). Migrations are append-only, so a correction is a new file, and this addendum then gains a line. **Do not release the visit migrations to production until that check is done.**
 2. **Parts 3 and 5 are proposals for the Tech Lead's confirmation**, marked **TO CONFIRM**. The wording of FD-VISIT §5.7(i) and FD-ADMINEXC §9 was not available, and the exception-settings table does not exist yet.
 
-The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all eighteen migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
+The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all nineteen migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
 
 Run every query in the Supabase SQL editor **as the project's owner**, after checking which project the editor is on.
 
@@ -16,12 +16,12 @@ Run every query in the Supabase SQL editor **as the project's owner**, after che
 
 # Part 1. The FD-VISIT migrations, in order, with the check after each
 
-Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (18 files, 0001 to 0018); on a project that already has 0001 to 0010 it applies eight.
+Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (19 files, 0001 to 0019); on a project that already has 0001 to 0010 it applies nine.
 
 ```bash
-supabase db push --dry-run     # lists what it would apply: 0011 to 0018 on a project that has 0001 to 0010, nothing else
+supabase db push --dry-run     # lists what it would apply: 0011 to 0019 on a project that has 0001 to 0010, nothing else
 supabase db push
-supabase migration list        # Local and Remote both show 0001 to 0018
+supabase migration list        # Local and Remote both show 0001 to 0019
 ```
 
 The checks stay true after later migrations. **Nothing in this part writes a visit, and no migration inserts test data.** The only rows the migrations insert are the 7 `checklist_items` rows.
@@ -116,7 +116,18 @@ Reverse step: in the file (puts back the single-row clock of 0011).
 
 Reverse step: in the file (drops the two views).
 
-### The whole database, after all eighteen
+### 0019 `ddo_optional_task` (DEV-074, draft correction to 0011)
+
+Swaps which Doctor's Day Out task is Optional: Pre-visit preparation becomes Optional and Advocacy and note-taking Required (0011 guessed the other way; a completed visit with Pre-visit preparation never logged, as DEV-074 describes, is only possible if it is the Optional one). Only the checklist changes: a visit already started keeps the flags it was given.
+
+| Check | Expect |
+|---|---|
+| `select string_agg(name, ', ') from public.checklist_items where bundle_code = 'doctors_day_out' and not required;` | `Pre-visit preparation` |
+| `select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and required;` | `3` |
+
+Reverse step: in the file (swaps the two flags back).
+
+### The whole database, after all nineteen
 
 | Check | Expect |
 |---|---|
@@ -124,7 +135,7 @@ Reverse step: in the file (drops the two views).
 
 ### Reverse steps: the order
 
-Run by hand, in this order, never more than you need: **0018, 0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
+Run by hand, in this order, never more than you need: **0019, 0018, 0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
 
 - **A reverse step loses data.** Dropping the visit tables (0011) deletes every visit; visits and their entries can never be deleted by the app. Prefer a new forward migration that fixes the problem.
 - **Do not reverse a migration to fix an app problem.** Fix forward (see "After the release" in the main runbook).

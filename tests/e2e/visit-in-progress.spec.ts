@@ -173,13 +173,14 @@ test.describe('DEV-065 — Assignment Detail in progress', () => {
     const card = page.getByRole('region', { name: 'Tasks' })
     await expect(card.getByTestId('visit-task')).toHaveCount(4)
     await expect(card.getByTestId('tasks-progress')).toHaveText('Required tasks logged: 0 of 3. Tap a task to log it.')
-    await expect(page.getByTestId('check-out-line')).toContainText('Still to log: Pre-visit preparation, Transport & escort, Post-visit summary.')
+    await expect(page.getByTestId('check-out-line')).toContainText('Still to log: Transport & escort, Advocacy and note-taking, Post-visit summary.')
 
-    for (const name of ['Pre-visit preparation', 'Transport & escort']) await log(booking.id, name, 'done')
+    await log(booking.id, 'Transport & escort', 'done')
+    await log(booking.id, 'Advocacy and note-taking', 'done', { note: 'Asked about the dizziness' })
     await log(booking.id, 'Post-visit summary', 'done', { note: 'Seen by Dr Otieno' })
     await page.reload()
     await expect(checkOut(page)).toBeEnabled()
-    await expect(page.getByTestId('check-out-line')).toHaveText('All Required tasks are logged. Advocacy and note-taking is Optional, so you can check out without it.')
+    await expect(page.getByTestId('check-out-line')).toHaveText('All Required tasks are logged. Pre-visit preparation is Optional, so you can check out without it.')
   })
 
   test('a Caregiver reads only their own visit: another Caregiver sees the one message', async ({ page }) => {

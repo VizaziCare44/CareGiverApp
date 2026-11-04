@@ -160,19 +160,20 @@ test.describe('DEV-067 — visit summary (VIS-09)', () => {
 
   test('with no note about the visit, the summary has no note section; Doctor\'s Day Out shows its own tasks', async ({ page }) => {
     const { caregiver, booking } = await startVisit('doctors_day_out')
-    for (const name of ['Pre-visit preparation', 'Transport & escort']) await logAs(caregiver, booking.id, name, 'done')
+    await logAs(caregiver, booking.id, 'Transport & escort', 'done')
+    await logAs(caregiver, booking.id, 'Advocacy and note-taking', 'done', 'Asked about the dizziness')
     await logAs(caregiver, booking.id, 'Post-visit summary', 'done', 'New tablets, review in two weeks')
     await open(page, caregiver, booking.id)
     await barButton(page).click()
-    await expect(dialog(page).getByTestId('unrecorded-line')).toHaveText('Advocacy and note-taking is Optional and has no outcome. It will show as "Not recorded".')
+    await expect(dialog(page).getByTestId('unrecorded-line')).toHaveText('Pre-visit preparation is Optional and has no outcome. It will show as "Not recorded".')
     await confirmButton(page).click()
 
     await expect(page.getByRole('heading', { level: 1, name: 'Visit summary' })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Note about the visit' })).toHaveCount(0)
     const tasks = page.getByTestId('summary-task')
     await expect(tasks).toHaveCount(4)
-    await expect(tasks.nth(2)).toContainText('Advocacy and note-taking')
-    await expect(tasks.nth(2).getByTestId('summary-result')).toHaveText('Not recorded')
+    await expect(tasks.nth(0)).toContainText('Pre-visit preparation')
+    await expect(tasks.nth(0).getByTestId('summary-result')).toHaveText('Not recorded')
     await expect(tasks.nth(3)).toContainText('New tablets, review in two weeks')
   })
 
