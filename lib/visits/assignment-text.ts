@@ -42,3 +42,21 @@ export const CHECK_IN_DIALOG = {
 }
 
 export const checkedInLine = (time: string) => `Checked in: ${time}`
+
+// In progress (DEV-065; frames VIS-06, VIS-06b, VIS-06c). The lines the ticket gives are exact.
+// The Tasks heading and the state words' wording of "Not logged yet" are as the ticket gives them.
+export const TASKS = {
+  heading: 'Tasks',
+  progress: (logged: number, total: number) => `Required tasks logged: ${logged} of ${total}. Tap a task to log it.`,
+  states: { none: 'Not logged yet', done: 'Done', not_done: 'Not done' },
+}
+
+export const IN_PROGRESS_LABEL = 'In progress'
+
+export const CHECK_OUT = {
+  button: 'Check out',
+  blocked: (names: string[]) =>
+    `Check out is available once every Required task is logged as Done, or as Not done with a reason. Still to log: ${names.join(', ')}.`,
+  ready: 'All Required tasks are logged.',
+  readyWithOptional: (name: string) => `All Required tasks are logged. ${name} is Optional, so you can check out without it.`,
+}

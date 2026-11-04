@@ -27,7 +27,9 @@ create type public.visit_outcome as enum ('done', 'not_done');
 -- checklist_items. DRAFT: the seven rows are the seven things each bundle includes
 -- (three for MediCheck, four for Doctor's Day Out); which are Required and which need a
 -- note are guesses from the task texts (three tasks need a note; Vitals check takes
--- "Readings"). Readable by Caregivers and Admins through migration 0013.
+-- "Readings"; DEV-065 says each bundle has exactly one Optional task, so Companionship is
+-- MediCheck's and Advocacy and note-taking is a guess for Doctor's Day Out). Readable by
+-- Caregivers and Admins through migration 0013.
 -- ---------------------------------------------------------------------------
 
 create table public.checklist_items (
@@ -47,7 +49,7 @@ insert into public.checklist_items (bundle_code, sort_order, name, required, not
   ('medicheck', 3, 'Companionship', false, false),
   ('doctors_day_out', 1, 'Pre-visit preparation', true, false),
   ('doctors_day_out', 2, 'Transport & escort', true, false),
-  ('doctors_day_out', 3, 'Advocacy and note-taking', true, true),
+  ('doctors_day_out', 3, 'Advocacy and note-taking', false, true),
   ('doctors_day_out', 4, 'Post-visit report', true, true);
 
 -- ---------------------------------------------------------------------------

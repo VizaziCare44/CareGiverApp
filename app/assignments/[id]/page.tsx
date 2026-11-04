@@ -6,11 +6,15 @@ import { ActionLink } from '@/components/ui/action-button'
 import { CheckInBar } from '@/components/caregiver/check-in-bar'
 import { ContactAddressRow, ContactEmailLink } from '@/components/caregiver/missing-booking-help'
 import { Notice } from '@/components/caregiver/notice'
+import { CheckOutBar } from '@/components/caregiver/check-out-bar'
 import { VisitChecklist, type ChecklistRow } from '@/components/caregiver/visit-checklist'
+import { VisitTasks } from '@/components/caregiver/visit-tasks'
+import { StatusChip } from '@/components/ui/status-chip'
+import type { VisitTask } from '@/lib/visits/progress'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime, formatTime } from '@/lib/datetime'
-import { DAY_PASSED, GO_TO_VISIT_IN_PROGRESS, anotherVisitInProgress, beforeTheDay, checkedInLine } from '@/lib/visits/assignment-text'
+import { DAY_PASSED, GO_TO_VISIT_IN_PROGRESS, IN_PROGRESS_LABEL, anotherVisitInProgress, beforeTheDay, checkedInLine } from '@/lib/visits/assignment-text'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -97,6 +101,20 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   if (itemsError) throw new Error(`Failed to load the checklist: ${itemsError.message}`)
 
   const assigned = booking.status === 'assigned'
+  const inProgress = booking.status === 'in_progress'
+
+  // The tasks of a visit in progress, each with the entry that counts (migration 0014).
+  let tasks: VisitTask[] = []
+  if (inProgress) {
+    const { data: taskRows, error: tasksError } = await supabase
+      .from('caregiver_visit_tasks')
+      .select('task_id, name, required, outcome')
+      .eq('booking_id', booking.id)
+      .order('sort_order', { ascending: true })
+    if (tasksError) throw new Error(`Failed to load the tasks: ${tasksError.message}`)
+    tasks = (taskRows ?? []) as VisitTask[]
+  }
+
   // Check-in is offered only to a booking still assigned, with no visit, on the day, and
   // with no other visit open (VIS-03, VIS-03b).
   const canCheckIn = assigned && visit?.day_state === 'today' && !visit.other_booking_id
@@ -104,7 +122,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   return (
     <div className="min-h-screen text-figma-ink">
       <AppBar title="Assignment" backHref="/assignments" backLabel="Back to my assignments" />
-      <main className={`mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6 ${canCheckIn ? 'pb-28' : ''}`}>
+      <main className={`mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6 ${canCheckIn ? 'pb-28' : ''} ${inProgress ? 'pb-48' : ''}`}>
         <h1 className="text-[28px] font-bold leading-9">{booking.care_recipients?.name}</h1>
 
         <section aria-label="Booking" className="flex flex-col gap-4 rounded-xl border border-figma-line bg-white p-5">
@@ -123,9 +141,12 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
         </section>
 
         {visit?.checked_in_at && !assigned && (
-          <p className="text-[16px] font-medium" data-testid="checked-in-line">
-            {checkedInLine(formatTime(visit.checked_in_at))}
-          </p>
+          <div className="flex flex-col items-start gap-2">
+            {inProgress && <StatusChip status="in-progress" label={IN_PROGRESS_LABEL} />}
+            <p className="text-[16px] font-medium" data-testid="checked-in-line">
+              {checkedInLine(formatTime(visit.checked_in_at))}
+            </p>
+          </div>
         )}
 
         {assigned && visit?.day_state === 'before' && (
@@ -151,7 +172,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
           </Notice>
         )}
 
-        <VisitChecklist items={(items ?? []) as ChecklistRow[]} />
+        {inProgress ? <VisitTasks bookingId={booking.id} tasks={tasks} /> : <VisitChecklist items={(items ?? []) as ChecklistRow[]} />}
 
         <section aria-labelledby="care-notes-heading" className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-5">
           <h2 id="care-notes-heading" className="text-[18px] font-semibold leading-[1.3]">
@@ -164,8 +185,11 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
           )}
         </section>
 
-        {/* DEV-065 on: the tasks, logging them, and check-out */}
+        {/* DEV-066 on: logging a task; DEV-067: the check-out confirmation and the summary */}
       </main>
+
+      {/* a booking marked in progress without a visit (only test data) has no tasks and so no check-out */}
+      {inProgress && tasks.length > 0 && <CheckOutBar tasks={tasks} />}
 
       {canCheckIn && (
         <CheckInBar bookingId={booking.id} recipientName={booking.care_recipients?.name ?? ''} bundleLine={BUNDLE_LINES[booking.bundle_code]} />

@@ -21,6 +21,12 @@ const chips = {
     className: 'bg-figma-amber text-figma-ambertext',
     icon: 'clock',
   },
+  // a visit that has started (Chip/Clock), the same on the Caregiver's and the family's screens
+  'in-progress': {
+    label: 'In progress',
+    className: 'bg-figma-amber text-figma-ambertext',
+    icon: 'clock',
+  },
   // a booking that has its caregiver (Chip/Check)
   assigned: {
     label: 'Caregiver assigned',
