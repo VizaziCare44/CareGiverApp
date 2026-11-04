@@ -29,6 +29,8 @@ The `Remote` column must show the project you mean (the link prints its ref), an
 
 Files are in `backend-config/supabase/migrations/`. They are applied in file-name order. The **check** for each is a query to run in the Supabase SQL editor (as the project's owner) after that migration is applied. Every check returns one value; the expected value is in the right-hand column. The checks stay true after later migrations are applied, so on a new project you can apply all ten and then run every check in order (the way CI does).
 
+> **FD-VISIT drafts, 0011 to 0013 (DEV-064).** `0011_visit_schema`, `0012_check_in` and `0013_caregiver_visit_view` are in the folder but are **not part of this release**: they were written from the task texts while FD-VISIT was not available, and are to be checked against FD-VISIT section 7 first. Until DEV-071 (the FD-VISIT runbook addendum) adds them to this list, do not run `supabase db push` against production with these files present: move them out of the folder or push only up to 0010 (`supabase db push --include-all` is not needed; use a branch that does not contain them). The numbers below ("all ten") are for the FD-VERIFY release.
+
 ## How to apply
 
 On a **new, empty** production project (the first release), after CI is green on the commit:
