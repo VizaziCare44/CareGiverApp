@@ -21,18 +21,31 @@ create policy "checklist_items: caregivers and admins read" on public.checklist_
 
 grant select on public.checklist_items to authenticated;
 
+-- Where today stands against the day of a visit, in Africa/Nairobi, by the visit clock. It takes
+-- the visit's time as an argument on purpose: a function with no arguments would be worked out
+-- once while the query is planned, with the CALLER's rights, and a Caregiver may not run
+-- private.visit_now(). With an argument it runs per row, as its owner, like check_in.
+create function private.visit_day_state(p_visit_at timestamptz)
+returns text
+language sql
+stable
+security definer set search_path = ''
+as $
+  select case
+    when (private.visit_now() at time zone 'Africa/Nairobi')::date < (p_visit_at at time zone 'Africa/Nairobi')::date then 'before'
+    when (private.visit_now() at time zone 'Africa/Nairobi')::date > (p_visit_at at time zone 'Africa/Nairobi')::date then 'passed'
+    else 'today'
+  end;
+$;
+
+revoke all on function private.visit_day_state(timestamptz) from public, anon, authenticated;
+
 create view public.caregiver_visit
 with (security_barrier = true) as
 select
   b.id as booking_id,
   b.status,
-  case
-    when (private.visit_now() at time zone 'Africa/Nairobi')::date
-         < (b.requested_datetime at time zone 'Africa/Nairobi')::date then 'before'
-    when (private.visit_now() at time zone 'Africa/Nairobi')::date
-         > (b.requested_datetime at time zone 'Africa/Nairobi')::date then 'passed'
-    else 'today'
-  end as day_state,
+  private.visit_day_state(b.requested_datetime) as day_state,
   v.id as visit_id,
   v.checked_in_at,
   v.checked_out_at,
@@ -62,6 +75,7 @@ grant select on public.caregiver_visit to authenticated;
 -- ---------------------------------------------------------------------------
 -- Reverse step (run by hand):
 --   drop view public.caregiver_visit;
+--   drop function private.visit_day_state(timestamptz);
 --   drop policy "checklist_items: caregivers and admins read" on public.checklist_items;
 --   revoke select on public.checklist_items from authenticated;
 -- ---------------------------------------------------------------------------
