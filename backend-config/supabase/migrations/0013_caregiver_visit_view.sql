@@ -30,13 +30,13 @@ returns text
 language sql
 stable
 security definer set search_path = ''
-as $
+as $$
   select case
     when (private.visit_now() at time zone 'Africa/Nairobi')::date < (p_visit_at at time zone 'Africa/Nairobi')::date then 'before'
     when (private.visit_now() at time zone 'Africa/Nairobi')::date > (p_visit_at at time zone 'Africa/Nairobi')::date then 'passed'
     else 'today'
   end;
-$;
+$$;
 
 revoke all on function private.visit_day_state(timestamptz) from public, anon, authenticated;
 
