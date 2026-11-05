@@ -2,12 +2,15 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
 import { BookingStatus } from '@/components/booking/booking-status'
+import { FamilyVisitBlock } from '@/components/booking/family-visit-block'
 import { CaregiverBlock } from '@/components/booking/caregiver-block'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import { caregiverBlockState } from '@/lib/bookings/caregiver-block'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
+import { readsForBlock } from '@/lib/visits/family-visit'
+import { finishVisitReads, readVisitRow } from '@/lib/visits/read-family-visit'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -27,20 +30,28 @@ interface FamilyBooking {
 // from the live status on every load. Everything comes from family_bookings, which
 // limits the rows to the signed-in family and returns the caregiver's name only
 // when the rules allow it, with nothing else about the caregiver. The stack ends
-// here on purpose: what FD-FAMVIS adds (visit progress, the report) goes below.
+// here on purpose: what FD-FAMVIS adds (visit progress, the report) goes below. DEV-075 adds the
+// visit block there: family_visit is read at the same time as family_bookings, family_visit_tasks
+// only for a completed booking with a check-out time, and the state is chosen once all the reads
+// have finished. A failed visit read is a state of the block (with Try again), never an error page,
+// so the summary and the caregiver block stay.
 export default async function FamilyBookingDetailPage({ params }: { params: { id: string } }) {
   if (!UUID.test(params.id)) notFound()
 
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('family_bookings')
-    .select('id, care_recipient_name, bundle_code, requested_datetime, status, caregiver_name, caregiver_verified')
-    .eq('id', params.id)
-    .maybeSingle()
+  const [{ data, error }, visitRow] = await Promise.all([
+    supabase
+      .from('family_bookings')
+      .select('id, care_recipient_name, bundle_code, requested_datetime, status, caregiver_name, caregiver_verified')
+      .eq('id', params.id)
+      .maybeSingle(),
+    readVisitRow(supabase, params.id),
+  ])
   if (error) throw new Error(`Failed to load booking: ${error.message}`)
   const booking = data as FamilyBooking | null
   if (!booking) notFound()
 
+  const visitReads = readsForBlock(booking.status, await finishVisitReads(supabase, booking.id, booking.status, visitRow))
   const state = caregiverBlockState(booking.status, booking.caregiver_name, booking.caregiver_verified)
   const bundle = BUNDLES[booking.bundle_code]
 
@@ -72,6 +83,8 @@ export default async function FamilyBookingDetailPage({ params }: { params: { id
         </section>
 
         {state && <CaregiverBlock state={state} name={state === 'verified' || state === 'started-unverified' ? booking.caregiver_name : null} />}
+
+        <FamilyVisitBlock bookingId={booking.id} status={booking.status} reads={visitReads} />
       </main>
     </div>
   )
