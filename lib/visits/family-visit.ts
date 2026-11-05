@@ -3,7 +3,9 @@
 // shows. DRAFT: the state table of §7.3 was not available; the states are the ones DEV-075 names
 // (F1 to F6) and this function is where they are decided, so a correction is an edit here.
 
+import { BUNDLES } from '@/lib/bookings/bundles'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
+import type { BundleCode } from '@/lib/bookings/types'
 
 export interface FamilyVisitRow {
   booking_id: string
@@ -62,4 +64,9 @@ export function readsForBlock(status: FamilyBookingStatus, reads: VisitReads): V
     return { ok: reads.ok, visit: { ...reads.visit, checked_out_at: null, visit_note: null }, tasks: [] }
   }
   return reads
+}
+
+/** The title of the report card: "MediCheck Report" or "Clinic Visit Report" (the bundle's report name). */
+export function reportTitle(bundle: BundleCode): string {
+  return BUNDLES[bundle].reportName
 }

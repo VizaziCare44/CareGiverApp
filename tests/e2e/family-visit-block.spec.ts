@@ -6,6 +6,7 @@ import { FAMILY_VISIT } from '../../lib/visits/family-visit-text'
 import { logInViaUI, serviceClient } from './helpers'
 import { makeBooking, makeCaregiver, makeFamily, makeRecipient, type TestBooking, type TestCaregiver, type TestUser } from './factories'
 import { getVisit, getVisitTasks } from './visit-helpers'
+import { stringsOf } from './source-strings'
 
 // DEV-075: the visit block on the family's Booking Detail (frames FAM-02, FAM-07; FR-001, FR-002,
 // FR-010, FR-012; AC-001, AC-009, AC-013, AC-015, AC-016), in the states F1 to F6. The report itself
@@ -86,7 +87,7 @@ test.describe('DEV-075 — the words', () => {
 
   test('the words are "checked in" and "checked out": no "arrived", "left", "on site", location or map (quality gate)', () => {
     const source = readFileSync('lib/visits/family-visit-text.ts', 'utf8')
-    const strings = [...source.matchAll(/'([^'\n]*)'|"([^"\n]*)"/g)].map((m) => m[1] ?? m[2]).join('\n')
+    const strings = stringsOf(source)
     expect(strings).not.toMatch(/\b(arrived|left|on site|on-site|location|map|gps)\b/i)
   })
 })

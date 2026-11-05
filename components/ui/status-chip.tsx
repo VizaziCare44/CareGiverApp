@@ -4,7 +4,14 @@
 // because the label says it. Chip/Clock is amber (waiting), Chip/Check and
 // Pill/Verified are soft green, Chip/Dash is a grey outline.
 
+// The three outcomes of a task in a visit report (DEV-076): ONE neutral style, so no outcome is
+// given a colour (no red, green or amber), told apart by the icon (a check or a dash) and the word.
+const NEUTRAL = 'bg-figma-surface text-figma-ink border border-figma-border'
+
 const chips = {
+  done: { label: 'Done', className: NEUTRAL, icon: 'check' },
+  'not-done': { label: 'Not done', className: NEUTRAL, icon: 'dash' },
+  'not-recorded': { label: 'Not recorded', className: NEUTRAL, icon: 'dash' },
   verified: {
     label: 'Verified',
     className: 'bg-figma-soft text-figma-softtext',
@@ -52,15 +59,23 @@ const icons = {
   ),
 } as const
 
+// 14px is the size of every chip on every screen. The family's visit report (DEV-076, DECIDED 2026-10-16,
+// §6.6(m)) reads at 16px or more, so it uses the `report` size of THIS component: the word at 16px in
+// Medium weight with the 16px icon, 31px high, 10px padding left and right and 5px top and bottom, 6px
+// between the icon and the word. The size takes no colour or tone: the fill, outline and dark text are
+// the chip's own. Used only inside the report; the default is unchanged.
+const sizes = {
+  default: 'gap-1.5 py-[5px] pl-[10px] pr-3 text-[14px] leading-[1.4]',
+  // 31px = 21 line + 2 x 4 padding + 2 x 1 outline, so the padding with the outline is 10px and 5px as drawn
+  report: 'gap-1.5 px-[9px] py-[4px] text-[16px] leading-[21px]',
+} as const
+
 /** `label` replaces the default words when the same look carries a different message. */
-export function StatusChip({ status, label }: { status: keyof typeof chips; label?: string }) {
+export function StatusChip({ status, label, size = 'default' }: { status: keyof typeof chips; label?: string; size?: keyof typeof sizes }) {
   const chip = chips[status]
   return (
     <span
-      className={[
-        'inline-flex items-center gap-1.5 rounded-full py-[5px] pl-[10px] pr-3 text-[14px] font-medium leading-[1.4] whitespace-nowrap',
-        chip.className,
-      ].join(' ')}
+      className={['inline-flex items-center rounded-full font-medium whitespace-nowrap', sizes[size], chip.className].join(' ')}
     >
       <svg
         aria-hidden="true"

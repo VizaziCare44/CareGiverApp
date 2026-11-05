@@ -84,7 +84,7 @@ export default async function FamilyBookingDetailPage({ params }: { params: { id
 
         {state && <CaregiverBlock state={state} name={state === 'verified' || state === 'started-unverified' ? booking.caregiver_name : null} />}
 
-        <FamilyVisitBlock bookingId={booking.id} status={booking.status} reads={visitReads} />
+        <FamilyVisitBlock bookingId={booking.id} bundleCode={booking.bundle_code} status={booking.status} reads={visitReads} />
       </main>
     </div>
   )

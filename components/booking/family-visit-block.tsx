@@ -3,11 +3,13 @@
 import { useRef, useState } from 'react'
 import { ActionButton } from '@/components/ui/action-button'
 import { AlertMessage } from '@/components/ui/alert-message'
+import { VisitReport } from '@/components/booking/visit-report'
 import { Notice } from '@/components/caregiver/notice'
 import { ContactAddressRow } from '@/components/caregiver/missing-booking-help'
 import { reloadVisitAction } from '@/app/bookings/[id]/actions'
 import { formatDateTime } from '@/lib/datetime'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
+import type { BundleCode } from '@/lib/bookings/types'
 import { familyVisitState, type VisitReads } from '@/lib/visits/family-visit'
 import { FAMILY_VISIT } from '@/lib/visits/family-visit-text'
 
@@ -21,11 +23,12 @@ const card = 'flex flex-col gap-4 rounded-xl border border-figma-line bg-white p
  *   F4  completed with no visit at all: the notice and the address row.
  *   F5  a read failed, or the visit is not in a state a report can be made from: the message and a
  *       Try again button, in place of the visit block only.
- *   F1, F6 (and F3, whose report is DEV-076): nothing here.
+ *   F3  completed and closed, with its tasks: the report (DEV-076, VisitReport).
+ *   F1, F6: nothing here.
  * It starts no request of its own: no polling, no timer, no realtime, no cached copy. The page is read
  * again when it is opened, gone back to or reloaded; Try again repeats only the visit reads.
  */
-export function FamilyVisitBlock({ bookingId, status: initialStatus, reads: initialReads }: { bookingId: string; status: FamilyBookingStatus; reads: VisitReads }) {
+export function FamilyVisitBlock({ bookingId, bundleCode, status: initialStatus, reads: initialReads }: { bookingId: string; bundleCode: BundleCode; status: FamilyBookingStatus; reads: VisitReads }) {
   const busy = useRef(false)
   const [status, setStatus] = useState(initialStatus)
   const [reads, setReads] = useState(initialReads)
@@ -95,6 +98,8 @@ export function FamilyVisitBlock({ bookingId, status: initialStatus, reads: init
     )
   }
 
-  // 'none' (F1, F6) and 'report' (F3, built by DEV-076 here): no visit block
+  if (state === 'report' && reads.visit) return <VisitReport bundle={bundleCode} visit={reads.visit} tasks={reads.tasks} />
+
+  // 'none' (F1, F6): no visit block
   return null
 }

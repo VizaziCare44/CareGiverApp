@@ -16,3 +16,15 @@ export const FAMILY_VISIT = {
   tryAgain: 'Try again',
   trying: 'Trying again…',
 } as const
+
+// The words of the visit report (DEV-076; frames FAM-03 to FAM-06; FD-FAMVIS §6.1, §6.5). The lines the
+// ticket gives are exact. Quality gate (a test): none of "arrived", "left", "on site", "failed", "missed",
+// "incomplete" or "problem" appears in these strings, and neither "Required" nor "Optional".
+export const FAMILY_REPORT = {
+  checkedOutAt: 'Checked out at',
+  recordedBy: 'This is what your caregiver recorded during the visit. Vizazi Care does not check or interpret it.',
+  loggedAt: (time: string) => `Logged at ${time}`,
+  reason: 'Reason:',
+  note: 'Note:',
+  visitNoteHeading: 'Note about the visit',
+} as const
