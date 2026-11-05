@@ -112,8 +112,11 @@ test.describe('DEV-077 — the count line in the report', () => {
   })
 
   test('the line agrees with the task blocks below it', async ({ page }) => {
-    for (const { family, booking } of [data.medicheck, data.clinic, data.long, data.lostVerified]) {
-      await open(page, family, booking.id)
+    // the four reports are one family's: log in once
+    await logInViaUI(page, data.family.email, data.family.password, '**/recipients')
+    for (const { booking } of [data.medicheck, data.clinic, data.long, data.lostVerified]) {
+      await page.goto(`/bookings/${booking.id}`)
+      await expect(page.getByTestId('visit-report')).toBeVisible()
       const chips = await page.getByTestId('report-task').locator('span.rounded-full').allInnerTexts()
       const count = (word: string) => chips.filter((c) => c === word).length
       const expected = countLine(
