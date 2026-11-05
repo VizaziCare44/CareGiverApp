@@ -320,7 +320,7 @@ test.describe('DEV-076 — what the report never has', () => {
     const textSource = readFileSync('lib/visits/family-visit-text.ts', 'utf8')
     const componentSource = readFileSync('components/booking/visit-report.tsx', 'utf8')
     const strings = stringsOf
-    const reportStrings = Object.values(FAMILY_REPORT).filter((v): v is string => typeof v === 'string').join('\n') + '\n' + strings(componentSource) + '\n' + FAMILY_REPORT.loggedAt('09:00 EAT')
+    const reportStrings = (Object.values(FAMILY_REPORT) as unknown[]).filter((v): v is string => typeof v === 'string').join('\n') + '\n' + strings(componentSource) + '\n' + FAMILY_REPORT.loggedAt('09:00 EAT')
     expect(reportStrings).not.toMatch(/\b(arrived|left|on site|failed|missed|incomplete|problem|required|optional)\b/i)
     expect(strings(textSource)).not.toMatch(/\b(arrived|left|on site|location|map|gps)\b/i)
 
