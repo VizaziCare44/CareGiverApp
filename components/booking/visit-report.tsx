@@ -1,6 +1,7 @@
 import { StatusChip } from '@/components/ui/status-chip'
 import { formatDateTime, formatTime } from '@/lib/datetime'
 import type { BundleCode } from '@/lib/bookings/types'
+import { countLine } from '@/lib/visits/count-line'
 import { reportTitle, type FamilyVisitRow, type FamilyVisitTaskRow } from '@/lib/visits/family-visit'
 import { FAMILY_REPORT, FAMILY_VISIT } from '@/lib/visits/family-visit-text'
 
@@ -25,6 +26,7 @@ const words = 'whitespace-pre-wrap text-[16px] leading-[1.4] text-figma-ink [ove
  */
 export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visit: FamilyVisitRow; tasks: FamilyVisitTaskRow[] }) {
   const card = 'flex flex-col gap-5 rounded-xl border border-figma-line bg-white p-5'
+  const line = countLine(tasks)
   return (
     <>
       <section aria-labelledby="report-heading" className={card} data-testid="visit-report">
@@ -51,7 +53,12 @@ export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visi
 
         <p className="text-[16px] leading-[1.4] text-figma-ink">{FAMILY_REPORT.recordedBy}</p>
 
-        {/* the count line (DEV-077) goes here; leaving it out moves nothing else */}
+        {/* the count line (DEV-077): plain text, in the same dark as the rest; none for a report with no tasks */}
+        {line && (
+          <p className="text-[16px] leading-[1.4] text-figma-ink" data-testid="report-count-line">
+            {line}
+          </p>
+        )}
 
         <ul className="flex flex-col">
           {tasks.map((task) => (
