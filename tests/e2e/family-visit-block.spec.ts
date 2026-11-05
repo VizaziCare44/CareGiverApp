@@ -172,10 +172,12 @@ test.describe('DEV-075 — F4: completed, and no visit at all', () => {
     const noticeBox = (await notice.boundingBox())!
     const linkBox = (await link.boundingBox())!
     expect(linkBox.height).toBeGreaterThanOrEqual(44)
-    // on its own row, below the sentence, as wide as the notice's text column (the notice has 16px padding, a 20px icon and a 12px gap)
+    // on its own row, below the sentence, as wide as the notice's text column (the notice has a 1px border,
+    // 16px padding, a 20px icon and a 12px gap): the whole of it, to within a pixel
     const sentence = (await notice.getByText('The visit report is not available.').boundingBox())!
     expect(linkBox.y).toBeGreaterThanOrEqual(sentence.y + sentence.height - 1)
-    expect(linkBox.width).toBeGreaterThanOrEqual(noticeBox.width - 16 * 2 - 20 - 12 - 1)
+    const column = noticeBox.width - 2 - 16 * 2 - 20 - 12
+    expect(Math.abs(linkBox.width - column)).toBeLessThanOrEqual(1)
     expect(await getVisit(booking.id)).toBeNull()
   })
 })
