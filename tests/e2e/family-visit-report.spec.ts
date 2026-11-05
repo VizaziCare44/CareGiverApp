@@ -7,7 +7,7 @@ import { logInViaUI } from './helpers'
 import { makeBooking, makeCaregiver, makeFamily, makeRecipient, makeVisit, nairobiDay, today, type TestUser } from './factories'
 import { seedFamilyVisibility, MULTI_LINE_READINGS, MULTI_LINE_VISIT_NOTE, type FamilyVisibilityData } from './family-visibility-data'
 import { getVisit } from './visit-helpers'
-import { stringsOf } from './source-strings'
+import { codeOf, stringsOf } from './source-strings'
 
 // DEV-076: the family's visit report on Booking Detail (state F3; frames FAM-03 to FAM-06; FR-003 to
 // FR-006, FR-008, FR-010; AC-002 to AC-006, AC-010, AC-014). Every case is built with the DEV-074 data
@@ -326,10 +326,10 @@ test.describe('DEV-076 — what the report never has', () => {
 
     // unsafe HTML patterns on the report components: none, and no link in the report
     for (const file of ['components/booking/visit-report.tsx', 'components/booking/family-visit-block.tsx']) {
-      const source = readFileSync(file, 'utf8')
+      const source = codeOf(readFileSync(file, 'utf8'))
       expect(source, file).not.toMatch(/dangerouslySetInnerHTML|innerHTML|insertAdjacentHTML|outerHTML|document\.write|markdown|marked|remark|linkify|DOMPurify/i)
     }
-    expect(componentSource).not.toMatch(/<a[\s>]|<Link[\s>]|href=/)
+    expect(codeOf(componentSource)).not.toMatch(/<a[\s>]|<Link[\s>]|href=/)
     expect(FAMILY_VISIT.heading).toBe('Visit')
   })
 })

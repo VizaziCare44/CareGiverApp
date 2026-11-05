@@ -1,10 +1,9 @@
 /**
- * The string literals of a source file, for the quality-gate searches that look at the words a screen
- * can show (DEV-075, DEV-076). Comments are removed first, so a comment that names the words the
- * screen must never use ("arrived", "Required") is not mistaken for text on the screen.
+ * A source file without its comments, for the quality-gate searches (DEV-075, DEV-076): a comment that
+ * names what the screen must never do ("markdown", "Required") is not the screen doing it.
  */
-export function stringsOf(source: string): string {
-  const withoutComments = source
+export function codeOf(source: string): string {
+  return source
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .split('\n')
     .map((line) => {
@@ -21,5 +20,12 @@ export function stringsOf(source: string): string {
       return line
     })
     .join('\n')
-  return [...withoutComments.matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)].map((m) => m[1] ?? m[2] ?? m[3]).join('\n')
+}
+
+/**
+ * The string literals of a source file, comments removed first, for the searches that look at the words
+ * a screen can show.
+ */
+export function stringsOf(source: string): string {
+  return [...codeOf(source).matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)].map((m) => m[1] ?? m[2] ?? m[3]).join('\n')
 }
