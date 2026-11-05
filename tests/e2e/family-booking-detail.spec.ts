@@ -136,9 +136,10 @@ test.describe('DEV-045 — family Booking Detail', () => {
     await logInViaUI(page, family.email, undefined, '**/recipients')
     for (const [id, status] of [[started, 'In progress'], [finished, 'Completed']] as const) {
       await page.goto(`/bookings/${id}`)
-      // the status stays the plain text, not "Confirming your caregiver"
+      // the status is its own chip (DEV-078), not "Confirming your caregiver"
       await expect(statusRow(page).getByText(status, { exact: true })).toBeVisible()
-      await expect(statusRow(page).getByText(status, { exact: true })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(statusRow(page).getByText(status, { exact: true })).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(statusRow(page).locator(status === 'In progress' ? 'svg[data-icon="clock"]' : 'svg[data-icon="check"]')).toHaveCount(1)
       await expect(page.getByText('Confirming your caregiver')).toHaveCount(0)
 
       const block = page.getByRole('region', { name: 'Your caregiver' })

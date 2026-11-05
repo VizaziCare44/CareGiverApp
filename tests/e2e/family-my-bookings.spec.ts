@@ -58,9 +58,9 @@ test.describe('DEV-044 — family My Bookings', () => {
 
     await expect(page.getByRole('heading', { name: 'My bookings' })).toBeVisible()
 
-    // soonest first
+    // in progress first, then the bookings still to come soonest first, then completed (DEV-078)
     const order = await page.getByRole('listitem').allInnerTexts()
-    const names = ['Waiting', 'Assigned', 'Lost', 'Started', 'Done'].map((label) => order.findIndex((text) => text.includes(`${label} ${stamp}`)))
+    const names = ['Started', 'Waiting', 'Assigned', 'Lost', 'Done'].map((label) => order.findIndex((text) => text.includes(`${label} ${stamp}`)))
     expect(names.every((i) => i >= 0)).toBe(true)
     expect([...names].sort((a, b) => a - b)).toEqual(names)
 
@@ -70,16 +70,16 @@ test.describe('DEV-044 — family My Bookings', () => {
     await expect(waiting).toContainText('Tue 15 Jan 2030, 09:30 EAT')
     await expect(card(page, 'Assigned', stamp)).toContainText("Doctor's Day Out")
 
-    // status labels: icon and words together for the three waiting states, plain text for the rest
+    // status labels: icon and words together (DEV-078 makes In progress and Completed chips too)
     await expect(waiting.getByText('Awaiting caregiver assignment')).toBeVisible()
     await expect(waiting.locator('svg[data-icon="clock"]')).toHaveCount(1)
     await expect(card(page, 'Assigned', stamp).getByText('Caregiver assigned')).toBeVisible()
     await expect(card(page, 'Assigned', stamp).locator('svg[data-icon="check"]')).toHaveCount(1)
     await expect(card(page, 'Lost', stamp).getByText('Confirming your caregiver')).toBeVisible()
     await expect(card(page, 'Lost', stamp).locator('svg[data-icon="clock"]')).toHaveCount(1)
-    for (const [label, text] of [['Started', 'In progress'], ['Done', 'Completed']] as const) {
+    for (const [label, text, icon] of [['Started', 'In progress', 'clock'], ['Done', 'Completed', 'check']] as const) {
       await expect(card(page, label, stamp).getByText(text, { exact: true })).toBeVisible()
-      await expect(card(page, label, stamp).locator('svg')).toHaveCount(0)
+      await expect(card(page, label, stamp).locator(`svg[data-icon="${icon}"]`)).toHaveCount(1)
     }
 
     // the Figma chips: Chip/Clock is an amber pill (#fff3dc, text #7a4100), Chip/Check a soft-green pill
@@ -99,9 +99,9 @@ test.describe('DEV-044 — family My Bookings', () => {
       // the pill hugs its words (Figma's Chip/Clock is 250px wide), it does not stretch across the card
       expect((await chip.boundingBox())!.width).toBeLessThan(300)
     }
-    for (const [label, words] of [['Started', 'In progress'], ['Done', 'Completed']] as const) {
-      await expect(card(page, label, stamp).getByText(words, { exact: true })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-    }
+    // (DEV-078) In progress is the amber clock chip and Completed the soft-green check chip, as on the Caregiver's screens
+    await expect(card(page, 'Started', stamp).getByText('In progress', { exact: true })).toHaveCSS('background-color', amber.bg)
+    await expect(card(page, 'Done', stamp).getByText('Completed', { exact: true })).toHaveCSS('background-color', soft.bg)
 
     // the icon is decorative: the words carry the meaning
     await expect(page.locator('svg[data-icon]').first()).toHaveAttribute('aria-hidden', 'true')

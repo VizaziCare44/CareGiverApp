@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
 import { BookingStatus } from '@/components/booking/booking-status'
 import { BUNDLES } from '@/lib/bookings/bundles'
+import { orderBookings } from '@/lib/bookings/order'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
@@ -16,8 +17,9 @@ interface MyBooking {
   caregiver_verified: boolean | null
 }
 
-// FR-017 / AC-019, frames VER-09 and 09b. The family's own bookings, soonest
-// first, from family_bookings (which already limits the rows to the signed-in
+// FR-017 / AC-019, frames VER-09 and 09b; ordered by orderBookings (DEV-078: in progress first, then the
+// bookings still to come soonest first, then completed newest first). The family's own bookings
+// from family_bookings (which already limits the rows to the signed-in
 // family and never carries the caregiver's contact details). Each card shows the
 // recipient, the bundle, the date and time (Africa/Nairobi) and a status label
 // whose icon and words say the same thing. The caregiver is not named here; that
@@ -28,11 +30,9 @@ export default async function MyBookingsPage() {
   const { data, error } = await supabase
     .from('family_bookings')
     .select('id, care_recipient_name, bundle_code, requested_datetime, status, caregiver_verified')
-    .order('requested_datetime', { ascending: true })
-    .order('id', { ascending: true })
   if (error) throw new Error(`Failed to load bookings: ${error.message}`)
 
-  const bookings = (data ?? []) as MyBooking[]
+  const bookings = orderBookings((data ?? []) as MyBooking[])
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10 text-figma-ink">

@@ -7,7 +7,8 @@
 // caregiver is being confirmed, never that the caregiver lost Verified (the name
 // is withheld by family_bookings in that case, see migration 0010).
 // The icon says the same thing as the words, so state is never colour alone.
-// In progress, Completed and Cancelled are plain text.
+// In progress (clock icon) and Completed (check icon) are the same two chips as on the Caregiver's
+// screens (DEV-078); Cancelled stays plain text.
 
 export type FamilyBookingStatus = 'requested' | 'assigned' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -26,9 +27,9 @@ export function bookingStatusLabel(status: FamilyBookingStatus, caregiverVerifie
         ? { text: 'Confirming your caregiver', icon: 'clock' }
         : { text: 'Caregiver assigned', icon: 'check' }
     case 'in_progress':
-      return { text: 'In progress', icon: null }
+      return { text: 'In progress', icon: 'clock' }
     case 'completed':
-      return { text: 'Completed', icon: null }
+      return { text: 'Completed', icon: 'check' }
     case 'cancelled':
       return { text: 'Cancelled', icon: null }
   }
