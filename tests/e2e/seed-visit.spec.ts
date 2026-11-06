@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { spawnSync } from 'node:child_process'
 import { formatDate, formatTime } from '../../lib/datetime'
-import { ACCOUNTS, BOOKINGS, RECIPIENTS, VISITS, LONG_CARE_NOTE_LENGTH } from '../../scripts/seed/starter-set.mjs'
+import { ACCOUNTS, BOOKINGS, RECIPIENTS, VISITS, LONG_CARE_NOTE_LENGTH, occurrence } from '../../scripts/seed/starter-set.mjs'
 import { anonClient, serviceClient } from './helpers'
 import { nairobiDay } from './factories'
 import { countClockRows, getChecklistItems, getEntries, getVisit, getVisitTasks, probe } from './visit-helpers'
@@ -9,7 +9,7 @@ import { countClockRows, getChecklistItems, getEntries, getVisit, getVisitTasks,
 // DEV-070 item 1 (and items 4 and 6 for the starter set): the visit module of the test seed, run for
 // real through `npm run seed`: B6 open with cg2 and partly logged, B7 closed with cg1 and fully
 // logged, in the past in Nairobi, every time inside the booked day, and the probe passing. The data
-// it writes is VISITS in scripts/seed/starter-set.mjs (a draft, see VIZ-90). Like the other seed
+// it writes is VISITS in scripts/seed/starter-set.mjs (Test_Data_Strategy.md §3.3 and §7, checked 2026-11-06, VIZ-90). Like the other seed
 // tests it changes shared rows, so it runs after every other test (playwright.config.ts) — which is
 // also why it is where the test clock is counted at the end of the suite (TC-VIS-045).
 
@@ -39,8 +39,15 @@ async function bookingOf(key: string) {
   const def = BOOKINGS.find((b) => b.key === key)!
   const recipient = RECIPIENTS.find((r) => r.key === def.recipient)!
   const { data: r } = await svc().from('care_recipients').select('id').eq('account_id', owner[recipient.owner]).eq('name', recipient.name).single()
-  const { data } = await svc().from('bookings').select('id, status, bundle_code, requested_datetime, assigned_caregiver_id').eq('care_recipient_id', r!.id).eq('bundle_code', def.bundle).single()
-  return data!
+  const { data: rows } = await svc()
+    .from('bookings')
+    .select('id, status, bundle_code, requested_datetime, assigned_caregiver_id')
+    .eq('care_recipient_id', r!.id)
+    .eq('bundle_code', def.bundle)
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  // B6 and B7 share a recipient and a bundle: the order they were created in tells them apart
+  return rows![occurrence(def)]
 }
 
 const count = async (table: string) => (await svc().from(table).select('*', { count: 'exact', head: true })).count
@@ -79,9 +86,10 @@ test.describe('DEV-070 — test seed, visit module', () => {
     const v7 = (await getVisit(b7.id))!
     expect(v7.caregiver_id).toBe(owner.cg1)
     expect(v7.checked_out_at).not.toBeNull()
-    expect(v7.visit_note).toBe('Clinic ran late; we were home by half past one.')
+    expect(v7.visit_note).toBe('A calm morning; she ate well and asked for the radio.')
     const tasks7 = await getVisitTasks(v7.id)
-    expect(tasks7.map((t) => t.name)).toEqual((await getChecklistItems('doctors_day_out')).map((i) => i.name))
+    // B7 is MediCheck as well (Test_Data_Strategy.md §3.3): its three tasks, each with an entry
+    expect(tasks7.map((t) => t.name)).toEqual((await getChecklistItems('medicheck')).map((i) => i.name))
     for (const task of tasks7) expect((await getEntries(task.id)).length, task.name).toBeGreaterThanOrEqual(1)
 
     // dated in the past in Nairobi, and every time inside the booked day (Nairobi)
@@ -98,7 +106,7 @@ test.describe('DEV-070 — test seed, visit module', () => {
       }
     }
     expect(formatTime(v6.checked_in_at)).toBe('09:05 EAT')
-    expect(formatTime(v7.checked_out_at!)).toBe('13:30 EAT')
+    expect(formatTime(v7.checked_out_at!)).toBe('12:15 EAT')
 
     // the probe of §7.3 item 13 passes for what the seed wrote
     expect(await probe({ bookingIds: [b6.id, b7.id] })).toEqual([])
@@ -154,16 +162,16 @@ test.describe('DEV-070 — test seed, visit module', () => {
     // cg1 sees B7 finished: every task has its outcome
     const cg1 = await signIn('cg1')
     const done = (await cg1.from('caregiver_visit_tasks').select('name, outcome').eq('booking_id', b7.id).order('sort_order')).data ?? []
-    expect(done.map((t) => t.outcome)).toEqual(['done', 'done', 'done', 'done'])
+    expect(done.map((t) => t.outcome)).toEqual(['done', 'done', 'done'])
 
-    // and the family of B7 reads the booking as completed with the caregiver's name
-    const family = await signIn('fm2')
+    // and the family of B7 (fm4) reads the booking as completed with the caregiver's name
+    const family = await signIn('fm4')
     const view = await family.from('family_bookings').select('id, status, caregiver_name').eq('id', b7.id).single()
-    expect(view.data).toMatchObject({ status: 'completed', caregiver_name: 'Caregiver One' })
+    expect(view.data).toMatchObject({ status: 'completed', caregiver_name: 'Test Caregiver 1' })
   })
 
-  test('recipient 4\'s care note is stored at exactly 2,000 characters (item 4)', async () => {
-    const recipient = RECIPIENTS.find((r) => r.key === 'r4')!
+  test('recipient 4A\'s care note is stored at exactly 2,000 characters (item 4)', async () => {
+    const recipient = RECIPIENTS.find((r) => r.key === '4A')!
     const { data } = await svc().from('care_recipients').select('care_notes').eq('name', recipient.name).single()
     expect(data!.care_notes).toHaveLength(LONG_CARE_NOTE_LENGTH)
     expect(data!.care_notes).toBe(recipient.careNotes)

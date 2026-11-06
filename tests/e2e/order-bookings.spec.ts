@@ -179,38 +179,43 @@ test.describe('DEV-078 — My Bookings on the screen, with factory bookings', ()
 test.describe('DEV-078 — the seeded starter set (B6 and B7)', () => {
   test.skip(!personasAvailable, 'the starter set is not seeded in this run')
 
-  test.describe('as fm1: four bookings to come, soonest first', () => {
+  test.describe('as fm1: two bookings to come, soonest first', () => {
     test.use({ storageState: personaState('fm1') })
-    test('B1, B3, B2, B8 by their dates', async ({ page }) => {
+    test('B1 (two days out) then B2 (four days out)', async ({ page }) => {
       await page.goto('/bookings')
-      const rows = await page.getByRole('listitem').allInnerTexts()
-      const flat = rows.map((r) => r.replace(/\s+/g, ' '))
-      const at = (recipient: string, bundle: string) => flat.findIndex((r) => r.includes(recipient) && r.includes(bundle))
-      const order = [at('Seed Recipient 1', 'MediCheck'), at('Seed Recipient 2', 'MediCheck'), at('Seed Recipient 1', "Doctor's Day Out"), at('Seed Recipient 2', "Doctor's Day Out")]
-      expect(order.every((i) => i >= 0)).toBe(true)
-      expect([...order].sort((a, c) => a - c)).toEqual(order)
+      const flat = (await page.getByRole('listitem').allInnerTexts()).map((r) => r.replace(/\s+/g, ' '))
+      expect(flat).toHaveLength(2)
+      expect(flat[0]).toContain('Test Recipient 1A')
+      expect(flat[0]).toContain('MediCheck')
+      expect(flat[1]).toContain('Test Recipient 1B')
+      expect(flat[1]).toContain("Doctor's Day Out")
     })
   })
 
-  test.describe('as fm4: B6 is in progress', () => {
+  test.describe('as fm4: B6 is in progress and first, B7 is completed and last', () => {
     test.use({ storageState: personaState('fm4') })
-    test('the In progress chip with the clock icon', async ({ page }) => {
+    test('the In progress chip with the clock icon first, the Completed chip with the check icon last', async ({ page }) => {
       await page.goto('/bookings')
-      const card = page.getByRole('listitem').filter({ hasText: 'Seed Recipient 5' })
-      await expect(card.getByText('In progress', { exact: true })).toBeVisible()
-      await expect(card.locator('svg[data-icon="clock"]')).toHaveCount(1)
+      const cards = page.getByRole('listitem')
+      await expect(cards).toHaveCount(2)
+      await expect(cards.first().getByText('In progress', { exact: true })).toBeVisible()
+      await expect(cards.first().locator('svg[data-icon="clock"]')).toHaveCount(1)
+      await expect(cards.last().getByText('Completed', { exact: true })).toBeVisible()
+      await expect(cards.last().locator('svg[data-icon="check"]')).toHaveCount(1)
     })
   })
 
-  test.describe('as fm2: B4 still to come, then B7 completed last', () => {
+  test.describe('as fm2: B3 then B4, soonest first, both still to come', () => {
     test.use({ storageState: personaState('fm2') })
-    test('the completed visit is last, with the Completed chip', async ({ page }) => {
+    test('B3 (09:00) before B4 (11:00) on one day, neither completed', async ({ page }) => {
       await page.goto('/bookings')
       const rows = (await page.getByRole('listitem').allInnerTexts()).map((r) => r.replace(/\s+/g, ' '))
-      const last = rows[rows.length - 1]
-      expect(last).toContain('Completed')
-      expect(rows.slice(0, -1).some((r) => r.includes('Completed'))).toBe(false)
-      await expect(page.getByRole('listitem').last().locator('svg[data-icon="check"]')).toHaveCount(1)
+      expect(rows).toHaveLength(2)
+      expect(rows[0]).toContain('09:00 EAT')
+      expect(rows[0]).toContain('MediCheck')
+      expect(rows[1]).toContain('11:00 EAT')
+      expect(rows[1]).toContain("Doctor's Day Out")
+      expect(rows.some((r) => r.includes('Completed'))).toBe(false)
     })
   })
 })

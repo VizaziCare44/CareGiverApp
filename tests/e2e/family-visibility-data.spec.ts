@@ -30,16 +30,17 @@ const visitRow = async (client: SupabaseClient, bookingId: string) => {
 test.describe('DEV-074 — B7 is left unaltered as the all-Done report', () => {
   test('B7 has every task Done, a note about the visit and both times (FAM-03), and nothing here touches it', async () => {
     const svc = serviceClient()
-    const { data: recipient } = await svc.from('care_recipients').select('id').eq('name', 'Seed Recipient 3').maybeSingle()
+    // B7 is recipient 4A's completed MediCheck booking (Test_Data_Strategy.md §3.3); B6, the other one, is in progress
+    const { data: recipient } = await svc.from('care_recipients').select('id').eq('name', 'Test Recipient 4A').maybeSingle()
     test.skip(!recipient, 'the starter set is not seeded in this database')
-    const { data: booking } = await svc.from('bookings').select('id, status, bundle_code').eq('care_recipient_id', recipient!.id).eq('bundle_code', 'doctors_day_out').single()
-    expect(booking!.status).toBe('completed')
+    const { data: booking } = await svc.from('bookings').select('id, status, bundle_code').eq('care_recipient_id', recipient!.id).eq('status', 'completed').single()
+    expect(booking!.bundle_code).toBe('medicheck')
     const visit = (await getVisit(booking!.id))!
     expect(visit.checked_in_at).toBeTruthy()
     expect(visit.checked_out_at).toBeTruthy()
     expect(visit.visit_note).toBeTruthy()
     const tasks = await getVisitTasks(visit.id)
-    expect(tasks).toHaveLength(4)
+    expect(tasks).toHaveLength(3)
     for (const task of tasks) {
       const entries = await getEntries(task.id)
       expect(entries[entries.length - 1].outcome, task.name).toBe('done')

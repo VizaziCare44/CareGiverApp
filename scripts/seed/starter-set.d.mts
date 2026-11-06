@@ -1,14 +1,17 @@
 export const EMAIL_DOMAIN: string
 export interface SeedAccount { key: string; role: 'admin' | 'caregiver' | 'family_member'; fullName: string; phone: string; email: string }
 export interface SeedRecipient { key: string; owner: string; name: string; careNotes: string | null }
-export interface SeedBooking { key: string; recipient: string; bundle: 'medicheck' | 'doctors_day_out'; days: number; hour: number }
+export interface SeedBooking { key: string; recipient: string; bundle: 'medicheck' | 'doctors_day_out'; days: number; hour: number; status?: 'cancelled' }
 export const ACCOUNTS: SeedAccount[]
 export const RECIPIENTS: SeedRecipient[]
 export const BOOKINGS: SeedBooking[]
+export function occurrence(booking: SeedBooking): number
 export const LONG_CARE_NOTE_LENGTH: number
 export function longCareNote(head?: string): string
+export const VERIFICATION_NOTE: string
+export const VERIFICATION_AGE_DAYS: number
 export interface SeedVerification { caregiver: string; state: 'verified' | 'removed' | 'none' }
-export interface SeedAssignment { booking: string; caregiver: string; status: 'assigned' | 'in_progress' | 'completed'; days?: number; hour?: number }
+export interface SeedAssignment { booking: string; caregiver: string; status: 'assigned' | 'in_progress' | 'completed' }
 export const VERIFICATION: SeedVerification[]
 export const ASSIGNMENTS: SeedAssignment[]
 export interface SeedClockTime { h: number; m: number }

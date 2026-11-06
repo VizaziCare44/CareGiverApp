@@ -23,35 +23,41 @@ test.describe('DEV-055 — persona sessions', () => {
     await page.waitForURL('**/log-in')
   })
 
-  test.describe('as fm3 (a family with one recipient and one booking)', () => {
+  test.describe('as fm3 (one recipient with blank care notes, two bookings: B5 assigned and B8 cancelled)', () => {
     test.use({ storageState: personaState('fm3') })
 
-    test('lands in the family area and sees only their own recipient and booking', async ({ page }) => {
+    test('lands in the family area and sees only their own recipient and bookings', async ({ page }) => {
       await page.goto('/')
       await page.waitForURL('**/recipients')
-      await expect(page.getByText('Seed Recipient 4', { exact: true })).toBeVisible()
-      await expect(page.getByText('Seed Recipient 1')).toHaveCount(0)
+      await expect(page.getByText('Test Recipient 3A', { exact: true })).toBeVisible()
+      await expect(page.getByText('Test Recipient 1A')).toHaveCount(0)
 
       await page.goto('/bookings')
       const bookings = page.getByRole('listitem')
-      await expect(bookings).toHaveCount(1)
-      await expect(bookings.first()).toContainText('Seed Recipient 4')
+      await expect(bookings).toHaveCount(2)
+      // soonest first: B5 (three days out, 14:00) then B8 (cancelled, further out)
+      await expect(bookings.first()).toContainText('Test Recipient 3A')
       await expect(bookings.first()).toContainText("Doctor's Day Out")
       await expect(bookings.first()).toContainText('14:00 EAT')
-      await expect(bookings.first()).toContainText('Awaiting caregiver assignment')
+      await expect(bookings.first()).toContainText('Caregiver assigned')
+      await expect(bookings.last()).toContainText('MediCheck')
+      await expect(bookings.last()).toContainText('Cancelled')
     })
   })
 
-  test.describe('as fm4', () => {
+  test.describe('as fm4 (the long care note, a visit in progress and a completed one)', () => {
     test.use({ storageState: personaState('fm4') })
 
-    test('sees their own booking, a different one from fm3', async ({ page }) => {
+    test('sees their own two bookings, in progress first and completed last, different from fm3', async ({ page }) => {
       await page.goto('/bookings')
       const bookings = page.getByRole('listitem')
-      await expect(bookings).toHaveCount(1)
-      await expect(bookings.first()).toContainText('Seed Recipient 5')
+      await expect(bookings).toHaveCount(2)
+      await expect(bookings.first()).toContainText('Test Recipient 4A')
       await expect(bookings.first()).toContainText('MediCheck')
-      await expect(bookings.first()).toContainText('09:00 EAT')
+      await expect(bookings.first()).toContainText('In progress')
+      await expect(bookings.last()).toContainText('Test Recipient 4A')
+      await expect(bookings.last()).toContainText('Completed')
+      await expect(page.getByText('Test Recipient 3A')).toHaveCount(0)
     })
   })
 
@@ -73,13 +79,13 @@ test.describe('DEV-055 — persona sessions', () => {
       await page.goto('/')
       await page.waitForURL('**/admin/queue')
       await expect(page.getByRole('heading', { name: 'Booking queue' })).toBeVisible()
-      // the requests that stay requested whatever else is seeded (B5 and B3)
-      await expect(page.getByText('Recipient: Seed Recipient 4')).toBeVisible()
-      await expect(page.getByText('Recipient: Seed Recipient 2').first()).toBeVisible()
+      // the requests that stay requested whatever else is seeded: B1 (1A, MediCheck) and B2 (1B, Doctor's Day Out)
+      await expect(page.getByText('Recipient: Test Recipient 1A')).toBeVisible()
+      await expect(page.getByText('Recipient: Test Recipient 1B')).toBeVisible()
     })
   })
 
-  test.describe('as cg3 (a Caregiver with nothing assigned)', () => {
+  test.describe('as cg3 (a Caregiver who is Not verified, with nothing assigned)', () => {
     test.use({ storageState: personaState('cg3') })
 
     test('lands on My assignments, empty', async ({ page }) => {
@@ -97,10 +103,10 @@ test.describe('DEV-055 — persona sessions', () => {
     try {
       const [pageThree, pageFour] = await Promise.all([three.newPage(), four.newPage()])
       await Promise.all([pageThree.goto('/recipients'), pageFour.goto('/recipients')])
-      await expect(pageThree.getByText('Seed Recipient 4', { exact: true })).toBeVisible()
-      await expect(pageFour.getByText('Seed Recipient 5', { exact: true })).toBeVisible()
-      await expect(pageThree.getByText('Seed Recipient 5')).toHaveCount(0)
-      await expect(pageFour.getByText('Seed Recipient 4')).toHaveCount(0)
+      await expect(pageThree.getByText('Test Recipient 3A', { exact: true })).toBeVisible()
+      await expect(pageFour.getByText('Test Recipient 4A', { exact: true })).toBeVisible()
+      await expect(pageThree.getByText('Test Recipient 4A')).toHaveCount(0)
+      await expect(pageFour.getByText('Test Recipient 3A')).toHaveCount(0)
     } finally {
       await three.close()
       await four.close()

@@ -27,12 +27,12 @@ npm run e2e:fresh -- --grep "route guarding" # anything else goes to Playwright
 
 Seed modules are listed in `scripts/seed/modules.mjs`; a plain run seeds `accounts`, `verification` then `visit`:
 
-- `accounts`: 9 profiles (admin1, cg1 to cg3, fm1 to fm5), 5 care recipients and 8 bookings, all requested, on `…@test.vizazicare.example` addresses. Run on its own it is the empty state "caregivers exist and none is Verified" (`--seed accounts`).
-- `verification`: on top of that, cg1 and cg2 Verified, cg3 Verified and then removed, bookings assigned (with their assignment rows), one in progress and one completed. Needs `accounts` first.
-- `visit` (DEV-070): the visit of B6 (open, cg2, Medication assistance Done after one earlier entry was changed, Vitals check and Companionship not logged) and of B7 (closed, cg1, every task logged, a note about the visit, both times). Both are dated in the past in Nairobi and every time is inside the booked day. Needs `accounts` and `verification` first, and migration 0020 (the visit tables of FD-VISIT 7.2). The probe (`scripts/seed/probe.mjs`) passes after it.
+- `accounts`: 9 profiles (admin1, cg1 to cg3, fm1 to fm5), 5 care recipients (1A, 1B, 2A, 3A, 4A) and 8 bookings (B1 to B8), all requested except B8, which is cancelled, on `…@test.vizazicare.example` addresses (Test_Data_Strategy.md §3.1 to §3.3). Run on its own it is the empty state "caregivers exist and none is Verified" (`--seed accounts`).
+- `verification`: on top of that, cg1 and cg2 Verified (one `verified` row each, actor admin1, dated 7 days before seeding, note "test seed"), cg3 with no history, B3, B4 and B5 assigned (with their assignment rows), B6 in progress and B7 completed (§3.4). Needs `accounts` first.
+- `visit` (DEV-070): the visit of B6 (MediCheck, open, cg2, Medication assistance Done after one earlier entry was changed, Vitals check and Companionship not logged) and of B7 (MediCheck, closed, cg1, every task logged, a note about the visit, both times). Both are dated in the past in Nairobi and every time is inside the booked day. Needs `accounts` and `verification` first, and migration 0020 (the visit tables of FD-VISIT 7.2). The probe (`scripts/seed/probe.mjs`) passes after it.
 - `admin`: admin1 alone, nothing else: the empty state "no caregivers yet" (`--seed admin`). Not in a plain run.
 
-(The data these modules write is a draft until it is checked against Test_Data_Strategy.md: see `scripts/seed/starter-set.mjs`.)
+(The data these modules write was checked row for row against Test_Data_Strategy.md on 2026-11-06, VIZ-90: see `scripts/seed/starter-set.mjs`. B6 and B7 share a recipient (4A) and a bundle, so a seeded booking is found by its recipient, its bundle and the order it was created in.)
 
 ## The passwords
 

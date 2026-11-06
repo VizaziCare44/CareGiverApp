@@ -1,14 +1,14 @@
 // seedVerification: the verification module of the test seed (DEV-051; Test_Data_Strategy.md
 // §3.4, §7). On top of the accounts module it writes:
-//   - the caregivers' verification history: Verified, Not verified (no rows), and
-//     "removed" (a verified row, then a removed row: a Not-verified caregiver with a
-//     history), so the Admin screens, Booking Detail states 3 and 4 and Remove Verified
-//     all have data;
+//   - the caregivers' verification history: Verified (one `verified` row, actor admin1, created 7 days
+//     before seeding, note "test seed"), Not verified (no rows, cg3), and "removed" (a verified row,
+//     then a removed row: a Not-verified caregiver with a history; the module can make one, the
+//     starter set does not use it);
 //   - assigned bookings, with assigned_by, assigned_at and the booking_assignments row,
 //     exactly as assign_booking would have left them, and bookings in progress or
 //     completed (FD-VISIT's check-in does not exist yet, so the seed makes them).
 // What each caregiver and booking should be is data: VERIFICATION and ASSIGNMENTS in
-// starter-set.mjs (a draft, see there). The Admin it acts as is admin1.
+// starter-set.mjs (checked against §3.3 and §3.4 on 2026-11-06, VIZ-90). The Admin it acts as is admin1.
 //
 // Idempotent and append-only, like the tables it writes:
 //   - history rows are only ever ADDED, one at a time and in order, to bring a caregiver to
@@ -18,9 +18,8 @@
 //     left exactly as it is, apart from advancing an assigned booking to the status asked for.
 // Needs the accounts module to have run first (it says so if an account is missing).
 
-import { ASSIGNMENTS, BOOKINGS, RECIPIENTS, VERIFICATION } from './starter-set.mjs'
-import { findAccountIds } from './accounts.mjs'
-import { nairobiTime } from './dates.mjs'
+import { ASSIGNMENTS, BOOKINGS, RECIPIENTS, VERIFICATION, VERIFICATION_AGE_DAYS, VERIFICATION_NOTE } from './starter-set.mjs'
+import { findAccountIds, findBookingRow } from './accounts.mjs'
 
 async function latestActions(supabase, caregiverId) {
   const { data, error } = await supabase
@@ -32,9 +31,11 @@ async function latestActions(supabase, caregiverId) {
   return (data ?? []).map((row) => row.action)
 }
 
-async function appendHistory(supabase, caregiverId, adminId, action) {
-  const note = action === 'verified' ? 'Seed: marked Verified' : 'Seed: Verified removed'
-  const { error } = await supabase.from('caregiver_verifications').insert({ caregiver_id: caregiverId, action, note, acted_by: adminId })
+// The first row of a caregiver with no history is dated VERIFICATION_AGE_DAYS before the seeding (§3.4);
+// a row that puts a caregiver back is dated now, so that it is the latest.
+async function appendHistory(supabase, caregiverId, adminId, action, createdAt) {
+  const note = action === 'verified' ? VERIFICATION_NOTE : `${VERIFICATION_NOTE}: Verified removed`
+  const { error } = await supabase.from('caregiver_verifications').insert({ caregiver_id: caregiverId, action, note, acted_by: adminId, created_at: createdAt.toISOString() })
   if (error) throw new Error(`could not write a ${action} row: ${error.message}`)
 }
 
@@ -51,13 +52,7 @@ export async function findSeedBookings(supabase, ids) {
       .maybeSingle()
     if (recipientError) throw new Error(`could not look up ${recipient.name}: ${recipientError.message}`)
     if (!recipientRow) continue
-    const { data, error } = await supabase
-      .from('bookings')
-      .select('id, status, assigned_caregiver_id')
-      .eq('care_recipient_id', recipientRow.id)
-      .eq('bundle_code', booking.bundle)
-      .maybeSingle()
-    if (error) throw new Error(`could not look up ${booking.key}: ${error.message}`)
+    const data = await findBookingRow(supabase, recipientRow.id, booking, 'id, status, assigned_caregiver_id')
     if (data) found[booking.key] = data
   }
   return found
@@ -80,7 +75,12 @@ export async function seedVerification({ supabase, now = new Date() }) {
       plan.state === 'verified' ? (latest === 'verified' ? [] : ['verified']) :
       plan.state === 'removed' ? (latest === 'removed' ? [] : latest === 'verified' ? ['removed'] : ['verified', 'removed']) :
       []
-    for (const action of steps) await appendHistory(supabase, caregiverId, adminId, action)
+    const firstRow = actions.length === 0
+    for (const [index, action] of steps.entries()) {
+      // a caregiver with no history starts 7 days back (a removed row, when asked for, a moment after)
+      const createdAt = firstRow ? new Date(now.getTime() - VERIFICATION_AGE_DAYS * 24 * 3600 * 1000 + index * 1000) : now
+      await appendHistory(supabase, caregiverId, adminId, action, createdAt)
+    }
     summary.verification[steps.length > 0 ? 'appended' : 'left'] += steps.length > 0 ? steps.length : 1
   }
 
@@ -89,10 +89,8 @@ export async function seedVerification({ supabase, now = new Date() }) {
     const booking = seedBookings[plan.booking]
     if (!booking) throw new Error(`booking ${plan.booking} is missing; seed "accounts" first`)
     const caregiverId = ids[plan.caregiver]
-    const visit = plan.days === undefined ? null : nairobiTime({ days: plan.days, hour: plan.hour ?? 9, now }).toISOString()
     const advance = async () => {
-      const update = { status: plan.status, ...(visit ? { requested_datetime: visit } : {}) }
-      const { error } = await supabase.from('bookings').update(update).eq('id', booking.id)
+      const { error } = await supabase.from('bookings').update({ status: plan.status }).eq('id', booking.id)
       if (error) throw new Error(`could not move ${plan.booking} to ${plan.status}: ${error.message}`)
     }
 
@@ -109,9 +107,9 @@ export async function seedVerification({ supabase, now = new Date() }) {
         .insert({ booking_id: booking.id, caregiver_id: caregiverId, previous_caregiver_id: null, assigned_by: adminId })
       if (rowError) throw new Error(`could not write the assignment row of ${plan.booking}: ${rowError.message}`)
       summary.assignments.assigned += 1
-      if (plan.status !== 'assigned' || visit) {
+      if (plan.status !== 'assigned') {
         await advance()
-        if (plan.status !== 'assigned') summary.assignments.advanced += 1
+        summary.assignments.advanced += 1
       }
     } else if (booking.status === 'assigned' && booking.assigned_caregiver_id === caregiverId && plan.status !== 'assigned') {
       await advance()

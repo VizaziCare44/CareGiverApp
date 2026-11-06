@@ -6,9 +6,11 @@
 //   - an account that is missing is created; one that exists has its password, name,
 //     phone and role put back as they should be;
 //   - a recipient that is missing is created; one that exists has its care notes put back;
-//   - a booking that is missing is created; one that exists and is still `requested`
-//     has its date moved to the new "relative to now"; one that has moved on (assigned,
-//     in progress, completed, cancelled) is left exactly as it is;
+//   - a booking that is missing is created (`requested`, except B8, which is created `cancelled`);
+//     one that exists and is still `requested` has its date moved to the new "relative to now";
+//     one that has moved on (assigned, in progress, completed, cancelled) is left exactly as it is;
+//   - a booking is found again by its recipient, its bundle and the order it was created in, because
+//     B6 and B7 share a recipient and a bundle (Test_Data_Strategy.md §3.3);
 //   - NOTHING IS EVER DELETED, and nothing outside the starter set is touched.
 // It writes no verification or assignment rows: those are the `verification` module's
 // (verification.mjs, DEV-051).
@@ -18,7 +20,7 @@
 // (TC-VER-063). `accounts` on its own is the other empty state the Admin can reach:
 // caregivers exist and none is Verified.
 
-import { ACCOUNTS, BOOKINGS, RECIPIENTS } from './starter-set.mjs'
+import { ACCOUNTS, BOOKINGS, RECIPIENTS, occurrence } from './starter-set.mjs'
 import { nairobiTime } from './dates.mjs'
 
 async function listEmailToId(supabase) {
@@ -41,6 +43,22 @@ export async function findAccountIds(supabase) {
     if (id) ids[account.key] = id
   }
   return ids
+}
+
+/**
+ * The bookings of one recipient and bundle, in the order they were created, and the one of them that
+ * is this starter-set booking (null if it does not exist yet). `columns` is what to read.
+ */
+export async function findBookingRow(supabase, recipientId, booking, columns) {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(columns)
+    .eq('care_recipient_id', recipientId)
+    .eq('bundle_code', booking.bundle)
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) throw new Error(`could not look up ${booking.key}: ${error.message}`)
+  return data?.[occurrence(booking)] ?? null
 }
 
 /** Creates, or puts back, the given accounts and their profile rows. */
@@ -127,20 +145,14 @@ export async function seedAccounts({ supabase, password, now = new Date() }) {
   for (const booking of BOOKINGS) {
     const ownerKey = RECIPIENTS.find((r) => r.key === booking.recipient).owner
     const visit = nairobiTime({ days: booking.days, hour: booking.hour, now }).toISOString()
-    const { data: found, error } = await supabase
-      .from('bookings')
-      .select('id, status, requested_datetime')
-      .eq('care_recipient_id', recipientIds[booking.recipient])
-      .eq('bundle_code', booking.bundle)
-      .maybeSingle()
-    if (error) throw new Error(`could not look up ${booking.key}: ${error.message}`)
+    const found = await findBookingRow(supabase, recipientIds[booking.recipient], booking, 'id, status, requested_datetime')
     if (!found) {
       const { error: insertError } = await supabase.from('bookings').insert({
         account_id: ids[ownerKey],
         care_recipient_id: recipientIds[booking.recipient],
         bundle_code: booking.bundle,
         requested_datetime: visit,
-        status: 'requested',
+        status: booking.status ?? 'requested',
       })
       if (insertError) throw new Error(`could not create ${booking.key}: ${insertError.message}`)
       result.bookings.created += 1
