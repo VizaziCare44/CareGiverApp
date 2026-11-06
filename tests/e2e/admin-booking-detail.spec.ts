@@ -44,7 +44,7 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await page.waitForURL(`**/admin/bookings/${bookingId}`)
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Booking queue' })).toHaveAttribute('aria-current', 'page')
 
-    await expect(page.getByRole('heading', { name: `MediCheck for Requested ${stamp}`, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: `Booking · Requested ${stamp}`, level: 1 })).toBeVisible()
     const details = page.getByRole('region', { name: 'Booking', exact: true })
     await expect(details.getByText(`Requested ${stamp}`, { exact: true })).toBeVisible()
     await expect(details.getByText(/Takes insulin at 8am/)).toBeVisible()

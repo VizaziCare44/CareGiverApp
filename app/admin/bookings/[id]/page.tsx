@@ -94,7 +94,8 @@ export default async function AdminBookingDetailPage({
           Booking queue
         </Link>
         <h1 className="mt-2 text-[28px] font-bold leading-9">
-          {BUNDLES[booking.bundle_code].name} for {booking.care_recipient_name}
+          {/* frames VER-06, 06b, 06c: "Booking · {recipient}" (FD-ADMINEXC R-09, decision 9) */}
+          Booking · {booking.care_recipient_name}
         </h1>
         <p className="mt-2 inline-block rounded-full bg-sand-100 px-3 py-1 text-[14px] font-medium text-sand-800">
           {STATUS_LABEL[booking.status]}
