@@ -72,7 +72,8 @@ test.describe('DEV-048 — caregiver Assignment Detail', () => {
     await assign(id, mine.userId)
 
     await logInViaUI(page, mine.email, undefined, '**/assignments')
-    const link = page.getByRole('listitem').filter({ hasText: `Noted ${stamp}` }).getByRole('link', { name: 'View details' })
+    // the whole card is the link (DEV-063)
+    const link = page.getByRole('listitem').filter({ hasText: `Noted ${stamp}` }).getByRole('link')
     await expect(link).toHaveAttribute('href', `/assignments/${id}`)
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await link.click()

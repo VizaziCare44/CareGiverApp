@@ -189,7 +189,8 @@ test.describe('DEV-067 — visit summary (VIS-09)', () => {
     await page.getByRole('link', { name: 'Back to my assignments' }).last().click()
     await page.waitForURL('**/assignments')
     await expect(page.getByText('No bookings assigned to you yet.', { exact: false })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'View details' })).toHaveCount(0)
+    // a finished visit is not listed (FR-016): no card links to it
+    await expect(page.locator(`a[href="/assignments/${booking.id}"]`)).toHaveCount(0)
 
     const stranger = await makeCaregiver({ verified: true })
     await page.context().clearCookies()

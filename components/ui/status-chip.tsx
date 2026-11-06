@@ -31,6 +31,13 @@ const chips = {
     className: 'bg-figma-amber text-figma-ambertext',
     icon: 'clock',
   },
+  // a booking still assigned after its day has passed, on the Caregiver's My Assignments (DEV-063, FD-VISIT 6.5): the
+  // neutral grey outline with the dash, and words that blame no one (no "late", "overdue" or "missed")
+  'day-passed': {
+    label: 'Visit day has passed',
+    className: 'bg-figma-surface text-figma-ink border border-figma-border',
+    icon: 'dash',
+  },
   // a visit that has started (Chip/Clock), the same on the Caregiver's and the family's screens
   'in-progress': {
     label: 'In progress',
