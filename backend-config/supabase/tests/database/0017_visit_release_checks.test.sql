@@ -101,7 +101,7 @@ select is((select count(*) from public.checklist_items where bundle_code = 'doct
 
 -- 0020 align_visit_model_with_fd_visit
 select is((select string_agg(task_key, ',' order by bundle_code, sort_order) from public.checklist_items),
-  'pre_visit_preparation,transport_and_escort,advocacy_and_note_taking,post_visit_summary,medication_assistance,vitals_check,companionship',
+  'medication_assistance,vitals_check,companionship,pre_visit_preparation,transport_and_escort,advocacy_and_note_taking,post_visit_summary',
   '0020: the seven task keys of FD-VISIT 7.2');
 select is((select string_agg(name, ', ' order by sort_order) from public.checklist_items where bundle_code = 'doctors_day_out'),
   'Pre-visit preparation, Transport and escort, Advocacy and note-taking, Post-visit summary', '0020: the Doctor''s Day Out names, as in 7.2');

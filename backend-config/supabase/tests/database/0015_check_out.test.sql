@@ -67,7 +67,7 @@ select is((select visit_note from public.caregiver_visit where booking_id = '000
 select ok((select checked_out_at from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1') is not null, 'and the time');
 
 -- A repeat changes nothing (a retry)
-select is(public.check_out('00000000-0000-0000-0000-00000000b0a1', 'A different note') ->> 'checked_out_at', (select checked_out_at::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'),
+select is((public.check_out('00000000-0000-0000-0000-00000000b0a1', 'A different note') ->> 'checked_out_at')::timestamptz, (select checked_out_at from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'),
   'a repeat returns the same time');
 select is((select visit_note from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), 'Went well', 'the note is as it was');
 select is((select checked_out_at::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), current_setting('test.out'), 'and so is the time');

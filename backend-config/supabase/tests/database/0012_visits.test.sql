@@ -42,8 +42,8 @@ select is((select count(*) from public.checklist_items where name ilike '%admini
   'no task is called administration');
 select is((select count(*) from public.checklist_items where note_required_for_done), 3::bigint, 'three tasks need a note');
 select is((select string_agg(task_key, ',' order by bundle_code, sort_order) from public.checklist_items),
-  'pre_visit_preparation,transport_and_escort,advocacy_and_note_taking,post_visit_summary,medication_assistance,vitals_check,companionship',
-  'the seven task keys, in screen order');
+  'medication_assistance,vitals_check,companionship,pre_visit_preparation,transport_and_escort,advocacy_and_note_taking,post_visit_summary',
+  'the seven task keys, in screen order (the bundle enum sorts medicheck first)');
 select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns
             where table_schema = 'public' and table_name = 'checklist_items'),
   'bundle_code,task_key,name,sort_order,is_required,note_required_for_done', 'the columns of checklist_items');
