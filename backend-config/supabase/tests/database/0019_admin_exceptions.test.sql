@@ -33,6 +33,9 @@ select is((select string_agg(key || '=' || value, ',' order by key) from private
 select ok(not has_table_privilege('authenticated', 'private.exception_settings', 'select') and not has_table_privilege('anon', 'private.exception_settings', 'select')
       and not has_table_privilege('authenticated', 'private.exception_settings', 'update'),
   'no API role can read or write the settings');
+select ok(has_function_privilege('authenticated', 'private.exceptions_now()', 'execute') and not has_function_privilege('anon', 'private.exceptions_now()', 'execute')
+      and not has_function_privilege('authenticated', 'private.visit_now()', 'execute'),
+  'the view reads "now" through a wrapper signed-in users may run, and visit_now itself stays closed (TC-VIS-045)');
 select throws_ok($$insert into private.exception_settings (key, value) values ('something_else', 1)$$, '23514', null, 'only the three keys exist');
 select throws_ok($$update private.exception_settings set value = 0 where key = 'window_days'$$, '23514', null, 'a setting must be positive');
 select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'admin_exceptions'),

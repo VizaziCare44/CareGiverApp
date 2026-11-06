@@ -148,11 +148,11 @@ Creates `private.exception_settings` (three rows, no API privilege: `on_time_min
 | Check | Expect |
 |---|---|
 | `select key, value from private.exception_settings order by key;` | `in_progress_hours 8`, `on_time_minutes 30`, `window_days 7` |
-| `select not has_table_privilege('authenticated', 'private.exception_settings', 'select') and not has_table_privilege('anon', 'private.exception_settings', 'select');` | `true` |
+| `select not has_table_privilege('authenticated', 'private.exception_settings', 'select') and not has_table_privilege('anon', 'private.exception_settings', 'select') and has_function_privilege('authenticated', 'private.exceptions_now()', 'execute') and not has_function_privilege('authenticated', 'private.visit_now()', 'execute');` | `true` (the settings are closed; the view reads "now" through `private.exceptions_now()`, and `private.visit_now()` itself stays closed) |
 | `select has_table_privilege('authenticated', 'public.admin_exceptions', 'select') and not has_table_privilege('anon', 'public.admin_exceptions', 'select') and not has_table_privilege('authenticated', 'public.admin_exceptions', 'insert');` | `true` |
 | `select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'admin_exceptions';` | `16` |
 
-Reverse step: in the file (drops the view and the settings table; nothing else is lost, because nothing is stored).
+Reverse step: in the file (drops the view, the "now" wrapper and the settings table; nothing else is lost, because nothing is stored).
 
 ### The whole database, after all twenty-one
 

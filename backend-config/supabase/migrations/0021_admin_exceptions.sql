@@ -9,8 +9,8 @@
 --                                No API privilege. Changed by one UPDATE by the Tech Lead (runbook
 --                                addendum part 5); none of the three is written as a number in the view.
 --   public.admin_exceptions      one row per booking with at least one exception, derived on every read
---                                (R-01): nothing is stored. "Now" is private.visit_now(), so the test clock
---                                applies (T3); the clock row is keyed by user, so an Admin's tests set their
+--                                (R-01): nothing is stored. "Now" is private.visit_now() through the wrapper
+--                                private.exceptions_now(), so the test clock applies (T3); the clock row is keyed by user, so an Admin's tests set their
 --                                own and move nobody else's time.
 --
 -- COMPOSED on public.admin_booking_overview (FD-VERIFY §7.2, DEV-034), as family_visit is composed on
@@ -53,6 +53,22 @@ insert into private.exception_settings (key, value) values
 
 revoke all on private.exception_settings from public, anon, authenticated;
 
+-- "Now" for the view. PostgreSQL checks the right to run a function that a view calls as the CALLER, not as the
+-- view's owner (the reason private.visit_day_state is granted in migration 0013), and private.visit_now() stays
+-- closed to every API role (FD-VISIT TC-VIS-045). So the view calls this wrapper, which runs as its owner and
+-- returns only the moment: the real time, or, with a clock row for the signed-in user (tests only), that moment.
+create function private.exceptions_now()
+returns timestamptz
+language sql
+stable
+security definer set search_path = ''
+as $$
+  select private.visit_now();
+$$;
+
+revoke all on function private.exceptions_now() from public, anon;
+grant execute on function private.exceptions_now() to authenticated;
+
 create view public.admin_exceptions
 with (security_barrier = true) as
 with settings as (
@@ -60,7 +76,7 @@ with settings as (
     (select s.value from private.exception_settings s where s.key = 'on_time_minutes') as on_time_minutes,
     (select s.value from private.exception_settings s where s.key = 'in_progress_hours') as in_progress_hours,
     (select s.value from private.exception_settings s where s.key = 'window_days') as window_days,
-    private.visit_now() as now_at
+    private.exceptions_now() as now_at
 ),
 base as (
   select
@@ -134,5 +150,6 @@ grant select on public.admin_exceptions to authenticated;
 -- ---------------------------------------------------------------------------
 -- Reverse step (run by hand; nothing is stored, so nothing is lost but the three settings):
 --   drop view public.admin_exceptions;
+--   drop function private.exceptions_now();
 --   drop table private.exception_settings;
 -- ---------------------------------------------------------------------------
