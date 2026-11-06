@@ -14,8 +14,14 @@ import { getEntries, getVisit, getVisitTasks } from './visit-helpers'
 
 const TABLES = ['checklist_items', 'visits', 'visit_tasks', 'visit_task_entries'] as const
 
-/** The columns of family_bookings (FD-VERIFY TC-VER-033): unchanged by the visit work. */
-const FAMILY_BOOKINGS = ['bundle_code', 'caregiver_name', 'caregiver_verified', 'id', 'recipient_name', 'requested_at', 'requested_datetime', 'status']
+/**
+ * The columns of family_bookings as migration 0010 built them (DEV-034), unchanged by the visit work: the
+ * visit migrations add nothing to it. (FD-VERIFY TC-VER-033 lists eight columns with other names, requested_at
+ * and recipient_name, and without care_recipient_id, created_at and assigned_at; that difference is older
+ * than the visit work and is raised in the ticket, VIZ-67.) Whatever the names, there is no phone, no email,
+ * no photo and no caregiver id.
+ */
+const FAMILY_BOOKINGS = ['assigned_at', 'bundle_code', 'care_recipient_id', 'care_recipient_name', 'caregiver_name', 'caregiver_verified', 'created_at', 'id', 'requested_datetime', 'status']
 
 const message = (response: { error: { message?: string } | null }) => response.error?.message
 
@@ -107,6 +113,7 @@ test.describe('DEV-062 — the access matrix of FD-VISIT 7.4 (TC-VIS-040)', () =
     expect(mine.rows).toHaveLength(1)
     expect(mine.rows[0]).toMatchObject({ status: 'in_progress' })
     expect(Object.keys(mine.rows[0]).sort()).toEqual(FAMILY_BOOKINGS)
+    expect(Object.keys(mine.rows[0]).some((column) => /phone|email|photo|caregiver_id/.test(column))).toBe(false)
     expect((await rowsOf(G.client, 'family_bookings', ['id', K.id])).rows).toEqual([])
     // and none of the caregiver's words is in anything F can read
     expect(JSON.stringify(mine.rows)).not.toContain('M1-')
