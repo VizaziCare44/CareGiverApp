@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ActionButton, ActionLink } from '@/components/ui/action-button'
 import { AlertMessage } from '@/components/ui/alert-message'
 import { TextAreaField } from '@/components/ui/text-area-field'
-import { logTaskAction } from '@/app/assignments/[id]/tasks/[taskId]/actions'
+import { logTaskAction } from '@/app/assignments/[id]/tasks/[taskKey]/actions'
 import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { LOG_TASK, NOTE_LIMIT, REASON_LIMIT, fieldFor, lengthOf } from '@/lib/visits/log-task-text'
 import { formatTime } from '@/lib/datetime'
@@ -31,13 +31,13 @@ export interface CurrentEntry {
  */
 export function LogTaskForm({
   bookingId,
-  taskId,
+  taskKey,
   taskName,
   noteRequired,
   current,
 }: {
   bookingId: string
-  taskId: string
+  taskKey: string
   taskName: string
   noteRequired: boolean
   current: CurrentEntry | null
@@ -61,7 +61,7 @@ export function LogTaskForm({
 
   async function save() {
     if (!outcome || !canSave) return
-    const done = await run(() => logTaskAction(taskId, outcome, text))
+    const done = await run(() => logTaskAction(bookingId, taskKey, outcome, text), { limit })
     if (done?.result.ok) {
       router.push(`/assignments/${bookingId}`)
       router.refresh()
@@ -101,7 +101,7 @@ export function LogTaskForm({
                 disabled={pending}
                 onClick={() => setOutcome(value)}
                 className={[
-                  'inline-flex h-12 items-center justify-center gap-2 rounded-[10px] px-4 text-[16px] font-semibold leading-[1.4]',
+                  'inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[10px] px-4 text-[16px] font-semibold leading-[1.4]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed',
                   selected ? 'bg-figma-primary text-white' : 'border-2 border-figma-primary bg-white text-figma-primary',
                 ].join(' ')}
@@ -123,7 +123,7 @@ export function LogTaskForm({
           <TextAreaField
             id="task-text"
             label={field.label}
-            helper={field.prompt}
+            helper={field.prompt ?? undefined}
             value={text}
             disabled={pending}
             onChange={(event) => (outcome === 'done' ? setNote(event.target.value) : setReason(event.target.value))}

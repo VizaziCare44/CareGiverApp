@@ -1,4 +1,5 @@
--- Tests for migration 0014 (DEV-072 / DEV-062 part: private.visit_task_latest, caregiver_visit_tasks; DRAFT).
+-- Tests for private.visit_task_latest and caregiver_visit_tasks as FD-VISIT section 7.2 and
+-- FD-FAMVIS section 7.2 define them (migrations 0014, rebuilt in the spec's shape by 0020).
 begin;
 create extension if not exists pgtap with schema extensions;
 select * from no_plan();
@@ -21,14 +22,23 @@ insert into public.bookings (id, account_id, care_recipient_id, bundle_code, req
   ('00000000-0000-0000-0000-00000000b0a1', '00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-00000000c0f1',
    'medicheck', now(), 'assigned', '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000ad', now());
 
--- Each bundle has exactly one Optional task (DEV-065) ---------------------------------------------
-select is((select count(*) from public.checklist_items where bundle_code = 'medicheck' and not required), 1::bigint, 'MediCheck has one Optional task');
-select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and not required), 1::bigint, 'Doctor''s Day Out has one Optional task');
+-- Each bundle has exactly one Optional task, and the seed says which (FD-VISIT 5.7(c), 7.2) --------
+select is((select count(*) from public.checklist_items where bundle_code = 'medicheck' and not is_required), 1::bigint, 'MediCheck has one Optional task');
+select is((select name from public.checklist_items where bundle_code = 'medicheck' and not is_required), 'Companionship', 'Companionship');
+select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and not is_required), 1::bigint, 'Doctor''s Day Out has one Optional task');
+select is((select name from public.checklist_items where bundle_code = 'doctors_day_out' and not is_required), 'Pre-visit preparation', 'Pre-visit preparation');
 
 -- The rule is defined once, and only for the database ---------------------------------------------------
 select is(has_table_privilege('authenticated', 'private.visit_task_latest', 'select'), false, 'no API role reads the "entry that counts" view');
+select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns
+            where table_schema = 'private' and table_name = 'visit_task_latest'),
+  'visit_task_id,outcome,note,reason,logged_at', 'the five columns of FD-FAMVIS 7.2');
 select is(has_table_privilege('anon', 'public.caregiver_visit_tasks', 'select'), false, 'anon cannot read caregiver_visit_tasks');
 select is(has_table_privilege('authenticated', 'public.caregiver_visit_tasks', 'select'), true, 'signed-in users can');
+select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns
+            where table_schema = 'public' and table_name = 'caregiver_visit_tasks'),
+  'booking_id,task_key,name,sort_order,is_required,note_required_for_done,outcome,note,reason,logged_at',
+  'the columns of caregiver_visit_tasks');
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
@@ -41,21 +51,23 @@ select is((select count(*) from public.caregiver_visit_tasks where outcome is no
 
 -- Entries: the one with the highest id counts ------------------------------------------------------------
 reset role;
-insert into public.visit_task_entries (visit_task_id, outcome, note, logged_at)
-  select id, 'done', 'First', now() from public.visit_tasks where name = 'Medication assistance';
-insert into public.visit_task_entries (visit_task_id, outcome, reason, logged_at)
-  select id, 'not_done', 'Changed my mind', now() from public.visit_tasks where name = 'Medication assistance';
-insert into public.visit_task_entries (visit_task_id, outcome, note, logged_at)
-  select id, 'done', '120/80', now() from public.visit_tasks where name = 'Vitals check';
+insert into public.visit_task_entries (visit_task_id, outcome, note, logged_by, logged_at)
+  select id, 'done', 'First', '00000000-0000-0000-0000-0000000000c1', now() from public.visit_tasks where name = 'Medication assistance';
+insert into public.visit_task_entries (visit_task_id, outcome, reason, logged_by, logged_at)
+  select id, 'not_done', 'Changed my mind', '00000000-0000-0000-0000-0000000000c1', now() from public.visit_tasks where name = 'Medication assistance';
+insert into public.visit_task_entries (visit_task_id, outcome, note, logged_by, logged_at)
+  select id, 'done', '120/80', '00000000-0000-0000-0000-0000000000c1', now() from public.visit_tasks where name = 'Vitals check';
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
-select is((select outcome::text from public.caregiver_visit_tasks where name = 'Medication assistance'), 'not_done', 'the later entry counts');
-select is((select reason from public.caregiver_visit_tasks where name = 'Medication assistance'), 'Changed my mind', 'with its reason');
-select is((select note from public.caregiver_visit_tasks where name = 'Medication assistance'), null::text, 'and not the earlier note');
-select is((select note from public.caregiver_visit_tasks where name = 'Vitals check'), '120/80', 'a task with one entry shows it');
-select is((select outcome::text from public.caregiver_visit_tasks where name = 'Companionship'), null::text, 'a task with none has no outcome');
+select is((select outcome::text from public.caregiver_visit_tasks where task_key = 'medication_assistance'), 'not_done', 'the later entry counts');
+select is((select reason from public.caregiver_visit_tasks where task_key = 'medication_assistance'), 'Changed my mind', 'with its reason');
+select is((select note from public.caregiver_visit_tasks where task_key = 'medication_assistance'), null::text, 'and not the earlier note');
+select is((select note from public.caregiver_visit_tasks where task_key = 'vitals_check'), '120/80', 'a task with one entry shows it');
+select is((select outcome::text from public.caregiver_visit_tasks where task_key = 'companionship'), null::text, 'a task with none has no outcome');
 select is((select count(*) from public.caregiver_visit_tasks), 3::bigint, 'still one row per task');
+select is((select is_required from public.caregiver_visit_tasks where task_key = 'companionship'), false, 'Companionship is Optional');
+select is((select note_required_for_done from public.caregiver_visit_tasks where task_key = 'vitals_check'), true, 'Vitals check needs a note');
 
 -- Who may read them --------------------------------------------------------------------------------------------
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c2","role":"authenticated"}', true);
@@ -64,6 +76,7 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select is((select count(*) from public.caregiver_visit_tasks), 0::bigint, 'a family member reads none');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ad","role":"authenticated"}', true);
 select is((select count(*) from public.caregiver_visit_tasks), 0::bigint, 'nor does an Admin, through this view');
+select is((select count(*) from public.visit_task_entries), 3::bigint, 'but the Admin reads the entries themselves, every one');
 
 -- A Caregiver who is no longer Verified reads nothing
 reset role;

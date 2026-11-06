@@ -6,9 +6,9 @@
 export type TaskOutcome = 'done' | 'not_done'
 
 export interface VisitTask {
-  task_id: string
+  task_key: string
   name: string
-  required: boolean
+  is_required: boolean
   outcome: TaskOutcome | null
 }
 
@@ -16,13 +16,13 @@ const isLogged = (task: VisitTask) => task.outcome !== null
 
 /** Required tasks that have an outcome, and how many Required tasks there are. */
 export function requiredProgress(tasks: VisitTask[]) {
-  const required = tasks.filter((task) => task.required)
+  const required = tasks.filter((task) => task.is_required)
   return { logged: required.filter(isLogged).length, total: required.length }
 }
 
 /** Names of the Required tasks with no outcome, in checklist order (the order of `tasks`). */
 export function stillToLog(tasks: VisitTask[]) {
-  return tasks.filter((task) => task.required && !isLogged(task)).map((task) => task.name)
+  return tasks.filter((task) => task.is_required && !isLogged(task)).map((task) => task.name)
 }
 
 /** Check out is available once every Required task has an outcome. */
@@ -34,5 +34,5 @@ export const canCheckOut = (tasks: VisitTask[]) => stillToLog(tasks).length === 
  * more than one, the first still unlogged is named.
  */
 export function unloggedOptionalName(tasks: VisitTask[]) {
-  return tasks.find((task) => !task.required && !isLogged(task))?.name ?? null
+  return tasks.find((task) => !task.is_required && !isLogged(task))?.name ?? null
 }

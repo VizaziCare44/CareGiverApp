@@ -28,14 +28,14 @@ export function VisitTasks({ bookingId, tasks }: { bookingId: string; tasks: Vis
         {tasks.map((task) => {
           const state = task.outcome ?? 'none'
           return (
-            <li key={task.task_id} data-testid="visit-task" className="border-t border-figma-line first:border-t-0">
+            <li key={task.task_key} data-testid="visit-task" className="border-t border-figma-line first:border-t-0">
               <Link
-                href={`/assignments/${bookingId}/tasks/${task.task_id}`}
+                href={`/assignments/${bookingId}/tasks/${task.task_key}`}
                 className="flex min-h-14 items-center justify-between gap-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary"
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="text-[16px] font-medium">{task.name}</span>
-                  <span className="text-[14px] text-figma-muted">{task.required ? CHECKLIST.required : CHECKLIST.optional}</span>
+                  <span className="text-[14px] text-figma-muted">{task.is_required ? CHECKLIST.required : CHECKLIST.optional}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 text-[14px] font-medium" data-state={state}>
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -4,7 +4,7 @@ import { logInViaUI, serviceClient } from './helpers'
 import { makeBooking, makeCaregiver, makeFamily, makeRecipient, nairobiTime, type TestCaregiver } from './factories'
 
 // DEV-067: the check-out confirmation (VIS-08) and the visit summary (VIS-09); FR-008, FR-010,
-// FR-015; AC-010. The data layer under it (migrations 0011 to 0016) is a DRAFT.
+// FR-015; AC-010. The data layer under it is FD-VISIT 7.2 and 7.3 (migration 0020).
 
 type Bundle = 'medicheck' | 'doctors_day_out'
 
@@ -21,9 +21,10 @@ async function startVisit(bundle: Bundle = 'medicheck') {
 async function logAs(caregiver: TestCaregiver, bookingId: string, name: string, outcome: 'done' | 'not_done', text?: string) {
   const svc = serviceClient()
   const visit = await svc.from('visits').select('id').eq('booking_id', bookingId).single()
-  const task = await svc.from('visit_tasks').select('id').eq('visit_id', visit.data!.id).eq('name', name).single()
+  const task = await svc.from('visit_tasks').select('task_key').eq('visit_id', visit.data!.id).eq('name', name).single()
   const result = await caregiver.client.rpc('log_visit_task', {
-    p_task_id: task.data!.id,
+    p_booking_id: bookingId,
+    p_task_key: task.data!.task_key,
     p_outcome: outcome,
     p_note: outcome === 'done' ? (text ?? null) : null,
     p_reason: outcome === 'not_done' ? (text ?? 'Could not do it') : null,
@@ -136,7 +137,7 @@ test.describe('DEV-067 — visit summary (VIS-09)', () => {
     await expect(tasks.nth(2)).toContainText('Optional')
     await expect(tasks.nth(2).getByTestId('summary-result')).toHaveText('Not recorded')
 
-    await expect(page.getByRole('region', { name: 'Note about the visit' })).toContainText('Calm morning, family called at ten.')
+    await expect(page.getByRole('region', { name: 'Visit note' })).toContainText('Calm morning, family called at ten.')
 
     // only the way back; no score, praise, badge or the word Verified; nothing to edit
     const back = page.getByRole('link', { name: 'Back to my assignments' }).last()
@@ -153,14 +154,14 @@ test.describe('DEV-067 — visit summary (VIS-09)', () => {
     // a reload shows the same summary; the task screen says it is checked out
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: 'Visit summary' })).toBeVisible()
-    const taskRow = await serviceClient().from('visit_tasks').select('id').eq('visit_id', row.id).eq('name', 'Vitals check').single()
-    await page.goto(`/assignments/${booking.id}/tasks/${taskRow.data!.id}`)
+    const taskRow = await serviceClient().from('visit_tasks').select('task_key').eq('visit_id', row.id).eq('name', 'Vitals check').single()
+    await page.goto(`/assignments/${booking.id}/tasks/${taskRow.data!.task_key}`)
     await expect(page.getByTestId('already-checked-out')).toBeVisible()
   })
 
   test('with no note about the visit, the summary has no note section; Doctor\'s Day Out shows its own tasks', async ({ page }) => {
     const { caregiver, booking } = await startVisit('doctors_day_out')
-    await logAs(caregiver, booking.id, 'Transport & escort', 'done')
+    await logAs(caregiver, booking.id, 'Transport and escort', 'done')
     await logAs(caregiver, booking.id, 'Advocacy and note-taking', 'done', 'Asked about the dizziness')
     await logAs(caregiver, booking.id, 'Post-visit summary', 'done', 'New tablets, review in two weeks')
     await open(page, caregiver, booking.id)
@@ -169,7 +170,7 @@ test.describe('DEV-067 — visit summary (VIS-09)', () => {
     await confirmButton(page).click()
 
     await expect(page.getByRole('heading', { level: 1, name: 'Visit summary' })).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Note about the visit' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Visit note' })).toHaveCount(0)
     const tasks = page.getByTestId('summary-task')
     await expect(tasks).toHaveCount(4)
     await expect(tasks.nth(0)).toContainText('Pre-visit preparation')
@@ -244,7 +245,7 @@ test.describe('DEV-067 — when it goes wrong, and the limits', () => {
 
     await field.fill('n'.repeat(2001))
     expect(await field.inputValue()).toHaveLength(2001)
-    await expect(dialog(page).getByTestId('too-long-line')).toHaveText('This is too long. The limit is 2,000 characters. Shorten it to check out.')
+    await expect(dialog(page).getByTestId('too-long-line')).toHaveText('This is too long. The limit is 2,000 characters.')
     await expect(confirmButton(page)).toBeDisabled()
 
     await field.fill('n'.repeat(2000))

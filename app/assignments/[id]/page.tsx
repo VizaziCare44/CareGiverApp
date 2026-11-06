@@ -11,9 +11,9 @@ import { VisitChecklist, type ChecklistRow } from '@/components/caregiver/visit-
 import { VisitTasks } from '@/components/caregiver/visit-tasks'
 import { StatusChip } from '@/components/ui/status-chip'
 import { VisitSummary, type SummaryTask } from '@/components/caregiver/visit-summary'
-import { BUNDLE_LINES } from '@/lib/bookings/bundles'
+import { BUNDLES, BUNDLE_LINES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
-import { formatDateTime, formatTime } from '@/lib/datetime'
+import { formatDate, formatDateTime, formatTime } from '@/lib/datetime'
 import { DAY_PASSED, GO_TO_VISIT_IN_PROGRESS, IN_PROGRESS_LABEL, anotherVisitInProgress, beforeTheDay, checkedInLine } from '@/lib/visits/assignment-text'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -26,22 +26,22 @@ interface AssignmentDetail {
   care_recipients: { name: string; care_notes: string | null } | null
 }
 
-// One row of caregiver_visit (migration 0013): which state the screen is in, decided by the
+// One row of caregiver_visit (FD-VISIT 7.2; migration 0020): which state the screen is in, decided by the
 // server's clock and the visit itself, never by the device.
 interface VisitState {
   day_state: 'before' | 'today' | 'passed'
   checked_in_at: string | null
   checked_out_at: string | null
   visit_note: string | null
-  other_booking_id: string | null
-  other_recipient_name: string | null
-  other_bundle_code: BundleCode | null
+  other_visit_booking_id: string | null
+  other_visit_recipient_name: string | null
+  other_visit_bundle_code: BundleCode | null
 }
 
 // FR-010 / AC-010, frames VER-12 and VER-12b, extended by DEV-064 (FD-VISIT frames VIS-02 to
-// VIS-05b). The booking summary is the top block; directly under it the notice for the state
-// (before the day, another visit open, the day has passed), then the read-only checklist, then
-// the care notes. On the day, with nothing else open, the Check in button is in a bar fixed at
+// VIS-05b). The booking summary, care notes included, is the top block (FD-VISIT 6.1); directly under
+// it the notice for the state (before the day, another visit open, the day has passed), then the
+// read-only checklist. On the day, with nothing else open, the Check in button is in a bar fixed at
 // the bottom. FD-VISIT's later screens extend this page below (tasks, check-out).
 //
 // The database lets a Caregiver read a booking, and its recipient's care notes,
@@ -77,7 +77,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
 
   const { data: stateRow, error: stateError } = await supabase
     .from('caregiver_visit')
-    .select('day_state, checked_in_at, checked_out_at, visit_note, other_booking_id, other_recipient_name, other_bundle_code')
+    .select('day_state, checked_in_at, checked_out_at, visit_note, other_visit_booking_id, other_visit_recipient_name, other_visit_bundle_code')
     .eq('booking_id', booking.id)
     .maybeSingle()
   if (stateError) throw new Error(`Failed to load the visit: ${stateError.message}`)
@@ -85,7 +85,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
 
   const { data: items, error: itemsError } = await supabase
     .from('checklist_items')
-    .select('id, name, required')
+    .select('task_key, name, is_required')
     .eq('bundle_code', booking.bundle_code)
     .order('sort_order', { ascending: true })
   if (itemsError) throw new Error(`Failed to load the checklist: ${itemsError.message}`)
@@ -101,7 +101,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   if (inProgress || summary) {
     const { data: taskRows, error: tasksError } = await supabase
       .from('caregiver_visit_tasks')
-      .select('task_id, name, required, outcome, note, reason')
+      .select('task_key, name, is_required, outcome, note, reason')
       .eq('booking_id', booking.id)
       .order('sort_order', { ascending: true })
     if (tasksError) throw new Error(`Failed to load the tasks: ${tasksError.message}`)
@@ -128,7 +128,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
 
   // Check-in is offered only to a booking still assigned, with no visit, on the day, and
   // with no other visit open (VIS-03, VIS-03b).
-  const canCheckIn = assigned && visit?.day_state === 'today' && !visit.other_booking_id
+  const canCheckIn = assigned && visit?.day_state === 'today' && !visit.other_visit_booking_id
 
   return (
     <div className="min-h-screen text-figma-ink">
@@ -149,6 +149,17 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
             <p className="text-[14px] font-medium text-figma-muted">Date and time</p>
             <p className="text-[16px]">{formatDateTime(booking.requested_datetime)}</p>
           </div>
+          {/* the care notes are part of the booking summary, the top block (FD-VISIT 6.1, 6.6(f)); everything FD-VISIT adds is below it */}
+          <section aria-labelledby="care-notes-heading" className="flex flex-col gap-2 border-t border-figma-line pt-4">
+            <h2 id="care-notes-heading" className="text-[18px] font-semibold leading-[1.3]">
+              Care notes
+            </h2>
+            {careNotes ? (
+              <p className="whitespace-pre-wrap text-[16px] leading-[1.4]">{careNotes}</p>
+            ) : (
+              <p className="text-[16px] leading-[1.4] text-figma-muted">No care notes given.</p>
+            )}
+          </section>
         </section>
 
         {visit?.checked_in_at && !assigned && (
@@ -165,11 +176,11 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
             <p>{beforeTheDay(booking.requested_datetime)}</p>
           </Notice>
         )}
-        {assigned && visit?.day_state === 'today' && visit.other_booking_id && visit.other_recipient_name && visit.other_bundle_code && (
+        {assigned && visit?.day_state === 'today' && visit.other_visit_booking_id && visit.other_visit_recipient_name && visit.other_visit_bundle_code && (
           <Notice>
-            <p>{anotherVisitInProgress(visit.other_recipient_name, visit.other_bundle_code)}</p>
+            <p>{anotherVisitInProgress(visit.other_visit_recipient_name, visit.other_visit_bundle_code)}</p>
             <Link
-              href={`/assignments/${visit.other_booking_id}`}
+              href={`/assignments/${visit.other_visit_booking_id}`}
               className="flex min-h-11 items-center self-start text-figma-softtext underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary"
             >
               {GO_TO_VISIT_IN_PROGRESS}
@@ -184,25 +195,18 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
         )}
 
         {inProgress ? <VisitTasks bookingId={booking.id} tasks={tasks} /> : <VisitChecklist items={(items ?? []) as ChecklistRow[]} />}
-
-        <section aria-labelledby="care-notes-heading" className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-5">
-          <h2 id="care-notes-heading" className="text-[18px] font-semibold leading-[1.3]">
-            Care notes
-          </h2>
-          {careNotes ? (
-            <p className="whitespace-pre-wrap text-[16px] leading-[1.4]">{careNotes}</p>
-          ) : (
-            <p className="text-[16px] leading-[1.4] text-figma-muted">No care notes given.</p>
-          )}
-        </section>
-
       </main>
 
       {/* a booking marked in progress without a visit (only test data) has no tasks and so no check-out */}
       {inProgress && tasks.length > 0 && <CheckOutBar bookingId={booking.id} tasks={tasks} />}
 
       {canCheckIn && (
-        <CheckInBar bookingId={booking.id} recipientName={booking.care_recipients?.name ?? ''} bundleLine={BUNDLE_LINES[booking.bundle_code]} />
+        <CheckInBar
+          bookingId={booking.id}
+          recipientName={booking.care_recipients?.name ?? ''}
+          bundleName={BUNDLES[booking.bundle_code].name}
+          visitDate={formatDate(booking.requested_datetime)}
+        />
       )}
     </div>
   )

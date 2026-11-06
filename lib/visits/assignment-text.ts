@@ -2,10 +2,9 @@ import { formatDate } from '@/lib/datetime'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 
-// The words on the Assignment Detail screen before and at check-in (DEV-064). The lines the
-// ticket gives verbatim are exact. The two Medication assistance lines, the check-in dialog's
-// detail and body lines come from FD-VISIT §6.5, which was not available: they are DRAFT.
-// Changing a word is an edit here and nowhere else.
+// The words on the Assignment Detail screen before and at check-in (DEV-064), as the copy table of
+// FD-VISIT §6.5 gives them (checked against it on 2026-11-06, VIZ-91). Changing a word is an
+// edit here and nowhere else.
 
 export const CHECKLIST = {
   heading: 'Visit checklist',
@@ -14,11 +13,12 @@ export const CHECKLIST = {
   optional: 'Optional',
 }
 
-/** Under the Medication assistance task. DRAFT (FD-VISIT §6.5 verbatim text not available). */
+/** Under the Medication assistance task (§6.5; DECIDED 2026-10-13, §5.7(j), §6.6(a)). */
 export const MEDICATION_ASSISTANCE_NOTES = {
   taskName: 'Medication assistance',
-  description: 'Help the care recipient take the medicines they have been prescribed, at the right times.',
-  ifUnsure: 'If you are unsure about a medicine or a dose, do not guess: contact Vizazi Care before the care recipient takes it.',
+  description:
+    'Help the recipient take the medicines they already have and are meant to take: put water in a cup, take the medicine out of its packet, and give both to them. You do not choose, change, add or stop any medicine or dose.',
+  ifUnsure: 'If you are not sure about a medicine, do not give it. Log the task as Not done and say why.',
 }
 
 export const beforeTheDay = (visit: string | Date) => `Check-in opens on the day of the visit, ${formatDate(visit)}.`
@@ -33,18 +33,16 @@ export const DAY_PASSED = 'The day of this visit has passed, so check-in is no l
 
 export const CHECK_IN_DIALOG = {
   title: 'Check in to this visit?',
-  /** DRAFT */
-  detail: (recipient: string, bundleLine: string) => `${recipient} · ${bundleLine}`,
-  /** DRAFT */
-  body: 'Your check-in time is recorded when you confirm. Each booking is one visit.',
+  /** "[Name] · [bundle] · [date]": the bundle name only, no length; the date alone, no clock time (§6.6(k)(c), (j)). */
+  detail: (recipient: string, bundleName: string, date: string) => `${recipient} · ${bundleName} · ${date}`,
+  body: 'The family will see this visit as "In progress". The check-in time is recorded when you confirm.',
   confirm: 'Check in',
   cancel: 'Cancel',
 }
 
 export const checkedInLine = (time: string) => `Checked in: ${time}`
 
-// In progress (DEV-065; frames VIS-06, VIS-06b, VIS-06c). The lines the ticket gives are exact.
-// The Tasks heading and the state words' wording of "Not logged yet" are as the ticket gives them.
+// In progress (DEV-065; frames VIS-06, VIS-06b, VIS-06c), §6.5.
 export const TASKS = {
   heading: 'Tasks',
   progress: (logged: number, total: number) => `Required tasks logged: ${logged} of ${total}. Tap a task to log it.`,

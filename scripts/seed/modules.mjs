@@ -9,7 +9,7 @@
 //                 and completed bookings, on top of `accounts`. Needs `accounts` first.
 //   visit         (DEV-070) the visit of B6 (open, cg2, partly logged) and of B7 (closed, cg1, fully
 //                 logged): the visit row, the checklist snapshot and the entries. Needs `accounts` and
-//                 `verification` first, and migrations 0011 to 0016.
+//                 `verification` first, and migration 0020 (the visit tables of FD-VISIT 7.2).
 //
 // MODULES is every module there is, in the order they should run when several are asked
 // for; DEFAULT_MODULES is what a plain `npm run e2e:fresh` runs: the full set, with the

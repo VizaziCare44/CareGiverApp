@@ -9,7 +9,7 @@ import { serviceClient } from './helpers'
 // the local stack only: it refuses any other host, before it connects (a hosted project's
 // database is never reachable from a test). The address is the local stack's, postgresql://
 // postgres:postgres@127.0.0.1:54322/postgres, or E2E_DB_URL if that names a local host.
-// A clock row belongs to one Caregiver (migration 0017): their calls see that moment as "now",
+// A clock row belongs to one Caregiver (migration 0017; the moment is now_override, FD-VISIT 7.2): their calls see that moment as "now",
 // and nobody else's do, so tests running in parallel do not disturb each other.
 //
 // THE READ HELPERS use the service role, for ground truth AFTER an attempt. They are never the
@@ -54,7 +54,7 @@ export async function setClock(caregiver: { userId: string }, instant: Date | st
   if (Number.isNaN(at.getTime())) throw new Error('setClock: the instant is not a valid date.')
   await withDb((db) =>
     db.query(
-      'insert into private.test_clock (caregiver_id, at) values ($1, $2) on conflict (caregiver_id) do update set at = excluded.at',
+      'insert into private.test_clock (caregiver_id, now_override) values ($1, $2) on conflict (caregiver_id) do update set now_override = excluded.now_override',
       [caregiver.userId, at.toISOString()],
     ),
   )
@@ -80,12 +80,12 @@ export async function hasClock(caregiver: { userId: string }): Promise<boolean> 
 // ---------------------------------------------------------------------------
 
 export interface ChecklistItemRow {
-  id: number
   bundle_code: 'medicheck' | 'doctors_day_out'
-  sort_order: number
+  task_key: string
   name: string
-  required: boolean
-  note_required: boolean
+  sort_order: number
+  is_required: boolean
+  note_required_for_done: boolean
 }
 
 export interface VisitRow {
@@ -98,21 +98,22 @@ export interface VisitRow {
 }
 
 export interface VisitTaskRow {
-  id: string
+  id: number
   visit_id: string
-  checklist_item_id: number
-  sort_order: number
+  task_key: string
   name: string
-  required: boolean
-  note_required: boolean
+  sort_order: number
+  is_required: boolean
+  note_required_for_done: boolean
 }
 
 export interface EntryRow {
   id: number
-  visit_task_id: string
+  visit_task_id: number
   outcome: 'done' | 'not_done'
   note: string | null
   reason: string | null
+  logged_by: string
   logged_at: string
 }
 
@@ -138,7 +139,7 @@ export async function getVisitTasks(visitId: string): Promise<VisitTaskRow[]> {
 }
 
 /** Every entry of a task, oldest first; the last one is the one that counts. */
-export async function getEntries(visitTaskId: string): Promise<EntryRow[]> {
+export async function getEntries(visitTaskId: number): Promise<EntryRow[]> {
   const { data, error } = await serviceClient().from('visit_task_entries').select('*').eq('visit_task_id', visitTaskId).order('id', { ascending: true })
   if (error) throw new Error(`getEntries failed: ${error.message}`)
   return (data ?? []) as EntryRow[]

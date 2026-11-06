@@ -118,7 +118,7 @@ export const VISITS = [
     visitNote: 'Clinic ran late; we were home by half past one.',
     entries: [
       { task: 'Pre-visit preparation', outcome: 'done', note: null, at: { h: 9, m: 25 } },
-      { task: 'Transport & escort', outcome: 'done', note: null, at: { h: 10, m: 40 } },
+      { task: 'Transport and escort', outcome: 'done', note: null, at: { h: 10, m: 40 } },
       { task: 'Advocacy and note-taking', outcome: 'done', note: 'Asked about the dizziness; the doctor will review it in two weeks.', at: { h: 12, m: 15 } },
       { task: 'Post-visit summary', outcome: 'done', note: 'New prescription: one tablet each evening. Next visit in two weeks.', at: { h: 13, m: 20 } },
     ],

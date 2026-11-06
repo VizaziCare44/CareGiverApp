@@ -373,15 +373,16 @@ export async function makeVisit({
   const visit = await getVisit(booking.id)
   if (!visit) throw new Error('makeVisit: check_in succeeded but there is no visit row')
   const snapshot = await getVisitTasks(visit.id)
-  const taskIdOf = (key: string) => {
-    const task = snapshot.find((t) => t.name === key)
-    if (!task) throw new Error(`makeVisit: this visit has no task "${key}" (it has: ${snapshot.map((t) => t.name).join(', ')})`)
-    return task.id
+  const taskKeyOf = (name: string) => {
+    const task = snapshot.find((t) => t.name === name)
+    if (!task) throw new Error(`makeVisit: this visit has no task "${name}" (it has: ${snapshot.map((t) => t.name).join(', ')})`)
+    return task.task_key
   }
 
   const log = async (plan: VisitTaskPlan) => {
     const result = await caregiver.client.rpc('log_visit_task', {
-      p_task_id: taskIdOf(plan.key),
+      p_booking_id: booking.id,
+      p_task_key: taskKeyOf(plan.key),
       p_outcome: plan.outcome,
       p_note: plan.outcome === 'done' ? (plan.note ?? null) : null,
       p_reason: plan.outcome === 'not_done' ? (plan.reason ?? null) : null,
@@ -391,7 +392,7 @@ export async function makeVisit({
   for (const plan of tasks) await log(plan)
 
   if (closed) {
-    for (const task of snapshot.filter((t) => t.required && !tasks.some((plan) => plan.key === t.name))) {
+    for (const task of snapshot.filter((t) => t.is_required && !tasks.some((plan) => plan.key === t.name))) {
       await log({ key: task.name, outcome: 'done', note: 'Factory: done' })
     }
     const out = await caregiver.client.rpc('check_out', { p_booking_id: booking.id, p_visit_note: visitNote ?? '' })

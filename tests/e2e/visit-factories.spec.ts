@@ -7,7 +7,7 @@ import { clearClock, countClockRows, getChecklistItems, getEntries, getVisit, ge
 
 // DEV-070: the FD-VISIT factories (makeVisit, makeBooking in progress or completed), the
 // day-relative helpers (nairobiDay), the test clock, the read helpers and the probe, and the size
-// check on a long care note. The data layer under them (migrations 0011 to 0017) is a DRAFT.
+// check on a long care note. The data layer under them is FD-VISIT 7.2 and 7.3 (migration 0020).
 
 const svc = () => serviceClient()
 
@@ -73,7 +73,7 @@ test.describe('DEV-070 — makeVisit', () => {
     const tasks = await getVisitTasks(visit.id)
     for (const task of tasks) {
       const entries = await getEntries(task.id)
-      if (task.required) expect(entries.length, task.name).toBe(1)
+      if (task.is_required) expect(entries.length, task.name).toBe(1)
       else expect(entries, task.name).toEqual([])
     }
     expect((await getEntries(tasks.find((t) => t.name === 'Post-visit summary')!.id))[0].note).toBe('Next visit in two weeks')
@@ -90,7 +90,7 @@ test.describe('DEV-070 — makeVisit', () => {
     const family2 = await makeFamily()
     const unverified = await makeCaregiver({ verified: 'removed' })
     const other = await makeBooking({ family: family2, status: 'assigned', caregiver: unverified, visit: nairobiDay(today) })
-    await expect(makeVisit({ booking: other, caregiver: unverified })).rejects.toThrow(/CAREGIVER_NOT_VERIFIED/)
+    await expect(makeVisit({ booking: other, caregiver: unverified })).rejects.toThrow(/check_in refused: BOOKING_NOT_FOUND/)
     expect(await getVisit(other.id)).toBeNull()
   })
 
@@ -186,7 +186,7 @@ test.describe('DEV-070 — the probe', () => {
 
     const second = await makeBooking({ family, status: 'in_progress', caregiver: await makeCaregiver({ verified: true }) })
     const task = (await getVisitTasks(second.visitId!))[0]
-    const early = await svc().from('visit_task_entries').insert({ visit_task_id: task.id, outcome: 'done', logged_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString() })
+    const early = await svc().from('visit_task_entries').insert({ visit_task_id: task.id, outcome: 'done', logged_by: (await getVisit(second.id))!.caregiver_id, logged_at: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString() })
     expect(early.error).toBeNull()
     const found = await probe({ bookingIds: [second.id] })
     expect(found.map((o) => o.kind)).toEqual(['ENTRY_OUTSIDE_VISIT'])

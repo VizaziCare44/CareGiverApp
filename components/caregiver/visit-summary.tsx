@@ -56,10 +56,10 @@ export function VisitSummary({
         </h2>
         <ul className="flex flex-col">
           {tasks.map((task) => (
-            <li key={task.task_id} data-testid="summary-task" className="flex flex-col gap-1 border-t border-figma-line py-3 first:border-t-0 first:pt-0 last:pb-0">
+            <li key={task.task_key} data-testid="summary-task" className="flex flex-col gap-1 border-t border-figma-line py-3 first:border-t-0 first:pt-0 last:pb-0">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-[16px] font-medium">{task.name}</span>
-                <span className="text-[14px] text-figma-muted">{task.required ? CHECKLIST.required : CHECKLIST.optional}</span>
+                <span className="text-[14px] text-figma-muted">{task.is_required ? CHECKLIST.required : CHECKLIST.optional}</span>
               </div>
               <p className="text-[16px]" data-testid="summary-result">
                 {task.outcome === 'done' ? SUMMARY.done : task.outcome === 'not_done' ? SUMMARY.notDone : SUMMARY.notRecorded}

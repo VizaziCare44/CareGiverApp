@@ -11,7 +11,7 @@ import { stringsOf } from './source-strings'
 // DEV-075: the visit block on the family's Booking Detail (frames FAM-02, FAM-07; FR-001, FR-002,
 // FR-010, FR-012; AC-001, AC-009, AC-013, AC-015, AC-016), in the states F1 to F6. The report itself
 // (F3) is DEV-076. The data comes from the factories through the real functions; the state table of
-// FD-FAMVIS §7.3 was not available, so the states are the ones the ticket names (a DRAFT).
+// FD-FAMVIS §7.3's state table is what `familyVisitState` follows (checked against it on 2026-11-06).
 
 const CONTACT_EMAIL = 'vizazicare@gmail.com'
 
@@ -33,8 +33,8 @@ async function inProgress() {
 
 async function logRequired(caregiver: TestCaregiver, booking: TestBooking) {
   const tasks = await getVisitTasks(booking.visitId!)
-  for (const task of tasks.filter((t) => t.required)) {
-    const saved = await caregiver.client.rpc('log_visit_task', { p_task_id: task.id, p_outcome: 'done', p_note: 'Factory: done', p_reason: null })
+  for (const task of tasks.filter((t) => t.is_required)) {
+    const saved = await caregiver.client.rpc('log_visit_task', { p_booking_id: booking.id, p_task_key: task.task_key, p_outcome: 'done', p_note: 'Factory: done', p_reason: null })
     expect(saved.error).toBeNull()
   }
 }
@@ -96,7 +96,7 @@ test.describe('DEV-075 — F2: the visit is in progress', () => {
   test('"Visit", "Checked in at" with the time on the next line, and the fixed line; no task, outcome, reason or note', async ({ page }) => {
     const { family, caregiver, booking } = await inProgress()
     const tasks = await getVisitTasks(booking.visitId!)
-    const saved = await caregiver.client.rpc('log_visit_task', { p_task_id: tasks.find((t) => t.name === 'Vitals check')!.id, p_outcome: 'done', p_note: 'secret-reading-12345', p_reason: null })
+    const saved = await caregiver.client.rpc('log_visit_task', { p_booking_id: booking.id, p_task_key: tasks.find((t) => t.name === 'Vitals check')!.task_key, p_outcome: 'done', p_note: 'secret-reading-12345', p_reason: null })
     expect(saved.error).toBeNull()
     const visit = (await getVisit(booking.id))!
 

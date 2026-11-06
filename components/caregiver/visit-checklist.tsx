@@ -1,9 +1,9 @@
 import { CHECKLIST, MEDICATION_ASSISTANCE_NOTES } from '@/lib/visits/assignment-text'
 
 export interface ChecklistRow {
-  id: number
+  task_key: string
   name: string
-  required: boolean
+  is_required: boolean
 }
 
 /**
@@ -21,10 +21,10 @@ export function VisitChecklist({ items }: { items: ChecklistRow[] }) {
       <p className="text-[14px] leading-[1.4] text-figma-muted">{CHECKLIST.line}</p>
       <ol className="flex flex-col gap-3">
         {items.map((item) => (
-          <li key={item.id} data-testid="checklist-task" className="flex flex-col gap-1 border-t border-figma-line pt-3 first:border-t-0 first:pt-0">
+          <li key={item.task_key} data-testid="checklist-task" className="flex flex-col gap-1 border-t border-figma-line pt-3 first:border-t-0 first:pt-0">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[16px] font-medium">{item.name}</span>
-              <span className="text-[14px] text-figma-muted">{item.required ? CHECKLIST.required : CHECKLIST.optional}</span>
+              <span className="text-[14px] text-figma-muted">{item.is_required ? CHECKLIST.required : CHECKLIST.optional}</span>
             </div>
             {item.name === MEDICATION_ASSISTANCE_NOTES.taskName && (
               <>

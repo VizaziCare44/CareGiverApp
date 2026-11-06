@@ -2,13 +2,15 @@
 // every row that breaks a rule the visit functions and the triggers keep. An empty list is a pass. It
 // is read-only and is used only after an attempt, never as the caller of a permission case.
 //
-// §7.3 itself was not available when this was written, so the list of rules is the one the
-// functions and triggers of migrations 0011 to 0016 keep (DRAFT):
+// The rules below include the four of FD-VISIT §7.3 item 13 / TC-VIS-044 (BOOKING_WITHOUT_VISIT,
+// STATUS_MISMATCH, WRONG_CAREGIVER, and a visit with no tasks, which SNAPSHOT_MISMATCH covers) and
+// the further integrity checks the functions and triggers of migration 0020 keep, so they are
+// additive to the spec's (kept on purpose; recorded in the Draft Decisions register, F1):
 //   BOOKING_WITHOUT_VISIT      a booking in progress or completed that has no visit
 //   STATUS_MISMATCH            an open visit whose booking is not in progress, or a closed one whose
 //                              booking is not completed
 //   WRONG_CAREGIVER            the visit's Caregiver is not the booking's assigned Caregiver
-//   SNAPSHOT_MISMATCH          the visit's tasks are not one per checklist item of its bundle (by item,
+//   SNAPSHOT_MISMATCH          the visit's tasks are not one per checklist item of its bundle (by task_key,
 //                              not by name: a later rename of an item does not change a visit that was
 //                              already started)
 //   REQUIRED_TASK_NOT_LOGGED   a closed visit with a Required task that has no entry
@@ -61,9 +63,9 @@ export async function probe(supabase, { bookingIds } = {}) {
     if ((booking.status === 'in_progress' || booking.status === 'completed') && !visitByBooking.has(booking.id)) add('BOOKING_WITHOUT_VISIT', { bookingId: booking.id, status: booking.status })
   }
 
-  const items = await readAll(() => supabase.from('checklist_items').select('id, bundle_code, sort_order, name, required, note_required').order('id'))
+  const items = await readAll(() => supabase.from('checklist_items').select('bundle_code, task_key, sort_order, name, is_required, note_required_for_done').order('bundle_code').order('sort_order'))
   const tasks = await inChunks(visits.map((v) => v.id), (ids) =>
-    readAll(() => supabase.from('visit_tasks').select('id, visit_id, checklist_item_id, sort_order, name, required, note_required').in('visit_id', ids).order('id')),
+    readAll(() => supabase.from('visit_tasks').select('id, visit_id, task_key, sort_order, name, is_required, note_required_for_done').in('visit_id', ids).order('id')),
   )
   const entries = await inChunks(tasks.map((t) => t.id), (ids) =>
     readAll(() => supabase.from('visit_task_entries').select('id, visit_task_id, outcome, note, reason, logged_at').in('visit_task_id', ids).order('id')),
@@ -84,17 +86,17 @@ export async function probe(supabase, { bookingIds } = {}) {
     if (!closed) open.set(visit.caregiver_id, [...(open.get(visit.caregiver_id) ?? []), visit.id])
 
     const own = (tasksByVisit.get(visit.id) ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)
-    const wanted = booking ? items.filter((i) => i.bundle_code === booking.bundle_code).map((i) => i.id).sort((a, b) => a - b) : []
-    const have = own.map((t) => t.checklist_item_id).sort((a, b) => a - b)
+    const wanted = booking ? items.filter((i) => i.bundle_code === booking.bundle_code).map((i) => i.task_key).sort() : []
+    const have = own.map((t) => t.task_key).sort()
     if (booking && JSON.stringify(wanted) !== JSON.stringify(have)) add('SNAPSHOT_MISMATCH', { visitId: visit.id })
 
     for (const task of own) {
       const list = entriesByTask.get(task.id) ?? []
-      if (closed && task.required && list.length === 0) add('REQUIRED_TASK_NOT_LOGGED', { visitId: visit.id, task: task.name })
+      if (closed && task.is_required && list.length === 0) add('REQUIRED_TASK_NOT_LOGGED', { visitId: visit.id, task: task.name })
       for (const entry of list) {
         const at = new Date(entry.logged_at)
         if (at < new Date(visit.checked_in_at) || (closed && at > new Date(visit.checked_out_at))) add('ENTRY_OUTSIDE_VISIT', { visitId: visit.id, task: task.name, entryId: entry.id })
-        if ((entry.outcome === 'not_done' && !entry.reason) || (entry.outcome === 'done' && task.note_required && !entry.note)) add('ENTRY_WITHOUT_TEXT', { visitId: visit.id, task: task.name, entryId: entry.id })
+        if ((entry.outcome === 'not_done' && !entry.reason) || (entry.outcome === 'done' && task.note_required_for_done && !entry.note)) add('ENTRY_WITHOUT_TEXT', { visitId: visit.id, task: task.name, entryId: entry.id })
       }
     }
   }

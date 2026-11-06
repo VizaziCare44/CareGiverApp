@@ -5,8 +5,8 @@ import { factoryAdmin, makeBooking, makeCaregiver, makeFamily, makeRecipient, na
 
 // DEV-064: Assignment Detail before and at check-in (frames VIS-02, VIS-03, VIS-03b, VIS-04,
 // VIS-05, VIS-05b; FR-001 to FR-004, FR-014; AC-001 to AC-003, AC-012). The state comes from
-// the server (caregiver_visit), never the device clock. The data layer under it
-// (migrations 0011 to 0013) is a DRAFT, see the ticket comment; these tests check the screen.
+// the server (caregiver_visit), never the device clock. The data layer under it is FD-VISIT 7.2
+// (migration 0020, checked against the document on 2026-11-06); these tests check the screen.
 
 const CONTACT_EMAIL = 'vizazicare@gmail.com'
 const DAY_PASSED =
@@ -117,7 +117,12 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
 
     await bar(page).getByRole('button', { name: 'Check in' }).click()
     await expect(dialog(page).getByRole('heading', { name: 'Check in to this visit?' })).toBeVisible()
-    await expect(dialog(page)).toContainText(`${recipient.name} · MediCheck · 3-hour visit`)
+    // "[Name] · [bundle] · [date]": the bundle name only and the date alone, no clock time (FD-VISIT 6.5, 6.6(k)(c), (j))
+    await expect(dialog(page)).toContainText(`${recipient.name} · MediCheck · ${formatDate(booking.visit)}`)
+    await expect(dialog(page)).not.toContainText('3-hour')
+    await expect(dialog(page)).not.toContainText('EAT')
+    await expect(dialog(page)).toContainText('The family will see this visit as "In progress". The check-in time is recorded when you confirm.')
+    expect((await dialog(page).getByRole('button', { name: 'Cancel' }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await dialog(page).getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog(page)).toHaveCount(0)
     const before = await serviceClient().from('visits').select('id').eq('booking_id', booking.id)
@@ -138,8 +143,10 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
     // what check-in wrote: the booking is in progress and the checklist was copied into the visit
     const status = await serviceClient().from('bookings').select('status').eq('id', booking.id).single()
     expect(status.data!.status).toBe('in_progress')
-    const tasks = await serviceClient().from('visit_tasks').select('name, required').eq('visit_id', data!.id).order('sort_order')
+    const tasks = await serviceClient().from('visit_tasks').select('name, task_key, is_required').eq('visit_id', data!.id).order('sort_order')
     expect(tasks.data!.map((t) => t.name)).toEqual(['Medication assistance', 'Vitals check', 'Companionship'])
+    expect(tasks.data!.map((t) => t.task_key)).toEqual(['medication_assistance', 'vitals_check', 'companionship'])
+    expect(tasks.data!.map((t) => t.is_required)).toEqual([true, true, false])
 
     // a reload keeps it
     await page.reload()

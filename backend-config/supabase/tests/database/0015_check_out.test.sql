@@ -1,4 +1,5 @@
--- Tests for migration 0016 (DEV-060 second half, draft: check_out).
+-- Tests for check_out as FD-VISIT section 7.3 defines it (migration 0016, rebuilt by 0020):
+-- (booking id, visit note) -> {booking_id, checked_out_at}; Required tasks first, then the note limit.
 begin;
 create extension if not exists pgtap with schema extensions;
 select * from no_plan();
@@ -33,62 +34,57 @@ select is(has_function_privilege('authenticated', 'public.check_out(uuid, text)'
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
 select lives_ok($$select public.check_in('00000000-0000-0000-0000-00000000b0a1')$$, 'c1 checks in to b1');
-reset role;
-select set_config('test.med', (select id::text from public.visit_tasks where name = 'Medication assistance'), true);
-select set_config('test.vit', (select id::text from public.visit_tasks where name = 'Vitals check'), true);
 
 -- Who may check out --------------------------------------------------------------------------------------
-set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000f1","role":"authenticated"}', true);
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, '42501', 'NOT_CAREGIVER', 'a family member cannot');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000ad","role":"authenticated"}', true);
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, '42501', 'NOT_CAREGIVER', 'an Admin cannot');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c3","role":"authenticated"}', true);
-select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'CAREGIVER_NOT_VERIFIED', 'a Caregiver who is not Verified cannot');
+select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'VISIT_NOT_FOUND', 'a Caregiver who is not Verified gets the not-found answer');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c2","role":"authenticated"}', true);
-select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'BOOKING_NOT_FOUND', 'another Caregiver''s booking looks like none');
+select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'VISIT_NOT_FOUND', 'another Caregiver''s booking looks like none');
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
-select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000dead')$$, 'P0001', 'BOOKING_NOT_FOUND', 'an unknown booking');
+select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000dead')$$, 'P0001', 'VISIT_NOT_FOUND', 'an unknown booking');
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a2')$$, 'P0001', 'VISIT_NOT_FOUND', 'a booking never checked in to has no visit');
 
 -- Required tasks first ------------------------------------------------------------------------------------------
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'REQUIRED_TASKS_MISSING', 'nothing logged');
-select lives_ok(format($f$select public.log_visit_task(%L, 'done')$f$, current_setting('test.med')), 'Medication assistance logged Done');
+select lives_ok($$select public.log_visit_task('00000000-0000-0000-0000-00000000b0a1', 'medication_assistance', 'done')$$, 'Medication assistance logged Done');
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1')$$, 'P0001', 'REQUIRED_TASKS_MISSING', 'one Required task is still missing');
 select throws_ok($$select public.check_out('00000000-0000-0000-0000-00000000b0a1', null)$$, 'P0001', 'REQUIRED_TASKS_MISSING', 'also with no note');
-select lives_ok(format($f$select public.log_visit_task(%L, 'not_done', null, 'Meter broken')$f$, current_setting('test.vit')), 'Vitals check logged Not done');
-select throws_ok(format($f$select public.check_out('00000000-0000-0000-0000-00000000b0a1', %L)$f$, repeat('n', 2001)), 'P0001', 'VISIT_NOTE_TOO_LONG', 'a visit note over 2,000 characters');
-select is((select status::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), 'in_progress', 'still in progress after the refusals');
+select throws_ok(format($f$select public.check_out('00000000-0000-0000-0000-00000000b0a1', %L)$f$, repeat('n', 2001)), 'P0001', 'REQUIRED_TASKS_MISSING',
+  'a Required task missing is reported before a note that is too long (the order of 7.3)');
+select lives_ok($$select public.log_visit_task('00000000-0000-0000-0000-00000000b0a1', 'vitals_check', 'not_done', null, 'Meter broken')$$, 'Vitals check logged Not done');
+select throws_ok(format($f$select public.check_out('00000000-0000-0000-0000-00000000b0a1', %L)$f$, repeat('n', 2001)), 'P0001', 'TEXT_TOO_LONG', 'a visit note over 2,000 characters');
+select is((select count(*) from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1' and checked_out_at is null), 1::bigint, 'still open after the refusals');
 
 -- Checking out: the Optional task is left, the visit and booking close --------------------------------------------------
-select is(public.check_out('00000000-0000-0000-0000-00000000b0a1', E'  Went well \n') ->> 'changed', 'true', 'checked out with the Optional task unlogged');
+select is(public.check_out('00000000-0000-0000-0000-00000000b0a1', E'  Went well \n') ->> 'booking_id', '00000000-0000-0000-0000-00000000b0a1', 'checked out with the Optional task unlogged');
 select set_config('test.out', (select checked_out_at::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), true);
-select is((select status::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), 'completed', 'the booking is completed');
 select is((select visit_note from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), 'Went well', 'with the trimmed note');
 select ok((select checked_out_at from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1') is not null, 'and the time');
 
--- A repeat changes nothing
-select is(public.check_out('00000000-0000-0000-0000-00000000b0a1', 'A different note') ->> 'changed', 'false', 'a repeat writes nothing');
+-- A repeat changes nothing (a retry)
+select is(public.check_out('00000000-0000-0000-0000-00000000b0a1', 'A different note') ->> 'checked_out_at', (select checked_out_at::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'),
+  'a repeat returns the same time');
 select is((select visit_note from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), 'Went well', 'the note is as it was');
 select is((select checked_out_at::text from public.caregiver_visit where booking_id = '00000000-0000-0000-0000-00000000b0a1'), current_setting('test.out'), 'and so is the time');
 
 -- Closed for good
-select throws_ok(format($f$select public.log_visit_task(%L, 'done', 'late')$f$, current_setting('test.vit')), 'P0001', 'VISIT_CLOSED', 'no task can be changed now');
+select throws_ok($$select public.log_visit_task('00000000-0000-0000-0000-00000000b0a1', 'vitals_check', 'done', 'late')$$, 'P0001', 'VISIT_ALREADY_CHECKED_OUT', 'no task can be changed now');
 
--- A second visit, with the longest note, and no note at all ---------------------------------------------------------
+-- A second visit, with the longest note ---------------------------------------------------------
 select lives_ok($$select public.check_in('00000000-0000-0000-0000-00000000b0a3')$$, 'the next visit starts (none is open now)');
-reset role;
-select set_config('test.med3', (select t.id::text from public.visit_tasks t join public.visits v on v.id = t.visit_id where v.booking_id = '00000000-0000-0000-0000-00000000b0a3' and t.name = 'Medication assistance'), true);
-select set_config('test.vit3', (select t.id::text from public.visit_tasks t join public.visits v on v.id = t.visit_id where v.booking_id = '00000000-0000-0000-0000-00000000b0a3' and t.name = 'Vitals check'), true);
-set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000c1","role":"authenticated"}', true);
-select lives_ok(format($f$select public.log_visit_task(%L, 'done')$f$, current_setting('test.med3')), 'Medication assistance Done');
-select lives_ok(format($f$select public.log_visit_task(%L, 'done', '118/76')$f$, current_setting('test.vit3')), 'Vitals check Done');
-select is(public.check_out('00000000-0000-0000-0000-00000000b0a3', repeat('n', 2000)) ->> 'changed', 'true', 'a 2,000 character note is kept');
+select lives_ok($$select public.log_visit_task('00000000-0000-0000-0000-00000000b0a3', 'medication_assistance', 'done')$$, 'Medication assistance Done');
+select lives_ok($$select public.log_visit_task('00000000-0000-0000-0000-00000000b0a3', 'vitals_check', 'done', '118/76')$$, 'Vitals check Done');
+select is(public.check_out('00000000-0000-0000-0000-00000000b0a3', repeat('n', 2000)) ->> 'booking_id', '00000000-0000-0000-0000-00000000b0a3', 'a 2,000 character note is kept');
 reset role;
 select is((select char_length(visit_note) from public.visits v where v.booking_id = '00000000-0000-0000-0000-00000000b0a3'), 2000, 'whole');
 select is((select count(*) from public.visits where checked_out_at is null), 0::bigint, 'no visit is left open');
+select is((select string_agg(status::text, ',' order by id) from public.bookings where id in ('00000000-0000-0000-0000-00000000b0a1', '00000000-0000-0000-0000-00000000b0a3')),
+  'completed,completed', 'both bookings are completed');
 
 select * from finish();
 rollback;

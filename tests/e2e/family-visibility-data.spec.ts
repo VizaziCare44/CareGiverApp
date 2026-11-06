@@ -89,7 +89,7 @@ test.describe('DEV-074 — the Doctor\'s Day Out report: a Not done task, an Opt
     expect(byName['Advocacy and note-taking']).toMatchObject({ outcome: 'not_done', reason: 'The doctor ran late and we left before the discussion', note: null })
     expect(byName['Pre-visit preparation']).toMatchObject({ outcome: 'not_recorded', logged_at: null })
     expect(byName['Post-visit summary']).toMatchObject({ outcome: 'done', note: 'Review in two weeks. New tablet each evening.' })
-    expect(byName['Transport & escort'].outcome).toBe('done')
+    expect(byName['Transport and escort'].outcome).toBe('done')
     // no visit note was written: the report has no note card
     expect((await visitRow(family.client, booking.id))[0].visit_note).toBeNull()
   })

@@ -26,7 +26,7 @@ export function useVisitAction(action: VisitActionName, { lockOnSuccess = false 
   const [error, setError] = useState<VisitErrorInfo | null>(null)
 
   /** Resolves with the result and, for a failure, what to do about it; null if a call was already running. */
-  async function run<T>(call: () => Promise<VisitResult<T>>): Promise<{ result: VisitResult<T>; info: VisitErrorInfo | null } | null> {
+  async function run<T>(call: () => Promise<VisitResult<T>>, context: { limit?: number } = {}): Promise<{ result: VisitResult<T>; info: VisitErrorInfo | null } | null> {
     if (busy.current) return null
     busy.current = true
     setPending(true)
@@ -41,7 +41,7 @@ export function useVisitAction(action: VisitActionName, { lockOnSuccess = false 
 
     let info: VisitErrorInfo | null = null
     if (!result.ok) {
-      info = describeVisitError(result.code, action)
+      info = describeVisitError(result.code, action, context)
       setError(info)
       if (info.refresh) router.refresh()
     }

@@ -18,7 +18,7 @@ import { formatTime } from '@/lib/datetime'
  * not the day, or another visit is open, the dialog closes and the screen reloads into the
  * state that explains it.
  */
-export function CheckInBar({ bookingId, recipientName, bundleLine }: { bookingId: string; recipientName: string; bundleLine: string }) {
+export function CheckInBar({ bookingId, recipientName, bundleName, visitDate }: { bookingId: string; recipientName: string; bundleName: string; visitDate: string }) {
   const router = useRouter()
   const { run, pending, pendingText, error, clearError } = useVisitAction('check-in')
   const [open, setOpen] = useState(false)
@@ -63,7 +63,7 @@ export function CheckInBar({ bookingId, recipientName, bundleLine }: { bookingId
           {CHECK_IN_DIALOG.title}
         </h2>
         <div className="flex flex-col gap-2 text-[16px] leading-[1.4]">
-          <p className="font-medium">{CHECK_IN_DIALOG.detail(recipientName, bundleLine)}</p>
+          <p className="font-medium">{CHECK_IN_DIALOG.detail(recipientName, bundleName, visitDate)}</p>
           <p>{CHECK_IN_DIALOG.body}</p>
         </div>
         {error?.message && <AlertMessage>{error.message}</AlertMessage>}

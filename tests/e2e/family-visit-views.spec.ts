@@ -4,9 +4,8 @@ import { anonClient, serviceClient } from './helpers'
 import { makeAdmin, makeBooking, makeCaregiver, makeFamily, makeRecipient, makeVisit, nairobiDay, today, type TestBooking, type TestCaregiver } from './factories'
 import { getVisitTasks } from './visit-helpers'
 
-// DEV-073: the views a family reads a visit through, family_visit and family_visit_tasks (migration
-// 0018, a DRAFT: the column list and rules are taken from the task texts while FD-FAMVIS §7.2 was not
-// available). Everything here goes through real persona sessions (the family, the caregivers, the
+// DEV-073: the views a family reads a visit through, family_visit and family_visit_tasks (FD-FAMVIS
+// §7.2 and §7.4; migration 0018, rebuilt by 0020 and checked against the document on 2026-11-06). Everything here goes through real persona sessions (the family, the caregivers, the
 // Admin, anon), never the service role; the service role is used only to set up one hand-made state.
 
 test.describe.configure({ mode: 'serial' })
@@ -39,7 +38,8 @@ async function log(cg: TestCaregiver, bookingId: string, task: string, outcome: 
   const visit = await serviceClient().from('visits').select('id').eq('booking_id', bookingId).single()
   const tasks = await getVisitTasks(visit.data!.id)
   const result = await cg.client.rpc('log_visit_task', {
-    p_task_id: tasks.find((t) => t.name === task)!.id,
+    p_booking_id: bookingId,
+    p_task_key: tasks.find((t) => t.name === task)!.task_key,
     p_outcome: outcome,
     p_note: outcome === 'done' ? text : null,
     p_reason: outcome === 'not_done' ? text : null,
@@ -154,7 +154,7 @@ test.describe('DEV-073 — after check-out the owner gets everything (AC-007)', 
     expect(all.filter((t) => t.outcome === 'not_recorded').every((t) => !REQUIRED_MEDICHECK.includes(t.name as string))).toBe(true)
   })
 
-  test('a closed visit with a Required task not logged (hand-made) gives no task rows at all, never a Required Not recorded', async () => {
+  test('a closed visit with a Required task not logged (hand-made) gives one row per task, as FD-FAMVIS 7.2 says: the unlogged ones are not_recorded', async () => {
     const family = await makeFamily()
     const caregiver = await makeCaregiver({ verified: true })
     const booking = await makeBooking({ family, status: 'in_progress', caregiver })
@@ -162,7 +162,10 @@ test.describe('DEV-073 — after check-out the owner gets everything (AC-007)', 
     expect(closed.error).toBeNull()
     expect((await serviceClient().from('bookings').update({ status: 'completed' }).eq('id', booking.id)).error).toBeNull()
     expect((await rows(family.client, 'family_visit', booking.id)).rows).toHaveLength(1)
-    expect((await rows(family.client, 'family_visit_tasks', booking.id)).rows).toEqual([])
+    // check_out never lets this happen (REQUIRED_TASKS_MISSING) and the probe lists it (REQUIRED_TASK_NOT_LOGGED); the view does not hide it
+    const tasks = (await rows(family.client, 'family_visit_tasks', booking.id)).rows
+    expect(tasks).toHaveLength(3)
+    expect(tasks.every((t) => t.outcome === 'not_recorded')).toBe(true)
   })
 })
 

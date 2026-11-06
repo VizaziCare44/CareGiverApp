@@ -1,6 +1,5 @@
-// The words on the check-out confirmation (VIS-08) and the visit summary (VIS-09), DEV-067. The
-// lines the ticket gives are exact (founder-confirmed 2026-10-16). The labels and messages marked
-// DRAFT come from FD-VISIT §6.5, which was not available.
+// The words on the check-out confirmation (VIS-08) and the visit summary (VIS-09), DEV-067, as the
+// copy table of FD-VISIT §6.5 gives them (checked against it on 2026-11-06, VIZ-91).
 
 export const VISIT_NOTE_LIMIT = 2000
 
@@ -11,8 +10,7 @@ export const CHECK_OUT_DIALOG = {
   noteLabel: 'Note about the visit (optional)',
   confirm: 'Check out',
   back: 'Go back',
-  /** DRAFT */
-  tooLong: 'This is too long. The limit is 2,000 characters. Shorten it to check out.',
+  tooLong: 'This is too long. The limit is 2,000 characters.',
 }
 
 export const SUMMARY = {
@@ -27,9 +25,8 @@ export const SUMMARY = {
   notDone: 'Not done',
   notRecorded: 'Not recorded',
   reason: (text: string) => `Reason: ${text}`,
-  /** DRAFT */
   note: (text: string) => `Note: ${text}`,
-  /** DRAFT */
-  visitNote: 'Note about the visit',
+  /** The summary's row, "Visit note" (§6.5); the confirmation's field is "Note about the visit (optional)". */
+  visitNote: 'Visit note',
   back: 'Back to my assignments',
 }

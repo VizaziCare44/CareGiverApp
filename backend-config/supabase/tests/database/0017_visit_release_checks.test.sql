@@ -2,7 +2,7 @@
 -- has every migration. The addendum tells the Tech Lead to run these same queries on the
 -- production project; running them in CI first proves each query is correct and returns the stated
 -- result. If you change a query here, change it in the addendum (and the other way round).
--- DRAFT: the visit schema it checks is a draft until FD-VISIT section 7 has been checked.
+-- The visit schema it checks is the one FD-VISIT section 7 defines (rebuilt to match it by migration 0020).
 -- Run with `supabase test db`.
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -19,11 +19,18 @@ select is((select count(*) from information_schema.tables
 select is((select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
             where n.nspname = 'public' and c.relname in ('checklist_items', 'visits', 'visit_tasks', 'visit_task_entries') and c.relrowsecurity),
   4::bigint, '0011: row-level security is on for all four');
-select is(not has_table_privilege('anon', 'public.visits', 'select') and not has_table_privilege('authenticated', 'public.visits', 'select')
-      and not has_table_privilege('authenticated', 'public.visit_tasks', 'select')
-      and not has_table_privilege('authenticated', 'public.visit_task_entries', 'select')
-      and not has_table_privilege('authenticated', 'public.visits', 'insert'),
-  true, '0011: the API roles have no rights on visits, visit_tasks or visit_task_entries');
+select is(not has_table_privilege('anon', 'public.visits', 'select') and not has_table_privilege('anon', 'public.visit_tasks', 'select')
+      and not has_table_privilege('anon', 'public.visit_task_entries', 'select')
+      and not has_table_privilege('authenticated', 'public.visits', 'insert')
+      and not has_table_privilege('authenticated', 'public.visits', 'update')
+      and not has_table_privilege('authenticated', 'public.visit_tasks', 'insert')
+      and not has_table_privilege('authenticated', 'public.visit_task_entries', 'insert'),
+  true, '0011/0020: anon has no rights and signed-in users cannot write visits, visit_tasks or visit_task_entries');
+select is((select count(*) from pg_policies where schemaname = 'public' and tablename in ('visits', 'visit_tasks', 'visit_task_entries')
+              and policyname like '%admin read'),
+  3::bigint, '0020: the three visit tables have one Admin read policy each, and no other policy');
+select is((select count(*) from pg_policies where schemaname = 'public' and tablename in ('visits', 'visit_tasks', 'visit_task_entries')),
+  3::bigint, '0020: and nothing else lets a signed-in user read them');
 select is((select count(*) from pg_trigger
             where tgname in ('visits_guard', 'visit_tasks_append_only', 'visit_task_entries_append_only', 'visit_task_entries_open_visit_only')
               and not tgisinternal),
@@ -55,8 +62,8 @@ select is(has_table_privilege('authenticated', 'public.caregiver_visit_tasks', '
   true, '0014: signed-in users read caregiver_visit_tasks; the private view is closed');
 
 -- 0015 log_visit_task
-select is(has_function_privilege('authenticated', 'public.log_visit_task(uuid, text, text, text)', 'execute')
-      and not has_function_privilege('anon', 'public.log_visit_task(uuid, text, text, text)', 'execute'),
+select is(has_function_privilege('authenticated', 'public.log_visit_task(uuid, text, text, text, text)', 'execute')
+      and not has_function_privilege('anon', 'public.log_visit_task(uuid, text, text, text, text)', 'execute'),
   true, '0015: signed-in users can run log_visit_task and anon cannot');
 select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and name = 'Post-visit summary')
         + (select count(*) from public.checklist_items where name = 'Post-visit report'),
@@ -69,8 +76,8 @@ select is(has_function_privilege('authenticated', 'public.check_out(uuid, text)'
 
 -- 0017 test_clock_per_caregiver
 select is((select count(*) from information_schema.columns
-            where table_schema = 'private' and table_name = 'test_clock' and column_name in ('caregiver_id', 'at')),
-  2::bigint, '0017: the test clock has a caregiver and a moment');
+            where table_schema = 'private' and table_name = 'test_clock' and column_name in ('caregiver_id', 'now_override')),
+  2::bigint, '0017/0020: the test clock has a caregiver and a now_override');
 select is(not has_table_privilege('authenticated', 'private.test_clock', 'select') and not has_table_privilege('anon', 'private.test_clock', 'select')
       and not has_function_privilege('authenticated', 'private.visit_now()', 'execute'),
   true, '0017: the API roles cannot read or use the test clock');
@@ -87,10 +94,25 @@ select is((select string_agg(column_name::text, ',' order by ordinal_position) f
   'booking_id,sort_order,name,outcome,logged_at,reason,note', '0018: the exact columns of family_visit_tasks');
 
 -- 0019 ddo_optional_task
-select is((select string_agg(name, ', ') from public.checklist_items where bundle_code = 'doctors_day_out' and not required),
+select is((select string_agg(name, ', ') from public.checklist_items where bundle_code = 'doctors_day_out' and not is_required),
   'Pre-visit preparation', '0019: the Optional Doctor''s Day Out task is Pre-visit preparation');
-select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and required),
+select is((select count(*) from public.checklist_items where bundle_code = 'doctors_day_out' and is_required),
   3::bigint, '0019: the other three are Required');
+
+-- 0020 align_visit_model_with_fd_visit
+select is((select string_agg(task_key, ',' order by bundle_code, sort_order) from public.checklist_items),
+  'pre_visit_preparation,transport_and_escort,advocacy_and_note_taking,post_visit_summary,medication_assistance,vitals_check,companionship',
+  '0020: the seven task keys of FD-VISIT 7.2');
+select is((select string_agg(name, ', ' order by sort_order) from public.checklist_items where bundle_code = 'doctors_day_out'),
+  'Pre-visit preparation, Transport and escort, Advocacy and note-taking, Post-visit summary', '0020: the Doctor''s Day Out names, as in 7.2');
+select is(has_function_privilege('authenticated', 'public.check_in(uuid)', 'execute') and has_function_privilege('authenticated', 'public.check_out(uuid, text)', 'execute')
+      and not has_function_privilege('anon', 'public.log_visit_task(uuid, text, text, text, text)', 'execute'),
+  true, '0020: the three functions are signed-in only');
+select is((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname in ('check_in', 'log_visit_task', 'check_out')), 3::bigint,
+  '0020: exactly one of each function (the old log_visit_task is gone)');
+select is((select string_agg(column_name::text, ',' order by ordinal_position) from information_schema.columns where table_schema = 'public' and table_name = 'caregiver_visit_tasks'),
+  'booking_id,task_key,name,sort_order,is_required,note_required_for_done,outcome,note,reason,logged_at', '0020: the exact columns of caregiver_visit_tasks');
 
 -- the whole database, after all of them
 select is((select count(*) from pg_tables where schemaname = 'public' and not rowsecurity),
@@ -109,7 +131,7 @@ create temp table probe_result as
 with
   b as (select id, status::text as status, bundle_code, assigned_caregiver_id from public.bookings),
   v as (select id, booking_id, caregiver_id, checked_in_at, checked_out_at from public.visits),
-  t as (select id, visit_id, checklist_item_id, required, note_required from public.visit_tasks),
+  t as (select id, visit_id, task_key, is_required, note_required_for_done from public.visit_tasks),
   e as (select id, visit_task_id, outcome::text as outcome, note, reason, logged_at from public.visit_task_entries)
 select 'BOOKING_WITHOUT_VISIT' as kind, b.id::text as ref
   from b where b.status in ('in_progress', 'completed') and not exists (select 1 from v where v.booking_id = b.id)
@@ -127,13 +149,13 @@ select 'TWO_OPEN_VISITS', v.caregiver_id::text from v where v.checked_out_at is 
 union all
 select 'SNAPSHOT_MISMATCH', v.id::text
   from v join b on b.id = v.booking_id
- where (select coalesce(array_agg(t.checklist_item_id order by t.checklist_item_id), '{}') from t where t.visit_id = v.id)
+ where (select coalesce(array_agg(t.task_key order by t.task_key), '{}') from t where t.visit_id = v.id)
        is distinct from
-       (select coalesce(array_agg(c.id order by c.id), '{}') from public.checklist_items c where c.bundle_code = b.bundle_code)
+       (select coalesce(array_agg(c.task_key order by c.task_key), '{}') from public.checklist_items c where c.bundle_code = b.bundle_code)
 union all
 select 'REQUIRED_TASK_NOT_LOGGED', t.id::text
   from t join v on v.id = t.visit_id
- where v.checked_out_at is not null and t.required and not exists (select 1 from e where e.visit_task_id = t.id)
+ where v.checked_out_at is not null and t.is_required and not exists (select 1 from e where e.visit_task_id = t.id)
 union all
 select 'ENTRY_OUTSIDE_VISIT', e.id::text
   from e join t on t.id = e.visit_task_id join v on v.id = t.visit_id
@@ -141,7 +163,7 @@ select 'ENTRY_OUTSIDE_VISIT', e.id::text
 union all
 select 'ENTRY_WITHOUT_TEXT', e.id::text
   from e join t on t.id = e.visit_task_id
- where (e.outcome = 'not_done' and e.reason is null) or (e.outcome = 'done' and t.note_required and e.note is null);
+ where (e.outcome = 'not_done' and e.reason is null) or (e.outcome = 'done' and t.note_required_for_done and e.note is null);
 select is((select count(*) from probe_result), 0::bigint, 'production check: the probe returns nothing on an empty database');
 drop table probe_result;
 
@@ -165,8 +187,8 @@ insert into public.bookings (id, account_id, care_recipient_id, bundle_code, req
    '00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000ad', now());
 insert into public.visits (id, booking_id, caregiver_id, checked_in_at)
 values ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-00000000b002', '00000000-0000-0000-0000-0000000000c1', now());
-insert into public.visit_tasks (visit_id, checklist_item_id, sort_order, name, required, note_required)
-select '00000000-0000-0000-0000-0000000000a2', id, sort_order, name, required, note_required from public.checklist_items where bundle_code = 'medicheck';
+insert into public.visit_tasks (visit_id, task_key, name, sort_order, is_required, note_required_for_done)
+select '00000000-0000-0000-0000-0000000000a2', task_key, name, sort_order, is_required, note_required_for_done from public.checklist_items where bundle_code = 'medicheck';
 
 create temp table probe_result2 as
 with
@@ -213,10 +235,10 @@ update public.profiles set email = 'fm@t.test' where id = '00000000-0000-0000-00
 -- ---------------------------------------------------------------------------
 
 -- Case 1: a stuck open visit. b002 / a2 is open, with its Required tasks not logged.
-insert into public.visit_task_entries (visit_task_id, outcome, reason, logged_at)
-select t.id, 'not_done', 'Closed by the Tech Lead on 2026-11-05: the Caregiver could not log it (test)', clock_timestamp()
+insert into public.visit_task_entries (visit_task_id, outcome, reason, logged_by, logged_at)
+select t.id, 'not_done', 'Closed by the Tech Lead on 2026-11-05: the Caregiver could not log it (test)', '00000000-0000-0000-0000-0000000000c1', clock_timestamp()
   from public.visit_tasks t
- where t.visit_id = '00000000-0000-0000-0000-0000000000a2' and t.required
+ where t.visit_id = '00000000-0000-0000-0000-0000000000a2' and t.is_required
    and not exists (select 1 from public.visit_task_entries e where e.visit_task_id = t.id);
 update public.visits set checked_out_at = clock_timestamp(), visit_note = 'Closed by the Tech Lead on 2026-11-05: the Caregiver could not log it (test)'
  where id = '00000000-0000-0000-0000-0000000000a2' and checked_out_at is null;
@@ -243,8 +265,8 @@ select throws_ok($$update public.visits set visit_note = 'Again' where id = '000
 
 -- Case 3: a wrong entry on a closed visit is corrected by APPENDING one (never by editing), inside the visit
 alter table public.visit_task_entries disable trigger visit_task_entries_open_visit_only;
-insert into public.visit_task_entries (visit_task_id, outcome, note, logged_at)
-select e.visit_task_id, 'done', 'Corrected by the Tech Lead on 2026-11-06: the Caregiver confirmed it was done (test)', v.checked_out_at
+insert into public.visit_task_entries (visit_task_id, outcome, note, logged_by, logged_at)
+select e.visit_task_id, 'done', 'Corrected by the Tech Lead on 2026-11-06: the Caregiver confirmed it was done (test)', '00000000-0000-0000-0000-0000000000c1', v.checked_out_at
   from public.visit_task_entries e join public.visit_tasks t on t.id = e.visit_task_id join public.visits v on v.id = t.visit_id
  where v.id = '00000000-0000-0000-0000-0000000000a2' and t.name = 'Medication assistance' and e.outcome = 'not_done';
 alter table public.visit_task_entries enable trigger visit_task_entries_open_visit_only;
@@ -256,8 +278,8 @@ select is((select outcome::text from private.visit_task_latest l join public.vis
 select is((select count(*) from public.visit_task_entries e join public.visit_tasks t on t.id = e.visit_task_id
             where t.visit_id = '00000000-0000-0000-0000-0000000000a2' and t.name = 'Medication assistance'), 2::bigint,
   'case 3: the earlier entry is still there');
-select throws_ok($$insert into public.visit_task_entries (visit_task_id, outcome, logged_at)
-                   select id, 'done', now() from public.visit_tasks where visit_id = '00000000-0000-0000-0000-0000000000a2' limit 1$$, 'P0001', 'VISIT_CLOSED',
+select throws_ok($$insert into public.visit_task_entries (visit_task_id, outcome, logged_by, logged_at)
+                   select id, 'done', '00000000-0000-0000-0000-0000000000c1', now() from public.visit_tasks where visit_id = '00000000-0000-0000-0000-0000000000a2' limit 1$$, 'P0001', 'VISIT_CLOSED',
   'case 3: and nothing can be added to a closed visit again');
 
 select * from finish();

@@ -64,7 +64,7 @@ test.describe('DEV-070 — test seed, visit module', () => {
     expect(v6.checked_out_at).toBeNull()
     const tasks6 = await getVisitTasks(v6.id)
     const checklist6 = await getChecklistItems('medicheck')
-    expect(tasks6.map((t) => [t.name, t.required, t.note_required, t.sort_order])).toEqual(checklist6.map((i) => [i.name, i.required, i.note_required, i.sort_order]))
+    expect(tasks6.map((t) => [t.task_key, t.name, t.is_required, t.note_required_for_done, t.sort_order])).toEqual(checklist6.map((i) => [i.task_key, i.name, i.is_required, i.note_required_for_done, i.sort_order]))
 
     // Medication assistance: Done, after one earlier entry was changed (the history has both)
     const medication = await getEntries(tasks6.find((t) => t.name === 'Medication assistance')!.id)
@@ -144,11 +144,11 @@ test.describe('DEV-070 — test seed, visit module', () => {
 
     // cg2 sees the open visit: Medication assistance Done (the entry that counts), the Required Vitals check not logged
     const cg2 = await signIn('cg2')
-    const open = (await cg2.from('caregiver_visit_tasks').select('name, required, outcome, note').eq('booking_id', b6.id).order('sort_order')).data ?? []
+    const open = (await cg2.from('caregiver_visit_tasks').select('name, is_required, outcome, note').eq('booking_id', b6.id).order('sort_order')).data ?? []
     expect(open).toEqual([
-      { name: 'Medication assistance', required: true, outcome: 'done', note: 'Gave the morning tablets with water once they arrived.' },
-      { name: 'Vitals check', required: true, outcome: null, note: null },
-      { name: 'Companionship', required: false, outcome: null, note: null },
+      { name: 'Medication assistance', is_required: true, outcome: 'done', note: 'Gave the morning tablets with water once they arrived.' },
+      { name: 'Vitals check', is_required: true, outcome: null, note: null },
+      { name: 'Companionship', is_required: false, outcome: null, note: null },
     ])
 
     // cg1 sees B7 finished: every task has its outcome

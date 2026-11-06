@@ -37,7 +37,7 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
   const ready = canCheckOut(tasks)
   const optional = unloggedOptionalName(tasks)
   const line = ready ? (optional ? CHECK_OUT.readyWithOptional(optional) : null) : CHECK_OUT.blocked(stillToLog(tasks))
-  const unrecorded = tasks.filter((task) => !task.required && task.outcome === null)
+  const unrecorded = tasks.filter((task) => !task.is_required && task.outcome === null)
   const tooLong = lengthOf(note) > VISIT_NOTE_LIMIT
 
   async function confirm() {
@@ -83,7 +83,7 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
           <div className="flex flex-col gap-3 text-[16px] leading-[1.4]">
             <p>{CHECK_OUT_DIALOG.body}</p>
             {unrecorded.map((task) => (
-              <p key={task.task_id} data-testid="unrecorded-line">
+              <p key={task.task_key} data-testid="unrecorded-line">
                 {CHECK_OUT_DIALOG.optionalNotRecorded(task.name)}
               </p>
             ))}

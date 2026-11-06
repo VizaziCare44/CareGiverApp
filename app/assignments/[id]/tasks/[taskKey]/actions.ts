@@ -5,7 +5,7 @@ import { toVisitFailure, type LogTaskResult } from '@/lib/visits/action-errors'
 
 // log_visit_task as a Server Action (DEV-066). Returns a LogTaskResult, never a raw error. The
 // text goes as the note for Done and as the reason for Not done; the other is not sent.
-export async function logTaskAction(taskId: string, outcome: 'done' | 'not_done', text: string): Promise<LogTaskResult> {
+export async function logTaskAction(bookingId: string, taskKey: string, outcome: 'done' | 'not_done', text: string): Promise<LogTaskResult> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -13,7 +13,8 @@ export async function logTaskAction(taskId: string, outcome: 'done' | 'not_done'
   if (!user) return { ok: false, code: 'NOT_SIGNED_IN' }
 
   const { data, error } = await supabase.rpc('log_visit_task', {
-    p_task_id: taskId,
+    p_booking_id: bookingId,
+    p_task_key: taskKey,
     p_outcome: outcome,
     p_note: outcome === 'done' ? text : null,
     p_reason: outcome === 'not_done' ? text : null,

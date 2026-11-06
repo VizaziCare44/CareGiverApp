@@ -5,7 +5,7 @@
 // starter-set.mjs.
 //
 // It writes with the service role, in a fixed order, because the triggers bind every role (migration
-// 0011): the open visit row; the snapshot rows; the entries, in the order they were logged; for B7
+// 0011, rebuilt by 0020): the open visit row; the snapshot rows; the entries, in the order they were logged; for B7
 // the closing update (an entry cannot be added to a closed visit, and a closed visit cannot be
 // updated); and the booking's status last. It never goes through check_in, log_visit_task or
 // check_out, so it can put the times where the plan says (inside the booked day, in the past)
@@ -14,8 +14,8 @@
 // Idempotent and append-only, like the tables it writes: a booking that already has a visit is left
 // exactly as it is, apart from the booking's status being put right. Nothing is deleted or updated
 // except the one closing update of a visit this run opened. Needs the accounts and verification
-// modules first (it says so if a booking is missing or not the caregiver's), and migrations 0011
-// to 0016 (the visit tables).
+// modules first (it says so if a booking is missing or not the caregiver's), and migration 0020
+// (the visit tables in the shape of FD-VISIT 7.2).
 //
 // The probe (probe.mjs) passes for B6 and B7 after it.
 
@@ -64,13 +64,13 @@ export async function seedVisit({ supabase }) {
       // 2. the snapshot: the bundle's checklist as it is now
       const { data: items, error: itemsError } = await supabase
         .from('checklist_items')
-        .select('id, sort_order, name, required, note_required')
+        .select('task_key, sort_order, name, is_required, note_required_for_done')
         .eq('bundle_code', bookingRow.bundle_code)
         .order('sort_order', { ascending: true })
       if (itemsError || !items || items.length === 0) fail(`could not read the checklist of ${plan.booking}: ${itemsError?.message ?? 'it is empty'}`)
       const { data: tasks, error: tasksError } = await supabase
         .from('visit_tasks')
-        .insert(items.map((item) => ({ visit_id: visit.id, checklist_item_id: item.id, sort_order: item.sort_order, name: item.name, required: item.required, note_required: item.note_required })))
+        .insert(items.map((item) => ({ visit_id: visit.id, task_key: item.task_key, name: item.name, sort_order: item.sort_order, is_required: item.is_required, note_required_for_done: item.note_required_for_done })))
         .select('id, name')
       if (tasksError || !tasks) fail(`could not write the tasks of ${plan.booking}: ${tasksError?.message}`)
       const taskId = new Map(tasks.map((task) => [task.name, task.id]))
@@ -81,6 +81,7 @@ export async function seedVisit({ supabase }) {
         if (!task) fail(`${plan.booking} has no task called "${entry.task}" (the checklist has: ${[...taskId.keys()].join(', ')})`)
         const { error } = await supabase.from('visit_task_entries').insert({
           visit_task_id: task,
+          logged_by: ids[plan.caregiver],
           outcome: entry.outcome,
           note: entry.outcome === 'done' ? (entry.note ?? null) : null,
           reason: entry.outcome === 'not_done' ? (entry.reason ?? null) : null,

@@ -8,12 +8,13 @@ import { CHECKLIST, MEDICATION_ASSISTANCE_NOTES } from '@/lib/visits/assignment-
 import { LOG_TASK, isMedicationAssistance } from '@/lib/visits/log-task-text'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const TASK_KEY = /^[a-z][a-z0-9_]*$/
 
 interface TaskRow {
-  task_id: string
+  task_key: string
   name: string
-  required: boolean
-  note_required: boolean
+  is_required: boolean
+  note_required_for_done: boolean
   outcome: 'done' | 'not_done' | null
   note: string | null
   reason: string | null
@@ -24,16 +25,16 @@ interface TaskRow {
 // through the same views as Assignment Detail (migrations 0013 and 0014), so a Caregiver who is
 // not Verified, a task on someone else's visit and a made-up id all get the one "no longer
 // available" message and nothing else. After check-out the screen says so and offers no edit.
-export default async function LogTaskPage({ params }: { params: { id: string; taskId: string } }) {
-  if (!UUID.test(params.id) || !UUID.test(params.taskId)) notFound()
+export default async function LogTaskPage({ params }: { params: { id: string; taskKey: string } }) {
+  if (!UUID.test(params.id) || !TASK_KEY.test(params.taskKey)) notFound()
 
   const supabase = await createClient()
 
   const { data: taskData, error: taskError } = await supabase
     .from('caregiver_visit_tasks')
-    .select('task_id, name, required, note_required, outcome, note, reason, logged_at')
+    .select('task_key, name, is_required, note_required_for_done, outcome, note, reason, logged_at')
     .eq('booking_id', params.id)
-    .eq('task_id', params.taskId)
+    .eq('task_key', params.taskKey)
     .maybeSingle()
   if (taskError) throw new Error(`Failed to load the task: ${taskError.message}`)
   const task = taskData as TaskRow | null
@@ -56,7 +57,7 @@ export default async function LogTaskPage({ params }: { params: { id: string; ta
       <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-[28px] font-bold leading-9">{task.name}</h1>
-          <p className="text-[14px] text-figma-muted">{task.required ? CHECKLIST.required : CHECKLIST.optional}</p>
+          <p className="text-[14px] text-figma-muted">{task.is_required ? CHECKLIST.required : CHECKLIST.optional}</p>
         </div>
 
         {isMedicationAssistance(task.name) && (
@@ -76,11 +77,11 @@ export default async function LogTaskPage({ params }: { params: { id: string; ta
         ) : (
           <LogTaskForm
             // a new entry elsewhere (another device) gives a fresh form, not stale typing
-            key={`${task.task_id}-${task.logged_at ?? 'none'}`}
+            key={`${task.task_key}-${task.logged_at ?? 'none'}`}
             bookingId={params.id}
-            taskId={task.task_id}
+            taskKey={task.task_key}
             taskName={task.name}
-            noteRequired={task.note_required}
+            noteRequired={task.note_required_for_done}
             current={current}
           />
         )}

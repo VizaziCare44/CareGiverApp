@@ -8,7 +8,7 @@ import { makeBooking, makeCaregiver, makeFamily, makeRecipient, nairobiTime, typ
 // FR-005, FR-009, FR-011; AC-009, AC-015): the status, the Tasks card with each task's state, and
 // Check out in the fixed bottom bar, unavailable until every Required task has an outcome.
 // Outcomes are written straight to the table with the service role (logging a task is DEV-066),
-// the way the screen will find them. The data layer under it (migrations 0011 to 0014) is a DRAFT.
+// the way the screen will find them. The data layer under it is FD-VISIT 7.2 (migration 0020).
 
 type Bundle = 'medicheck' | 'doctors_day_out'
 
@@ -25,10 +25,11 @@ async function startVisit(bundle: Bundle = 'medicheck') {
 /** Logs a task the way DEV-066 will: a new entry on the visit's task of that name. */
 async function log(bookingId: string, name: string, outcome: 'done' | 'not_done', extra: { note?: string; reason?: string } = {}) {
   const svc = serviceClient()
-  const visit = await svc.from('visits').select('id').eq('booking_id', bookingId).single()
+  const visit = await svc.from('visits').select('id, caregiver_id').eq('booking_id', bookingId).single()
   const task = await svc.from('visit_tasks').select('id').eq('visit_id', visit.data!.id).eq('name', name).single()
   const saved = await svc.from('visit_task_entries').insert({
     visit_task_id: task.data!.id,
+    logged_by: visit.data!.caregiver_id,
     outcome,
     note: extra.note ?? null,
     reason: outcome === 'not_done' ? (extra.reason ?? 'Could not do it') : null,
@@ -46,7 +47,7 @@ const bar = (page: Page) => page.getByTestId('check-out-bar')
 const checkOut = (page: Page) => bar(page).getByRole('button', { name: 'Check out' })
 
 test.describe('DEV-065 — the rules for Check out (no browser)', () => {
-  const task = (name: string, required: boolean, outcome: VisitTask['outcome'] = null): VisitTask => ({ task_id: name, name, required, outcome })
+  const task = (name: string, required: boolean, outcome: VisitTask['outcome'] = null): VisitTask => ({ task_key: name, name, is_required: required, outcome })
 
   test('Required tasks logged, what is still to log, and when Check out opens', () => {
     const tasks = [task('Medication assistance', true), task('Vitals check', true), task('Companionship', false)]
@@ -65,7 +66,7 @@ test.describe('DEV-065 — the rules for Check out (no browser)', () => {
     expect(unloggedOptionalName(all)).toBe('Companionship')
 
     // an Optional task with an outcome is not named; an Optional task alone does not open Check out
-    expect(unloggedOptionalName(all.map((t) => (t.required ? t : { ...t, outcome: 'done' as const })))).toBeNull()
+    expect(unloggedOptionalName(all.map((t) => (t.is_required ? t : { ...t, outcome: 'done' as const })))).toBeNull()
     expect(canCheckOut([task('Medication assistance', true), task('Companionship', false, 'done')])).toBe(false)
   })
 })
@@ -94,7 +95,7 @@ test.describe('DEV-065 — Assignment Detail in progress', () => {
       await expect(row).toContainText(kind)
       await expect(row).toContainText('Not logged yet')
       // each row opens its task and is a comfortable tap target
-      await expect(row.getByRole('link')).toHaveAttribute('href', new RegExp(`^/assignments/${booking.id}/tasks/[0-9a-f-]{36}$`))
+      await expect(row.getByRole('link')).toHaveAttribute('href', new RegExp(`^/assignments/${booking.id}/tasks/[a-z][a-z0-9_]*$`))
       expect((await row.getByRole('link').boundingBox())!.height).toBeGreaterThanOrEqual(44)
     }
 
@@ -173,9 +174,9 @@ test.describe('DEV-065 — Assignment Detail in progress', () => {
     const card = page.getByRole('region', { name: 'Tasks' })
     await expect(card.getByTestId('visit-task')).toHaveCount(4)
     await expect(card.getByTestId('tasks-progress')).toHaveText('Required tasks logged: 0 of 3. Tap a task to log it.')
-    await expect(page.getByTestId('check-out-line')).toContainText('Still to log: Transport & escort, Advocacy and note-taking, Post-visit summary.')
+    await expect(page.getByTestId('check-out-line')).toContainText('Still to log: Transport and escort, Advocacy and note-taking, Post-visit summary.')
 
-    await log(booking.id, 'Transport & escort', 'done')
+    await log(booking.id, 'Transport and escort', 'done')
     await log(booking.id, 'Advocacy and note-taking', 'done', { note: 'Asked about the dizziness' })
     await log(booking.id, 'Post-visit summary', 'done', { note: 'Seen by Dr Otieno' })
     await page.reload()
@@ -200,7 +201,7 @@ test.describe('DEV-065 — Assignment Detail in progress', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     // scrolled to the end, the last element of the page ends above the bar
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-    const last = (await page.getByRole('region', { name: 'Care notes' }).boundingBox())!
+    const last = (await page.getByRole('region', { name: 'Tasks' }).boundingBox())!
     const fixed = (await bar(page).boundingBox())!
     expect(last.y + last.height).toBeLessThanOrEqual(fixed.y + 1)
   })
