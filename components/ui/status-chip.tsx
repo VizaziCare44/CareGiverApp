@@ -8,7 +8,10 @@
 // given a colour (no red, green or amber), told apart by the icon (a check or a dash) and the word.
 const NEUTRAL = 'bg-figma-surface text-figma-ink border border-figma-border'
 
+// One exception on the Admin's Exceptions screen (FD-ADMINEXC §7): the same neutral look, the label and the
+// icon chosen by the caller (person, clock, hourglass, empty box, shield, page); nothing carries a colour.
 const chips = {
+  exception: { label: 'Exception', className: NEUTRAL, icon: 'dash' },
   done: { label: 'Done', className: NEUTRAL, icon: 'check' },
   'not-done': { label: 'Not done', className: NEUTRAL, icon: 'dash' },
   'not-recorded': { label: 'Not recorded', className: NEUTRAL, icon: 'dash' },
@@ -51,6 +54,16 @@ const chips = {
 const icons = {
   check: <path d="M3.5 8.5l3 3 6-7" />,
   dash: <path d="M3.5 8h9" />,
+  person: (
+    <>
+      <circle cx="8" cy="5" r="2.5" />
+      <path d="M3 13.5c0-2.5 2.2-4 5-4s5 1.5 5 4" />
+    </>
+  ),
+  hourglass: <path d="M4.5 2h7M4.5 14h7M5 2c0 3 3 4 3 6s-3 3-3 6M11 2c0 3-3 4-3 6s3 3 3 6" />,
+  box: <path d="M2.5 4.5h11V13h-11zM2.5 4.5l1.5-2h8l1.5 2" />,
+  shield: <path d="M8 2l5 2v4c0 3-2 5-5 6-3-1-5-3-5-6V4z" />,
+  page: <path d="M4 2h5l3 3v9H4zM9 2v3h3" />,
   clock: (
     <>
       <circle cx="8" cy="8" r="6.25" />
@@ -71,15 +84,27 @@ const sizes = {
 } as const
 
 /** `label` replaces the default words when the same look carries a different message. */
-export function StatusChip({ status, label, size = 'default' }: { status: keyof typeof chips; label?: string; size?: keyof typeof sizes }) {
+export function StatusChip({
+  status,
+  label,
+  size = 'default',
+  icon,
+}: {
+  status: keyof typeof chips
+  label?: string
+  size?: keyof typeof sizes
+  /** Replaces the chip's own icon (used by the Exceptions screen). */
+  icon?: keyof typeof icons
+}) {
   const chip = chips[status]
+  const iconName = icon ?? chip.icon
   return (
     <span
       className={['inline-flex items-center rounded-full font-medium whitespace-nowrap', sizes[size], chip.className].join(' ')}
     >
       <svg
         aria-hidden="true"
-        data-icon={chip.icon}
+        data-icon={iconName}
         width="16"
         height="16"
         viewBox="0 0 16 16"
@@ -89,7 +114,7 @@ export function StatusChip({ status, label, size = 'default' }: { status: keyof 
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {icons[chip.icon]}
+        {icons[iconName]}
       </svg>
       {label ?? chip.label}
     </span>

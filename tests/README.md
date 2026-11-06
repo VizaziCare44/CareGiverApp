@@ -47,6 +47,8 @@ The seeded accounts share one password, `SEED_TEST_PASSWORD`. If you do not set 
 - Ground truth after an attempt (service role, never the caller of a permission case): `getChecklistItems(bundle)`, `getVisit(bookingId)`, `getVisitTasks(visitId)`, `getEntries(visitTaskId)` and `probe()`.
 - To act as a seeded person, `test.use({ storageState: personaState('fm3') })` (`tests/e2e/personas.ts`). Each persona is signed in once before the run. Only read what a persona owns; a test that changes shared rows would disturb the others.
 - A test that uses neither gets a fresh, signed-out browser: right for Log In, Sign Up and logout.
+- Exceptions (DEV-079 to DEV-081, `tests/e2e/exceptions-data.ts`): `makeExceptionAdmin()` is a new Admin with a clock row of its own (`setNow`, `clearNow`: only that Admin's reads see the moment, so no test uses `admin1` or moves another persona's time); `makeExceptionBooking({ requested })` is an assigned booking with a Verified caregiver of its own; `checkInAt(booking, instant, { tasks, closed })` makes the visit through the real functions with the caregiver's clock at that instant; `setStatus` is the service role, for set-up only, and the test puts the booking back. Find your rows by the unique recipient name or booking id: the shared database holds other tests' rows. The boundary cases need the test clock and run on the local stack only; elsewhere they are skipped and reported as not covered.
+- Two specs change a shared table for a moment (`visit-snapshot.spec.ts`: the checklist rows; `admin-exceptions-settings.spec.ts`: the three exception settings). They run last, in their own Playwright project, and put the rows back.
 
 ## The dev project (the fallback)
 

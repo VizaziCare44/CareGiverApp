@@ -5,10 +5,10 @@
 **Who:** David defines it; the Tech Lead runs it.
 **Status:** written, **not rehearsed.** Two things are still open:
 
-1. **The visit schema was checked against FD-VISIT section 7 on 2026-11-06 (VIZ-91).** Migrations 0011 to 0019 were written from the task texts while FD-VISIT was not available and differed from the document in many places; **migration 0020 rebuilds the visit objects in the shape the document gives**, and the checks below are those of the shape after 0020. 0011 to 0019 stay in the list because a project that has them applied still runs them in order. 0020 refuses to run if any visit exists, so it is applied on a project with no visits (dev and production are both such projects). Migrations 0011 to 0020 are **not on production**: apply the whole set at once.
+1. **The visit schema was checked against FD-VISIT section 7 on 2026-11-06 (VIZ-91).** Migrations 0011 to 0019 were written from the task texts while FD-VISIT was not available and differed from the document in many places; **migration 0020 rebuilds the visit objects in the shape the document gives**, and the checks below are those of the shape after 0020. 0011 to 0019 stay in the list because a project that has them applied still runs them in order. 0020 refuses to run if any visit exists, so it is applied on a project with no visits (dev and production are both such projects). Migrations 0011 to 0021 are **not on production**: apply the whole set at once. (0021 is FD-ADMINEXC's Exceptions view and settings, part 5; it is read-only and independent of the others.)
 2. **Parts 3 and 5 are proposals for the Tech Lead's confirmation**, marked **TO CONFIRM**. The Tech Lead's confirmation of FD-VISIT §5.7(i) is still open, and the exception-settings table of FD-ADMINEXC §9 does not exist yet.
 
-The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all twenty migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
+The checks in parts 1, 2 and 4, and the commands of part 3, **have been run in CI** on a database that has all twenty-one migrations (`backend-config/supabase/tests/database/0017_visit_release_checks.test.sql`). So a wrong answer on production means production differs from what CI built, not that the query is wrong. If you change a query here, change it in that test file too.
 
 Run every query in the Supabase SQL editor **as the project's owner**, after checking which project the editor is on.
 
@@ -16,15 +16,15 @@ Run every query in the Supabase SQL editor **as the project's owner**, after che
 
 # Part 1. The FD-VISIT migrations, in order, with the check after each
 
-Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (20 files, 0001 to 0020); on a project that already has 0001 to 0010 it applies ten.
+Files are in `backend-config/supabase/migrations/`, applied in file-name order after 0001 to 0010. On a new project the whole list is applied in one `supabase db push` (21 files, 0001 to 0021); on a project that already has 0001 to 0010 it applies eleven.
 
 ```bash
-supabase db push --dry-run     # lists what it would apply: 0011 to 0020 on a project that has 0001 to 0010, nothing else
+supabase db push --dry-run     # lists what it would apply: 0011 to 0021 on a project that has 0001 to 0010, nothing else
 supabase db push
-supabase migration list        # Local and Remote both show 0001 to 0020
+supabase migration list        # Local and Remote both show 0001 to 0021
 ```
 
-The checks below are those of the database **after all twenty migrations**: where 0020 rebuilt something, the check is the one for the new shape, and it sits under the migration that first created the object. **Nothing in this part writes a visit, and no migration inserts test data.** The only rows the migrations insert are the 7 `checklist_items` rows.
+The checks below are those of the database **after all twenty-one migrations**: where 0020 rebuilt something, the check is the one for the new shape, and it sits under the migration that first created the object. **Nothing in this part writes a visit, and no migration inserts test data.** The only rows the migrations insert are the 7 `checklist_items` rows.
 
 ### 0011 `visit_schema` (DEV-059; the tables are rebuilt in the spec's shape by 0020)
 
@@ -141,7 +141,20 @@ Rebuilds the visit objects in the shape of FD-VISIT §7.2 to §7.4 and FD-FAMVIS
 
 Reverse step: in the file. **It drops the visit tables and so loses every visit written.** Run it only on a project with no real visits.
 
-### The whole database, after all twenty
+### 0021 `admin_exceptions` (DEV-079; FD-ADMINEXC §9)
+
+Creates `private.exception_settings` (three rows, no API privilege: `on_time_minutes` 30, `in_progress_hours` 8, `window_days` 7) and the view `public.admin_exceptions`: the Admin's read-only list of bookings that need a look, derived on every read from the visit records (nothing is stored). It is composed on `admin_booking_overview`, so only an Admin gets rows; it runs with its owner's rights and `security_barrier`; the Tech Lead reads the composition with `family_bookings` and the other owner-rights views. It returns sixteen columns and never a note, the visit note, care notes, a phone number or an id of a visit, task, entry or caregiver.
+
+| Check | Expect |
+|---|---|
+| `select key, value from private.exception_settings order by key;` | `in_progress_hours 8`, `on_time_minutes 30`, `window_days 7` |
+| `select not has_table_privilege('authenticated', 'private.exception_settings', 'select') and not has_table_privilege('anon', 'private.exception_settings', 'select');` | `true` |
+| `select has_table_privilege('authenticated', 'public.admin_exceptions', 'select') and not has_table_privilege('anon', 'public.admin_exceptions', 'select') and not has_table_privilege('authenticated', 'public.admin_exceptions', 'insert');` | `true` |
+| `select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'admin_exceptions';` | `16` |
+
+Reverse step: in the file (drops the view and the settings table; nothing else is lost, because nothing is stored).
+
+### The whole database, after all twenty-one
 
 | Check | Expect |
 |---|---|
@@ -149,7 +162,7 @@ Reverse step: in the file. **It drops the visit tables and so loses every visit 
 
 ### Reverse steps: the order
 
-Run by hand, in this order, never more than you need: **0020, 0019, 0018, 0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
+Run by hand, in this order, never more than you need: **0021, 0020, 0019, 0018, 0017, 0016, 0015, 0014, 0013, 0012, 0011.** After any reverse step, re-run the checks of the migrations that remain applied.
 
 - **A reverse step loses data.** Dropping the visit tables (0011) deletes every visit; visits and their entries can never be deleted by the app. Prefer a new forward migration that fixes the problem.
 - **Do not reverse a migration to fix an app problem.** Fix forward (see "After the release" in the main runbook).
@@ -159,7 +172,7 @@ Run by hand, in this order, never more than you need: **0020, 0019, 0018, 0017, 
 
 # Part 2. The production checks
 
-Run these **after the migrations and before the first Caregiver is told to check in**, and again after every release that touches the visit tables. **All three must hold.**
+Run these **after the migrations and before the first Caregiver is told to check in**, and again after every release that touches the visit tables. **All four must hold.**
 
 **1. The test clock has zero rows.** A row would change what "now" means for one Caregiver's visits.
 
@@ -175,7 +188,7 @@ select bundle_code, count(*) from public.checklist_items group by bundle_code or
 ```
 Expect `doctors_day_out 4` and `medicheck 3` (7 in all). The names, keys and Required / Optional flags are those of FD-VISIT §7.2 (checked 2026-11-06); read them once: `select bundle_code, sort_order, task_key, name, is_required, note_required_for_done from public.checklist_items order by bundle_code, sort_order;`.
 
-**3. The probe returns nothing.** The probe of §7.3 item 13 lists every row that breaks a rule the visit functions and triggers keep. **The first three kinds below, and a visit with no tasks (covered by `SNAPSHOT_MISMATCH`), are the rules of §7.3 item 13 and TC-VIS-044; the others are further integrity checks the functions and triggers keep, added on purpose and recorded in the Draft Decisions register (F1).** The same rules are in `scripts/seed/probe.mjs`, which the tests and the seed run.
+**3. The probe returns nothing.** (Check 4, the exception settings, follows the probe.) The probe of §7.3 item 13 lists every row that breaks a rule the visit functions and triggers keep. **The first three kinds below, and a visit with no tasks (covered by `SNAPSHOT_MISMATCH`), are the rules of §7.3 item 13 and TC-VIS-044; the others are further integrity checks the functions and triggers keep, added on purpose and recorded in the Draft Decisions register (F1).** The same rules are in `scripts/seed/probe.mjs`, which the tests and the seed run.
 
 ```sql
 with
@@ -229,6 +242,13 @@ Expect **no rows**. What each kind means, and what to do (use part 3 for the fix
 | `REQUIRED_TASK_NOT_LOGGED` | a closed visit with a Required task that has no entry (ref: the task) |
 | `ENTRY_OUTSIDE_VISIT` | an entry logged before check-in or after check-out (ref: the entry) |
 | `ENTRY_WITHOUT_TEXT` | a Done entry without the note its task needs, or a Not done entry without a reason (ref: the entry) |
+
+**4. The three exception settings are present** (FD-ADMINEXC §9, DEV-071). The Exceptions list reads its three figures from here; with a row missing, the list shows nothing for that rule.
+
+```sql
+select key, value from private.exception_settings order by key;
+```
+Expect exactly three rows: `in_progress_hours 8`, `on_time_minutes 30`, `window_days 7` (or the figures the founder has since decided). CI checks the same query on a fresh database (`0019_admin_exceptions.test.sql`).
 
 ---
 
@@ -378,33 +398,37 @@ Expect **no rows**. If anything is listed, **do not delete it**: visits, entries
 
 # Part 5. Changing an exception setting (FD-ADMINEXC §9, decision 15)
 
-**TO CONFIRM, and not yet possible.** `private.exception_settings` does not exist: no migration creates it yet (FD-ADMINEXC is not built, and §9 was not available). This part is written now so that it is not forgotten; **fill in the column and key names from FD-ADMINEXC §9 when the migration exists, and add the migration to part 1.**
+**The rule:** each of the three rows of `private.exception_settings` (migration 0021) is changed by **one `UPDATE`**, by the Tech Lead, as the project owner, in the SQL editor. No screen changes them and nobody else does. A change takes effect on the next read of the Exceptions list: no migration, no deployment. The keys and what they mean:
 
-**The rule:** each of the three rows of `private.exception_settings` is changed by **one `UPDATE`**, by the Tech Lead, as the project owner, in the SQL editor. No screen changes them and nobody else does.
+| `key` | Meaning | Now |
+|---|---|---|
+| `on_time_minutes` | The on-time threshold: a booking with no check-in shows after this many minutes past its requested time (E1), and a check-in later than this is late (E2). Exactly on the figure is not shown | 30 (the founder, 2026-08-28) |
+| `in_progress_hours` | DEC-3: an open visit shows as "Still in progress" (E3) once checked in more than this many hours ago. Exactly on the figure is not shown | 8 |
+| `window_days` | DEC-4: the list covers visit days from this many days ago to today, in Nairobi time | 7 |
+
+A value must be a whole number above zero (a constraint refuses anything else), and no other key can be added. Run it on the right project (check the target first, as in the main runbook):
 
 ```sql
--- shape only: names to be taken from the migration
-update private.exception_settings
-   set <value column> = <new value>
- where <key column> = '<the setting>';
-select * from private.exception_settings order by <key column>;   -- read it back
+select key, value from private.exception_settings order by key;      -- look, and write both down
+update private.exception_settings set value = <new value> where key = '<the key>';
+select key, value from private.exception_settings order by key;      -- read it back
 ```
 
-Look at the row before and after, and write both down (the release log of part 3).
+Look at the rows before and after, and write both down (the release log of part 3). To undo it, run the same `UPDATE` with the old value.
 
-**When the DEC-4 row (the window, in days) changes, two lines of text change with it, in the same release.** The screen writes the figure as text, and the view returns no window value, so the figure is not read from the setting. The two lines in the shared strings module (C5) are:
+**When the DEC-4 row (`window_days`) changes, two lines of text change with it, in the same release.** The screen writes the figure as text, and the view returns no window value, so the figure is not read from the setting. The two lines are in `lib/admin/exceptions-text.ts`:
 
-- `Last 7 days`
-- `from the last 7 days`
+- `Last 7 days. This list sends no alerts.` (`EXCEPTIONS_TEXT.intro`)
+- `No exceptions from the last 7 days` (`EXCEPTIONS_TEXT.emptyHeading`)
 
-Change both to the new number of days **in the same release as the UPDATE**, and check them in the app afterwards: a screen that says "Last 7 days" over a 14-day window is wrong in a way no test sees. (The shared strings module does not exist in the repository yet; when it does, add a test that fails if the figure in the text differs from the setting.)
+Change both to the new number of days **in the same release as the UPDATE**, and look at the screen afterwards: a screen that says "Last 7 days" over a 14-day window is wrong in a way no test sees. (The tests prove that the three boundaries follow the settings with no change to any code, `admin-exceptions-settings.spec.ts`; they do not read the copy against the setting, by decision 15.)
 
 ---
 
 # Open points
 
-- **The visit schema has been checked against FD-VISIT section 7 (VIZ-91, 2026-11-06)** and migration 0020 corrects it. The visit migrations 0011 to 0020 are applied to dev only, none to production, and are released as one set.
+- **The visit schema has been checked against FD-VISIT section 7 (VIZ-91, 2026-11-06)** and migration 0020 corrects it. The visit migrations 0011 to 0021 are not on production and are released as one set (0011 to 0020 are on dev; 0021, the Exceptions view, is in the repository and waits for the founder's word).
 - **The Tech Lead's confirmation of part 3** (the cases, the two guards switched off for one statement each, the recording) and the decision on the `private.visit_corrections` table.
 - **The probe's rules** (part 2, check 3) include the four of §7.3 item 13 and further checks of our own; whether to keep the extras is the Tech Lead's to say (they cannot fire on a database the functions have kept).
-- **Part 5** waits for the FD-ADMINEXC migration and §9.
+- **Part 5** is written now that migration 0021 exists; the Tech Lead's review of the view, `security_barrier`, the settings table and the composition on `admin_booking_overview` is still to come (FD-ADMINEXC §9). The 8-hour figure rests on the Doctor's Day Out length, TO CONFIRM by the founder.
 - **Rehearse** with the main runbook's part C: this addendum's checks, and the reverse step of 0016 followed by the check of 0015, once, so a reverse has been seen to work.

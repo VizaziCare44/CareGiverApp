@@ -36,6 +36,19 @@ export function formatDateTime(value: DateInput) {
   return `${formatDate(value)}, ${formatTime(value)}`
 }
 
+/**
+ * A span of time as the Admin's Exceptions screen writes it (T5, FD-ADMINEXC decision 7): whole units, rounded
+ * down. Under 120 minutes it reads "N minutes"; from 120 minutes to 47 hours, "N hours"; from 48 hours,
+ * "N days". The view returns minutes; this is the one place they become words. Every span on that screen is
+ * 30 minutes or more, so there is no singular form.
+ */
+export function formatSpan(minutes: number) {
+  const whole = Math.max(0, Math.floor(minutes))
+  if (whole < 120) return `${whole} minutes`
+  if (whole < 48 * 60) return `${Math.floor(whole / 60)} hours`
+  return `${Math.floor(whole / (24 * 60))} days`
+}
+
 // A slot typed in the booking flow (a date and a time of day from the pickers) is
 // Nairobi time, whatever zone the browser is in (FD-VERIFY §7.8(k)). Nairobi is UTC+3
 // all year, with no daylight saving.

@@ -31,7 +31,7 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['setup'],
-      testIgnore: /seed-(accounts|verification|visit)\.spec\.ts|visit-snapshot\.spec\.ts/,
+      testIgnore: /seed-(accounts|verification|visit)\.spec\.ts|(visit-snapshot|admin-exceptions-settings)\.spec\.ts/,
     },
     // The seed's own tests change the shared starter-set rows (passwords, roles, a booking's
     // status) and put them back, so they run on their own, after every other test, and can
@@ -58,11 +58,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['seed-verification'],
     },
-    // DEV-062 (TC-VIS-041): changes the shared checklist rows for a moment and puts them back, so it runs
-    // alone, after every other test, including the seed's own (local stack only)
+    // DEV-062 (TC-VIS-041) changes the shared checklist rows, and DEV-079 (AC-020) the shared exception settings,
+    // each for a moment, and both put them back, so they run apart from every other test, after the seed's own
+    // (local stack only)
     {
       name: 'visit-snapshot',
-      testMatch: /visit-snapshot\.spec\.ts/,
+      testMatch: /(visit-snapshot|admin-exceptions-settings)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['seed-visit'],
     },

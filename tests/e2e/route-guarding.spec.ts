@@ -17,6 +17,7 @@ const ROUTES: Record<Role, string[]> = {
     '/admin/queue',
     '/admin/queue?tab=assigned',
     '/admin/caregivers',
+    '/admin/exceptions',
     `/admin/caregivers/${ID}`,
     `/admin/bookings/${ID}`,
     `/admin/bookings/${ID}/choose-caregiver`,
