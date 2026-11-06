@@ -205,8 +205,13 @@ test.describe('DEV-075 — F5: the visit report cannot be loaded', () => {
   })
 
   test('a closed visit with no task rows is the same state', async ({ page }) => {
-    const { family, booking } = await inProgress()
-    expect((await serviceClient().from('visits').update({ checked_out_at: new Date(Date.now() + 1000).toISOString() }).eq('id', booking.visitId!)).error).toBeNull()
+    // a visit row that is closed but has no tasks (only a hand edit can make one): FD-FAMVIS 7.3, "a closed visit always has its snapshot, so no rows means something went wrong"
+    const family = await makeFamily()
+    const caregiver = await makeCaregiver({ verified: true })
+    const booking = await makeBooking({ family, recipient: await makeRecipient({ family }), status: 'assigned', caregiver })
+    const now = Date.now()
+    const closed = await serviceClient().from('visits').insert({ booking_id: booking.id, caregiver_id: caregiver.userId, checked_in_at: new Date(now - 3600_000).toISOString(), checked_out_at: new Date(now - 1800_000).toISOString() })
+    expect(closed.error).toBeNull()
     expect((await serviceClient().from('bookings').update({ status: 'completed' }).eq('id', booking.id)).error).toBeNull()
     await open(page, family, booking.id)
     await expect(block(page)).toContainText("Couldn't load the visit report")

@@ -211,7 +211,8 @@ test.describe('DEV-067 — when it goes wrong, and the limits', () => {
 
     const again = await caregiver.client.rpc('check_out', { p_booking_id: booking.id, p_visit_note: 'A later note' })
     expect(again.error).toBeNull()
-    expect((again.data as { changed: boolean }).changed).toBe(false)
+    // a repeat is a retry: the same answer (the time of the first check-out), nothing written
+    expect(new Date((again.data as { checked_out_at: string }).checked_out_at).getTime()).toBe(new Date(first.checked_out_at as string).getTime())
     const after = await visitRow(booking.id)
     expect(after.checked_out_at).toBe(first.checked_out_at)
     expect(after.visit_note).toBe(first.visit_note)

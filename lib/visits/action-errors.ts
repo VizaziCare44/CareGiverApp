@@ -61,7 +61,8 @@ export const GENERIC_ERROR = 'Something went wrong and nothing was saved. Please
 const CONNECTION_TEXT: Record<VisitActionName, string> = {
   'check-in': 'Not saved. Check your connection and try again.',
   'log-task': 'Not saved. Check your connection and try again. What you typed is still here.',
-  'check-out': 'Not saved. Check your connection and try again. What you typed is still here.',
+  // §7.3 gives VIS-07d for a task and "Not saved. Check your connection and try again." for the check-in dialog; it gives no line for check-out, so this one follows the same pattern and says what did not happen
+  'check-out': 'Not checked out. Check your connection and try again. What you typed is still here.',
 }
 
 /**

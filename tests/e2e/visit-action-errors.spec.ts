@@ -83,7 +83,8 @@ test.describe('DEV-069 — describeVisitError', () => {
   test('the connection-lost text follows 7.3 (VIS-07d for a task)', () => {
     expect(describeVisitError('CONNECTION', 'check-in').message).toBe('Not saved. Check your connection and try again.')
     expect(describeVisitError('CONNECTION', 'log-task').message).toBe('Not saved. Check your connection and try again. What you typed is still here.')
-    expect(describeVisitError('CONNECTION', 'check-out').message).toBe('Not saved. Check your connection and try again. What you typed is still here.')
+    // §7.3 has no line for check-out; this follows the pattern and says what did not happen
+    expect(describeVisitError('CONNECTION', 'check-out').message).toBe('Not checked out. Check your connection and try again. What you typed is still here.')
   })
 
   test('a code the mapping does not name gets the generic text', () => {
