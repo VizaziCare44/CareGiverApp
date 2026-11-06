@@ -110,7 +110,7 @@ export async function checkInAt(
 }
 
 /** The caregiver does something at `at` (their clock is set to that instant for the call, then cleared). */
-export async function asCaregiverAt<T>(booking: ExceptionBooking, at: Date, call: (client: SupabaseClient) => Promise<T>) {
+export async function asCaregiverAt<T>(booking: ExceptionBooking, at: Date, call: (client: SupabaseClient) => PromiseLike<T>) {
   await setClock(booking.caregiver, at)
   try {
     return await call(booking.caregiver.client)
