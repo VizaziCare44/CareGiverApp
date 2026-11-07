@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
-import { formatDate, formatDateTime, nairobiToday, slotToInstant, ZONE_LABEL } from '@/lib/datetime'
+import { formatDate, formatDateTime, monthGrid, nairobiToday, slotToInstant, ZONE_LABEL } from '@/lib/datetime'
 import { ActionButton } from '@/components/ui/action-button'
 import { BookingScreen } from './booking-screen'
 
@@ -21,8 +21,6 @@ const isoDate = (year: number, month: number, day: number) => `${year}-${pad(mon
 const monthOf = (date: string) => ({ year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) })
 const monthIndex = (m: { year: number; month: number }) => m.year * 12 + (m.month - 1)
 const fromIndex = (index: number) => ({ year: Math.floor(index / 12), month: (index % 12) + 1 })
-const monthName = (m: { year: number; month: number }) =>
-  new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(m.year, m.month - 1, 1)))
 
 const icon = (path: string, size: number) => (
   <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -48,9 +46,8 @@ export function DateTimeSelect() {
 
   const earliest = monthOf(today)
   const canGoBack = monthIndex(shown) > monthIndex(earliest)
-  const daysInMonth = new Date(Date.UTC(shown.year, shown.month, 0)).getUTCDate()
-  const leading = (new Date(Date.UTC(shown.year, shown.month - 1, 1)).getUTCDay() + 6) % 7 // Monday first
-  const cells: (number | null)[] = [...Array(leading).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+  const grid = monthGrid(shown.year, shown.month) // Monday first
+  const cells: (number | null)[] = [...Array(grid.leading).fill(null), ...Array.from({ length: grid.days }, (_, i) => i + 1)]
   while (cells.length % 7 !== 0) cells.push(null)
 
   let selectedText = ''
@@ -94,7 +91,7 @@ export function DateTimeSelect() {
             {icon('M14 6l-6 6 6 6', 22)}
           </button>
           <p className="min-w-0 flex-1 text-center text-[16px] font-semibold leading-[1.4]" aria-live="polite" data-testid="month-label">
-            {monthName(shown)}
+            {grid.label}
           </p>
           <button
             type="button"

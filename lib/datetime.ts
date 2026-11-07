@@ -73,3 +73,17 @@ export function slotToInstant(date: string, time: string) {
   if (Number.isNaN(instant.getTime())) throw new Error(`Not a date and time: "${date}" "${time}"`)
   return instant.toISOString()
 }
+
+/**
+ * The month calendar of Date/Time Selection (ACC-08): a month's name ("October 2026"), how many days it has, and how
+ * many empty cells come before the 1st when the week starts on Monday. Calendar arithmetic only, on plain year and
+ * month numbers; no zone is involved, so it is the same on every device. `month` is 1 to 12.
+ */
+export function monthGrid(year: number, month: number) {
+  const first = new Date(Date.UTC(year, month - 1, 1))
+  return {
+    label: new Intl.DateTimeFormat('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(first),
+    days: new Date(Date.UTC(year, month, 0)).getUTCDate(),
+    leading: (first.getUTCDay() + 6) % 7,
+  }
+}
