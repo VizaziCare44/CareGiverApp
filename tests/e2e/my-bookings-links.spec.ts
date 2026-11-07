@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { apiAddRecipient, createUserWithRole, logInViaUI } from './helpers'
+import { apiAddRecipient, createUserWithRole, logInViaUI, pickSlot } from './helpers'
 
 // DEV-046: the two ways into My Bookings (frame ACC-10; FR-017; §5.7(l)):
 // "My bookings" on the Care Recipient List and "View my bookings" on Booking
@@ -11,8 +11,7 @@ async function bookThroughTheUI(page: Page, recipientId: string, recipientName: 
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.waitForURL('**/book/datetime')
   const date = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  await page.locator('#visit-date').fill(date)
-  await page.locator('#visit-time').fill('09:00')
+  await pickSlot(page, date, '09:00')
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.waitForURL('**/book/review')
   await page.getByTestId('submit-booking').click()
@@ -57,24 +56,14 @@ test.describe('DEV-046 — links into My Bookings', () => {
     const link = page.getByRole('link', { name: 'View my bookings' })
     await expect(link).toHaveAttribute('href', '/bookings')
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
-    // Done is still there and unchanged
-    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible()
+    // ACC-10 has no other button: "View my bookings" is the way on
+    await expect(page.getByRole('button')).toHaveCount(0)
 
     await link.click()
     await page.waitForURL('**/bookings')
     const card = page.getByRole('listitem').filter({ hasText: recipientName })
     await expect(card).toContainText('MediCheck')
     await expect(card.getByText('Awaiting caregiver assignment')).toBeVisible()
-  })
-
-  test('Done on Confirmation still goes back to the Care Recipient List', async ({ page }) => {
-    const stamp = Date.now()
-    const family = await createUserWithRole('family_member', `Family ${stamp}`)
-    const recipientId = await apiAddRecipient(family.client, family.userId, `Done ${stamp}`)
-    await logInViaUI(page, family.email)
-    await bookThroughTheUI(page, recipientId, `Done ${stamp}`)
-    await page.getByRole('button', { name: 'Done' }).click()
-    await page.waitForURL('**/recipients')
   })
 
   test('both links fit a phone: no sideways scrolling', async ({ page }) => {

@@ -13,40 +13,31 @@ import type { BundleCode } from './types'
 export interface BundleContent {
   code: BundleCode
   name: string
-  durationLabel: string
-  frequencyLabel: string
+  /** The line under the name on the Bundle Selection card (Figma ACC-07). */
+  summary: string
   inclusions: string[]
-  sla: string[]
+  /** The Response times text on the card, one paragraph. */
+  responseTimes: string
   reportName: string
-  dateTimeCopy: string
 }
 
 export const BUNDLES: Record<BundleCode, BundleContent> = {
   medicheck: {
     code: 'medicheck',
     name: 'MediCheck',
-    durationLabel: '3-hour visit',
-    frequencyLabel: 'Daily',
+    summary: '3-hour visit at home',
     // DEV-058: exactly these four, in this order (FD-VISIT §5.7(j), §6.6(b); Figma ACC-07 and ACC-11).
-    inclusions: [
-      'Medication assistance',
-      'Vitals check (blood pressure and glucose)',
-      'Companionship',
-      'MediCheck Report in the app',
-    ],
-    sla: ['Emergency response under 30 minutes', 'Missed-medication alert under 15 minutes'],
+    inclusions: ['Medication assistance', 'Vitals check (blood pressure and glucose)', 'Companionship', 'MediCheck Report in the app'],
+    responseTimes: 'Emergency response: under 30 minutes. Missed-medication alert: under 15 minutes.',
     reportName: 'MediCheck Report',
-    dateTimeCopy: 'Select the daily visit time',
   },
   doctors_day_out: {
     code: 'doctors_day_out',
     name: "Doctor's Day Out",
-    durationLabel: '4–5 hour appointment day',
-    frequencyLabel: 'Single booking',
-    inclusions: ['Pre-visit preparation', 'Transport & escort', 'Advocacy and note-taking', 'Post-visit report'],
-    sla: ['Emergency response under 15 minutes', 'Dedicated hotline'],
+    summary: '4–5 hour visit on the day of a medical appointment',
+    inclusions: ['Pre-visit preparation', 'Transport and escort', 'Advocacy and note-taking', 'Post-visit Clinic Visit Report in the app'],
+    responseTimes: 'Emergency response: under 15 minutes. Dedicated hotline.',
     reportName: 'Clinic Visit Report',
-    dateTimeCopy: 'Select the appointment day and time',
   },
 }
 

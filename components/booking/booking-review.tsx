@@ -2,16 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
-import { BUNDLES } from '@/lib/bookings/bundles'
+import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import { formatDateTime, slotToInstant } from '@/lib/datetime'
-import { BookingStepHeader } from './booking-step-header'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { ActionButton } from '@/components/ui/action-button'
+import { BookingScreen } from './booking-screen'
+import { BookingSummary } from './booking-summary'
 import { submitBooking } from '@/app/book/review/actions'
 
-// FR-006 / AC-003 / TC-ACC-006, 007, 014.
+// FR-006 / AC-003 / TC-ACC-006, 007, 014, frames ACC-09, 09b (Submitting…, the button disabled so it
+// cannot be sent twice) and 09c (the error banner, the data kept, Submit available again).
+export const SUBMIT_ERROR = "Couldn't submit — check your connection and try again"
+
 export function BookingReview() {
   const router = useRouter()
   const draft = useBookingDraft()
@@ -28,7 +30,6 @@ export function BookingReview() {
   }, [draft.bundleCode, draft.date, draft.time])
 
   if (!draft.bundleCode || !draft.date || !draft.time || !draft.recipientId) return null
-  const bundle = BUNDLES[draft.bundleCode]
 
   async function handleSubmit() {
     if (submittingRef.current) return
@@ -49,7 +50,7 @@ export function BookingReview() {
       // Action call instead of resolving it — without this catch, the UI
       // was left stuck on "Submitting…" forever with no way to retry
       // (TC-ACC-014 / NFR §4.2).
-      result = { error: "Couldn't submit — check your connection and try again." }
+      result = { error: SUBMIT_ERROR }
     }
 
     if (result.error) {
@@ -70,60 +71,31 @@ export function BookingReview() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-10">
-      <BookingStepHeader title="Review your booking" />
+    <BookingScreen heading="Review your booking request">
+      <BookingSummary
+        rows={[
+          { label: 'Care recipient', value: draft.recipientName, edit: { href: '/recipients', label: 'Edit care recipient' } },
+          { label: 'Care bundle', value: BUNDLE_LINES[draft.bundleCode], edit: { href: '/book/bundle', label: 'Edit care bundle' } },
+          { label: 'Date and time of the visit', value: formatDateTime(slotToInstant(draft.date, draft.time)), edit: { href: '/book/datetime', label: 'Edit date and time' } },
+        ]}
+      />
 
-      <Card className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Care recipient</p>
-            <p className="text-lg text-foreground">{draft.recipientName}</p>
-          </div>
-          <Link href="/recipients" className="text-base font-medium text-sage-700 underline">
-            Edit
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Bundle</p>
-            <p className="text-lg text-foreground">{bundle.name}</p>
-          </div>
-          <Link href="/book/bundle" className="text-base font-medium text-sage-700 underline">
-            Edit
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Date &amp; time</p>
-            <p className="text-lg text-foreground">
-              {formatDateTime(slotToInstant(draft.date, draft.time))}
-            </p>
-          </div>
-          <Link href="/book/datetime" className="text-base font-medium text-sage-700 underline">
-            Edit
-          </Link>
-        </div>
-      </Card>
+      <p className="text-[15px] leading-[1.4] text-figma-muted">This is a request for one visit. We&apos;ll confirm your caregiver after you submit.</p>
 
       {error && (
-        <div className="flex flex-col gap-3">
-          <p role="alert" className="flex items-center gap-1.5 text-sm status-error">
-            <span aria-hidden="true">⚠</span>
-            {error}
-          </p>
-          <Button onClick={handleSubmit} className="w-full">
-            Retry
-          </Button>
+        <div role="alert" className="flex items-start gap-2 rounded-[10px] border border-figma-danger bg-figma-dangersoft p-3" data-testid="submit-error">
+          <svg aria-hidden="true" className="shrink-0 text-figma-danger" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3.5l9.5 16.5h-19L12 3.5z" />
+            <path d="M12 10v4.5M12 17.4v.1" />
+          </svg>
+          <p className="min-w-0 flex-1 text-[15px] font-medium leading-[1.4] text-figma-danger">{error}</p>
         </div>
       )}
 
-      {!error && (
-        <Button onClick={handleSubmit} loading={submitting} className="w-full" data-testid="submit-booking">
-          Submit
-        </Button>
-      )}
-    </main>
+      <div className="flex-1" />
+      <ActionButton onClick={handleSubmit} disabled={submitting} aria-busy={submitting || undefined} className="w-full" data-testid="submit-booking">
+        {submitting ? 'Submitting…' : 'Submit'}
+      </ActionButton>
+    </BookingScreen>
   )
 }

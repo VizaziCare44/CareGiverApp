@@ -25,9 +25,8 @@ test.describe('DEV-058 — Medication assistance on the Bundle Selection card', 
 
     // the rest of the card is as it was
     await expect(medicheck.getByRole('heading', { name: 'MediCheck' })).toBeVisible()
-    await expect(medicheck).toContainText('3-hour visit · Daily')
-    await expect(medicheck).toContainText('Emergency response under 30 minutes')
-    await expect(medicheck).toContainText('Missed-medication alert under 15 minutes')
+    await expect(medicheck).toContainText('3-hour visit at home')
+    await expect(medicheck).toContainText('Emergency response: under 30 minutes. Missed-medication alert: under 15 minutes.')
 
     expect((await page.locator('main').innerText()).toLowerCase()).not.toContain('administration')
   })

@@ -116,3 +116,17 @@ export async function logInViaUI(page: Page, email: string, password = TEST_PASS
   await page.getByRole('button', { name: 'Log in' }).click()
   await page.waitForURL(expectedUrl)
 }
+
+/**
+ * Choose a day and a start time on Date/Time Selection (frames ACC-08, ACC-08b): turn the calendar to the day's
+ * month, click the day, then the start time. `date` is "YYYY-MM-DD" (Nairobi), `time` one of the on-the-hour
+ * start times, 08:00 to 16:00.
+ */
+export async function pickSlot(page: Page, date: string, time = '09:00') {
+  const day = page.locator(`[data-date="${date}"]`)
+  for (let turned = 0; turned < 24 && (await day.count()) === 0; turned += 1) {
+    await page.getByRole('button', { name: 'Next month' }).click()
+  }
+  await day.click()
+  await page.locator(`[data-time="${time}"]`).click()
+}

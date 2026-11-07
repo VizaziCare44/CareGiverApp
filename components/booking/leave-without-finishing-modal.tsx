@@ -1,9 +1,12 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { ActionButton } from '@/components/ui/action-button'
+import { ModalDialog } from '@/components/ui/modal-dialog'
 
-// FR-008 / AC-006 / TC-ACC-012. Non-persistent — confirming "Leave" discards
-// in-progress selections; "Stay" just dismisses this modal.
+// FR-008 / AC-006 / TC-ACC-012, frame ACC-11. Non-persistent: confirming "Leave"
+// discards the in-progress selections; "Stay" just dismisses this modal. Stay is
+// the filled primary button and Leave the outlined one (Button/Primary and
+// Button/Secondary), in that order, one under the other.
 export function LeaveWithoutFinishingModal({
   open,
   onStay,
@@ -13,29 +16,20 @@ export function LeaveWithoutFinishingModal({
   onStay: () => void
   onLeave: () => void
 }) {
-  if (!open) return null
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="leave-modal-title"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-    >
-      <div className="w-full max-w-sm rounded-xl bg-surface p-6 shadow-modal">
-        <h2 id="leave-modal-title" className="text-xl text-foreground">
-          Leave without finishing?
-        </h2>
-        <p className="mt-2 text-base text-muted-foreground">Your progress won&apos;t be saved.</p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
-          <Button variant="danger" className="w-full" onClick={onLeave} data-testid="leave-modal-leave">
-            Leave
-          </Button>
-          <Button variant="secondary" className="w-full" onClick={onStay} data-testid="leave-modal-stay">
-            Stay
-          </Button>
-        </div>
+    <ModalDialog open={open} onClose={onStay} labelledBy="leave-modal-title" size="compact">
+      <h2 id="leave-modal-title" className="text-[20px] font-bold leading-[1.25] text-figma-ink">
+        Leave without finishing?
+      </h2>
+      <p className="text-[16px] leading-[1.4] text-figma-muted">Your progress won&apos;t be saved.</p>
+      <div className="flex flex-col gap-2">
+        <ActionButton className="w-full" onClick={onStay} data-testid="leave-modal-stay">
+          Stay
+        </ActionButton>
+        <ActionButton variant="secondary" className="w-full" onClick={onLeave} data-testid="leave-modal-leave">
+          Leave
+        </ActionButton>
       </div>
-    </div>
+    </ModalDialog>
   )
 }

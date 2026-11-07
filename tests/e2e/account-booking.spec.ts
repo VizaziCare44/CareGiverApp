@@ -5,6 +5,7 @@ import {
   apiSignUp,
   generateRecoveryTokenHash,
   logInViaUI,
+  pickSlot,
   promoteToAdmin,
   randomEmail,
   serviceClient,
@@ -108,8 +109,7 @@ async function completeBookingFlow(page: import('@playwright/test').Page, recipi
 
   await page.waitForURL('**/book/datetime')
   const date = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  await page.locator('#visit-date').fill(date)
-  await page.locator('#visit-time').fill('09:00')
+  await pickSlot(page, date, '09:00')
   await page.getByRole('button', { name: 'Continue' }).click()
 
   await page.waitForURL('**/book/review')
@@ -188,7 +188,8 @@ test.describe('AC-003 — Booking visible to Admin', () => {
     await page.getByTestId('submit-booking').click()
     await expect(page.getByText("Couldn't submit")).toBeVisible()
 
-    await page.getByRole('button', { name: 'Retry' }).click()
+    // ACC-09c: the data is kept and Submit is available again
+    await page.getByRole('button', { name: 'Submit' }).click()
     await page.waitForURL('**/book/confirmation')
 
     const { data: bookings } = await client.from('bookings').select('id').eq('account_id', userId)

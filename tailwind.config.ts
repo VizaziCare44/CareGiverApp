@@ -31,6 +31,7 @@ const config: Config = {
           line: 'var(--figma-line)',
           primary: 'var(--figma-primary)',
           danger: 'var(--figma-danger)',
+          dangersoft: 'var(--figma-dangersoft)',
           muted: 'var(--figma-muted)',
           amber: 'var(--figma-amber)',
           ambertext: 'var(--figma-ambertext)',

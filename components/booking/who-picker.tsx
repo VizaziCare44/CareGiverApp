@@ -1,16 +1,21 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBookingDraft } from '@/lib/bookings/draft-context'
 import type { CareRecipient } from '@/lib/bookings/types'
+import { ActionButton } from '@/components/ui/action-button'
+import { BookingScreen } from './booking-screen'
+import { ChoiceCard } from './choice-card'
 
-// "Who is this booking for?" — shown only when 2+ recipients exist and none
+// "Who is this booking for?", frame ACC-06 — shown only when 2+ recipients exist and none
 // was pre-selected from the recipient list (FD-ACC §6.1). Exactly 1
-// recipient: auto-selected, this screen is skipped entirely.
+// recipient: auto-selected, this screen is skipped entirely. Nobody is pre-selected
+// (a wrong recipient is worse than one more tap); Continue waits for a choice.
 export function WhoPicker({ recipients }: { recipients: CareRecipient[] }) {
   const router = useRouter()
   const draft = useBookingDraft()
+  const [chosen, setChosen] = useState<CareRecipient | null>(null)
 
   useEffect(() => {
     if (draft.recipientId) {
@@ -26,25 +31,23 @@ export function WhoPicker({ recipients }: { recipients: CareRecipient[] }) {
 
   if (draft.recipientId || recipients.length <= 1) return null
 
+  function handleContinue() {
+    if (!chosen) return
+    draft.setRecipient(chosen.id, chosen.name)
+    router.push('/book/bundle')
+  }
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-10">
-      <h1 className="text-2xl text-foreground">Who is this booking for?</h1>
-      <div className="flex flex-col gap-3">
+    <BookingScreen heading="Who is this booking for?" confirmLeave={false}>
+      <div className="flex flex-col gap-4" role="radiogroup" aria-label="Care recipient">
         {recipients.map((r) => (
-          <button
-            key={r.id}
-            type="button"
-            data-testid={`who-option-${r.id}`}
-            onClick={() => {
-              draft.setRecipient(r.id, r.name)
-              router.push('/book/bundle')
-            }}
-            className="min-h-touch rounded-lg border border-border bg-surface px-4 text-left text-lg font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trust-500"
-          >
-            {r.name}
-          </button>
+          <ChoiceCard key={r.id} testId={`who-option-${r.id}`} title={r.name} selected={chosen?.id === r.id} onSelect={() => setChosen(r)} />
         ))}
       </div>
-    </main>
+      <div className="flex-1" />
+      <ActionButton disabled={!chosen} onClick={handleContinue} className="w-full">
+        Continue
+      </ActionButton>
+    </BookingScreen>
   )
 }

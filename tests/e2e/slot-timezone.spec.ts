@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { formatDateTime, slotToInstant } from '../../lib/datetime'
-import { logInViaUI, serviceClient } from './helpers'
+import { logInViaUI, pickSlot, serviceClient } from './helpers'
 import { makeFamily, makeRecipient } from './factories'
 
 // DEV-068 / DEV-028 item (9): the date and time typed in the booking flow mean Nairobi
@@ -20,8 +20,7 @@ test('a slot typed in a browser outside Nairobi is stored as Nairobi time', asyn
   await page.waitForURL('**/book/datetime')
 
   const date = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  await page.locator('#visit-date').fill(date)
-  await page.locator('#visit-time').fill('09:00')
+  await pickSlot(page, date, '09:00')
   await page.getByRole('button', { name: 'Continue' }).click()
   await page.waitForURL('**/book/review')
 
@@ -37,7 +36,7 @@ test('a slot typed in a browser outside Nairobi is stored as Nairobi time', asyn
   expect(expected.endsWith('T06:00:00.000Z')).toBe(true)
 })
 
-test('the earliest day on the date picker is today in Nairobi', async ({ page }) => {
+test('the earliest day on the calendar is today in Nairobi: earlier days cannot be chosen', async ({ page }) => {
   const family = await makeFamily()
   const recipient = await makeRecipient({ family, name: 'Mzee Baraka' })
   await logInViaUI(page, family.email, family.password)
@@ -47,7 +46,9 @@ test('the earliest day on the date picker is today in Nairobi', async ({ page })
   await page.waitForURL('**/book/datetime')
   const { nairobiToday } = await import('../../lib/datetime')
   const before = nairobiToday()
-  const min = await page.locator('#visit-date').getAttribute('min')
+  const enabled = await page.locator('[data-date]:not([disabled])').first().getAttribute('data-date')
   const after = nairobiToday()
-  expect([before, after]).toContain(min)
+  expect([before, after]).toContain(enabled)
+  // the month before today's cannot be opened
+  await expect(page.getByRole('button', { name: 'Previous month' })).toBeDisabled()
 })

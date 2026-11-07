@@ -35,6 +35,6 @@ export async function submitBooking({
     .select('id')
     .single()
 
-  if (error) return { error: "Couldn't submit — check your connection and try again." }
+  if (error) return { error: "Couldn't submit — check your connection and try again" }
   return { bookingId: data.id }
 }
