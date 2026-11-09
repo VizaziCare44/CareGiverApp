@@ -80,8 +80,8 @@ test.describe('DEV-055 — persona sessions', () => {
       await page.waitForURL('**/admin/queue')
       await expect(page.getByRole('heading', { name: 'Booking queue' })).toBeVisible()
       // the requests that stay requested whatever else is seeded: B1 (1A, MediCheck) and B2 (1B, Doctor's Day Out)
-      await expect(page.getByText('Recipient: Test Recipient 1A')).toBeVisible()
-      await expect(page.getByText('Recipient: Test Recipient 1B')).toBeVisible()
+      await expect(page.getByRole('row').filter({ hasText: 'Test Recipient 1A' }).getByText('MediCheck')).toBeVisible()
+      await expect(page.getByRole('row').filter({ hasText: 'Test Recipient 1B' }).getByText("Doctor's Day Out")).toBeVisible()
     })
   })
 
