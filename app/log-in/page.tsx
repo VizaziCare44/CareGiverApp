@@ -52,7 +52,7 @@ export default function LogInPage() {
         <Field label="Password" type="password" placeholder="Password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
 
         {/* DEV-027, founder decision 2026-10-01: the frames predate it, so it is not drawn there; it sits under the fields as a text link */}
-        <TextLink href="/forgot-password" className="-mt-2 self-start">
+        <TextLink href="/forgot-password" className="self-start">
           Forgot password?
         </TextLink>
 

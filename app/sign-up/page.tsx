@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ActionButton } from '@/components/ui/action-button'
 import { ErrorBanner } from '@/components/ui/error-banner'
 import { Field } from '@/components/ui/field'
+import { NoticeScreen } from '@/components/ui/notice-screen'
 import { TextLink } from '@/components/ui/text-link'
 
 // FR-001 / AC-001, frames ACC-01 and ACC-01b. Inline, on-blur validation per FD-ACC §6.5 — errors stay
@@ -73,12 +74,9 @@ export default function SignUpPage() {
 
   if (checkEmail) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-4 bg-white p-5 text-center text-figma-ink">
-        <h1 className="text-[24px] font-bold leading-[1.25]">Check your email</h1>
-        <p className="text-[18px] leading-[1.4]">
-          We sent a confirmation link to <strong>{email}</strong>. Follow it to activate your account.
-        </p>
-      </main>
+      <NoticeScreen title="Check your email">
+        We sent a confirmation link to <strong>{email}</strong>. Follow it to activate your account.
+      </NoticeScreen>
     )
   }
 

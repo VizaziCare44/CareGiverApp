@@ -289,7 +289,7 @@ test.describe('DEV-027 — Password reset', () => {
     await page.getByRole('link', { name: 'Forgot password?' }).click()
     await expect(page).toHaveURL(/forgot-password/)
 
-    await page.getByLabel('Email address').fill(email)
+    await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByRole('button', { name: 'Send reset link' }).click()
     await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible()
 
