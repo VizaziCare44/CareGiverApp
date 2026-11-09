@@ -13,7 +13,7 @@ import type { BundleCode } from '@/lib/bookings/types'
 import { familyVisitState, type VisitReads } from '@/lib/visits/family-visit'
 import { FAMILY_VISIT } from '@/lib/visits/family-visit-text'
 
-const card = 'flex flex-col gap-4 rounded-xl border border-figma-line bg-white p-5'
+const card = 'flex flex-col gap-4 rounded-[14px] border border-figma-border bg-white p-5'
 
 /**
  * The visit block of the family's Booking Detail, under the caregiver block (DEV-075; frames FAM-02,

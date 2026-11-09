@@ -39,10 +39,9 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
 
     // reached from the queue, by its own link
-    const row = page.getByRole('listitem').filter({ hasText: `Recipient: Requested ${stamp}` })
-    await row.getByRole('link', { name: 'View details' }).click()
+    await page.getByRole('row').filter({ hasText: `Requested ${stamp}` }).getByRole('link', { name: `Requested ${stamp}` }).click()
     await page.waitForURL(`**/admin/bookings/${bookingId}`)
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Booking queue' })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Booking Queue' })).toHaveAttribute('aria-current', 'page')
 
     await expect(page.getByRole('heading', { name: `Booking · Requested ${stamp}`, level: 1 })).toBeVisible()
     const details = page.getByRole('region', { name: 'Booking', exact: true })
@@ -50,12 +49,12 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await expect(details.getByText(/Takes insulin at 8am/)).toBeVisible()
     await expect(details.getByText(/Allergic to penicillin/)).toBeVisible()
     await expect(details.getByText('Tue 15 Jan 2030, 09:30 EAT')).toBeVisible()
-    await expect(details.getByText('Requested', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Requested', { exact: true })).toBeVisible() // the chip beside the title
     await expect(details.getByText(/[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT/).first()).toBeVisible()
     await expect(details.getByText(`Family ${stamp} · `)).toBeVisible()
 
     // not assigned: no caregiver block; one action, Assign caregiver
-    await expect(page.getByRole('region', { name: 'Caregiver' })).toHaveCount(0)
+    await expect(page.getByText('Assigned by')).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'Assign caregiver' })).toHaveAttribute('href', `/admin/bookings/${bookingId}/choose-caregiver`)
     await expect(page.getByRole('link', { name: 'Change caregiver' })).toHaveCount(0)
     await expect(page.getByText(/Visit started/)).toHaveCount(0)
@@ -80,11 +79,11 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
     await page.goto(`/admin/bookings/${bookingId}`)
 
-    const block = page.getByRole('region', { name: 'Caregiver' })
+    const block = page.getByRole('region', { name: 'Booking', exact: true })
     await expect(block.getByText(`Detail Caregiver ${stamp}`)).toBeVisible()
     await expect(block.getByText('Verified', { exact: true })).toBeVisible()
     await expect(block.getByText(`Ada ${stamp}`)).toBeVisible()
-    await expect(block.getByText(/[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT/)).toBeVisible()
+    await expect(block.getByText(/[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT/).last()).toBeVisible()
     await expect(block.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
 
     // assigned, visit not started: Change caregiver is the one action
@@ -102,7 +101,7 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
     await page.goto(`/admin/bookings/${bookingId}`)
 
-    const block = page.getByRole('region', { name: 'Caregiver' })
+    const block = page.getByRole('region', { name: 'Booking', exact: true })
     await expect(block.getByText('Not verified', { exact: true })).toBeVisible()
     await expect(block.getByText('Caregiver no longer Verified — reassign')).toBeVisible()
     await expect(page.getByRole('link', { name: 'Change caregiver' })).toBeVisible()
@@ -121,7 +120,7 @@ test.describe('DEV-041 — Admin Booking Detail', () => {
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
     await page.goto(`/admin/bookings/${bookingId}`)
 
-    const block = page.getByRole('region', { name: 'Caregiver' })
+    const block = page.getByRole('region', { name: 'Booking', exact: true })
     await expect(block.getByText(`Detail Caregiver ${stamp}`)).toBeVisible()
     await expect(block.getByText('Not verified', { exact: true })).toBeVisible()
     await expect(page.getByText("Visit started — caregiver can't be changed here.")).toBeVisible()

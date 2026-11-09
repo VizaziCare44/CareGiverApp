@@ -13,10 +13,12 @@ const variants = {
 } as const
 
 type Variant = keyof typeof variants
+// 'compact' is the 44px high button of the Admin tables (frames VER-05, 05b); every other button is 48
+type Size = 'default' | 'compact'
 
-function classes(variant: Variant, className: string) {
+function classes(variant: Variant, className: string, size: Size = 'default') {
   return [
-    'inline-flex h-12 items-center justify-center rounded-[10px] px-5 text-[16px] font-semibold leading-[1.4]',
+    `inline-flex ${size === 'compact' ? 'h-11' : 'h-12'} items-center justify-center rounded-[10px] px-5 text-[16px] font-semibold leading-[1.4]`,
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2',
     'disabled:cursor-not-allowed disabled:border-transparent disabled:bg-figma-line disabled:text-figma-muted',
     variants[variant],
@@ -26,11 +28,12 @@ function classes(variant: Variant, className: string) {
 
 export interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
+  size?: Size
 }
 
 export const ActionButton = forwardRef<HTMLButtonElement, ActionButtonProps>(
-  ({ variant = 'primary', className = '', type = 'button', ...props }, ref) => (
-    <button ref={ref} type={type} className={classes(variant, className)} {...props} />
+  ({ variant = 'primary', size = 'default', className = '', type = 'button', ...props }, ref) => (
+    <button ref={ref} type={type} className={classes(variant, className, size)} {...props} />
   ),
 )
 
@@ -39,8 +42,9 @@ ActionButton.displayName = 'ActionButton'
 /** The same button look for something that goes to another screen: a link, not a button. */
 export function ActionLink({
   variant = 'primary',
+  size = 'default',
   className = '',
   ...props
-}: ComponentProps<typeof Link> & { variant?: Variant }) {
-  return <Link className={classes(variant, className)} {...props} />
+}: ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
+  return <Link className={classes(variant, className, size)} {...props} />
 }

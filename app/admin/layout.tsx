@@ -1,13 +1,10 @@
-import { Inter } from 'next/font/google'
 import { AdminNav } from '@/components/admin/admin-nav'
 
-// The Figma design language uses Inter. Loaded here so only the screens built
-// to it (the Admin area) use it; older screens keep the existing font stack.
-const inter = Inter({ subsets: ['latin'], display: 'swap' })
-
+// The Admin screens are 1280 wide in the Figma frames (FD-VERIFY, sections D to F) on the surface grey, under a
+// white bar with the brand and the tabs.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={inter.className}>
+    <div className="min-h-screen bg-figma-surface">
       <AdminNav />
       {children}
     </div>

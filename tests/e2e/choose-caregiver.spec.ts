@@ -31,6 +31,8 @@ async function setup(stamp: number) {
   return { admin, careA, careB, careC, notVerified, removed, book }
 }
 
+// the button under the caregivers: "Assign caregiver", then "Assign {name}" once one is chosen
+const NEXT = /^(Assign caregiver|Assign .+|Change caregiver|Change to .+)$/
 const radio = (page: Page, name: string) => page.getByRole('radio', { name: new RegExp(name) })
 
 test.describe('DEV-042 — Choose Caregiver', () => {
@@ -53,7 +55,7 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     await page.waitForURL(`**/admin/bookings/${target}/choose-caregiver`)
 
     await expect(page.getByRole('heading', { name: 'Choose a caregiver', level: 1 })).toBeVisible()
-    await expect(page.getByText(`MediCheck for Target ${stamp} · Tue 15 Jan 2030, 09:30 EAT`)).toBeVisible()
+    await expect(page.locator("main > p").getByText(`Target ${stamp} · MediCheck · Tue 15 Jan 2030, 09:30 EAT`)).toBeVisible()
 
     // only Verified caregivers: C and the others are offered, D (never verified) and E (lost Verified) are not
     await expect(radio(page, `Choose A ${stamp}`)).toBeVisible()
@@ -65,18 +67,18 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     // each shows the Verified badge and their other bookings by date and time, soonest first (information only)
     const cardA = page.locator('label').filter({ hasText: `Choose A ${stamp}` })
     await expect(cardA.getByText('Verified', { exact: true })).toBeVisible()
-    await expect(cardA.getByText('Other bookings')).toBeVisible()
+    await expect(cardA.getByText('Other assigned bookings (for information; nothing is blocked)')).toBeVisible()
     expect(await cardA.getByRole('listitem').allInnerTexts()).toEqual(['Fri 1 Feb 2030, 09:30 EAT', 'Tue 5 Feb 2030, 14:00 EAT'])
     await expect(cardA.getByRole('radio')).toBeEnabled()
     await expect(page.locator('label').filter({ hasText: `Choose B ${stamp}` })).toContainText('No other bookings')
 
     // the line about caregivers who are not shown (at least D and E; others may exist)
-    const line = await page.getByText(/caregivers? (is|are) not shown because they are not Verified\./).innerText()
+    const line = await page.getByText(/caregivers? (is|are) not shown because they are Not verified./).innerText()
     const shown = line.match(/^(\d+) caregivers?/)
     expect(Number(shown![1])).toBeGreaterThanOrEqual(2)
 
-    // nothing chosen yet: Continue waits for a choice
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    // nothing chosen yet: the button waits for a choice
+    await expect(page.getByRole('button', { name: NEXT })).toBeDisabled()
 
     // single selection: choosing B un-chooses A
     await radio(page, `Choose A ${stamp}`).check()
@@ -87,8 +89,8 @@ test.describe('DEV-042 — Choose Caregiver', () => {
     await expect(radio(page, `Choose B ${stamp}`)).toBeChecked()
     await expect(radio(page, `Choose A ${stamp}`)).not.toBeChecked()
 
-    // a choice has been made: Continue is available (the dialog it opens is DEV-043)
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+    // a choice has been made: the button is available (the dialog it opens is DEV-043)
+    await expect(page.getByRole('button', { name: NEXT })).toBeEnabled()
     await testInfo.attach('choose-caregiver', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
   })
 

@@ -3,14 +3,14 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
-import { AlertMessage } from '@/components/ui/alert-message'
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { assignBookingAction, changeBookingCaregiverAction } from '@/app/admin/actions'
 import { useAdminAction } from '@/components/admin/use-admin-action'
 import { ASSIGN_DIALOG, type AssignMode } from '@/lib/admin/assign-dialog-text'
 
 /**
- * Confirm assigning (or changing to) the chosen caregiver (DEV-043). Failures use
+ * Confirm assigning (or changing to) the chosen caregiver (DEV-043; frames VER-08, 08b). Failures use
  * the DEV-050 hook: while it runs the button reads "Assigning…" and is disabled
  * (and a second tap is ignored); a lost connection keeps the dialog open and the
  * selection, with a retry; if the booking changed underneath (already assigned, or
@@ -30,6 +30,7 @@ export function AssignDialog({
   caregiver,
   previousCaregiver,
   recipient,
+  summary,
   onClose,
   onSelectionCleared,
 }: {
@@ -39,6 +40,8 @@ export function AssignDialog({
   caregiver: { id: string; name: string } | null
   previousCaregiver: string | null
   recipient: string
+  /** "Grace Wanjiru · MediCheck · Wed 14 Oct 2026, 09:00 EAT" */
+  summary: string
   onClose: () => void
   onSelectionCleared: () => void
 }) {
@@ -64,31 +67,27 @@ export function AssignDialog({
   }
 
   const name = caregiver?.name ?? ''
-  const consequences =
+  const body =
     mode === 'assign'
-      ? ASSIGN_DIALOG.assign.consequences(name, recipient)
-      : ASSIGN_DIALOG.change.consequences(name, recipient, previousCaregiver ?? 'The current caregiver')
+      ? ASSIGN_DIALOG.assign.body(name, recipient)
+      : ASSIGN_DIALOG.change.body(name, previousCaregiver ?? 'The current caregiver')
 
   return (
     <ModalDialog open={open} onClose={onClose} labelledBy="assign-dialog-title" locked={pending}>
-      <form onSubmit={confirm} className="flex flex-col gap-5">
-        <h2 id="assign-dialog-title" className="text-[22px] font-bold leading-[1.3]">
-          {text.title(name)}
+      <form onSubmit={confirm} className="flex flex-col gap-4">
+        <h2 id="assign-dialog-title" className="text-[22px] font-bold leading-[1.25]">
+          {text.title}
         </h2>
+        <p className="text-[16px] font-semibold leading-[1.4]">{summary}</p>
+        <p className="text-[16px] leading-[1.4]">{body}</p>
 
-        <div className="flex flex-col gap-3 text-[16px] leading-[1.4]">
-          {consequences.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
-        </div>
-
-        {error && <AlertMessage>{error.message}</AlertMessage>}
+        {error && <ErrorBanner>{error.message}</ErrorBanner>}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <ActionButton variant="secondary" disabled={pending} onClick={onClose}>
+          <ActionButton variant="secondary" disabled={pending} onClick={onClose} className="sm:w-[140px]">
             {stale ? ASSIGN_DIALOG.close : ASSIGN_DIALOG.cancel}
           </ActionButton>
-          <ActionButton type="submit" disabled={pending || stale}>
+          <ActionButton type="submit" disabled={pending || stale} className={mode === 'assign' ? 'sm:w-[160px]' : 'sm:min-w-[160px]'}>
             {pending ? pendingText : text.submit}
           </ActionButton>
         </div>

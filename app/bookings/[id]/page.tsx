@@ -4,7 +4,7 @@ import { AppBar } from '@/components/ui/app-bar'
 import { BookingStatus } from '@/components/booking/booking-status'
 import { FamilyVisitBlock } from '@/components/booking/family-visit-block'
 import { CaregiverBlock } from '@/components/booking/caregiver-block'
-import { BUNDLES } from '@/lib/bookings/bundles'
+import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import { caregiverBlockState } from '@/lib/bookings/caregiver-block'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
 import type { BundleCode } from '@/lib/bookings/types'
@@ -53,33 +53,17 @@ export default async function FamilyBookingDetailPage({ params }: { params: { id
 
   const visitReads = readsForBlock(booking.status, await finishVisitReads(supabase, booking.id, booking.status, visitRow))
   const state = caregiverBlockState(booking.status, booking.caregiver_name, booking.caregiver_verified)
-  const bundle = BUNDLES[booking.bundle_code]
 
   return (
-    <div className="min-h-screen text-figma-ink">
-      <AppBar title="Booking" backHref="/bookings" backLabel="Back to My bookings" />
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6">
-        <h1 className="text-[28px] font-bold leading-9">
-          {bundle.name} for {booking.care_recipient_name}
-        </h1>
-
-        <section aria-label="Booking" className="flex flex-col gap-4 rounded-xl border border-figma-line bg-white p-5">
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Care recipient</p>
-            <p className="text-[16px]">{booking.care_recipient_name}</p>
-          </div>
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Bundle</p>
-            <p className="text-[16px]">{bundle.name}</p>
-          </div>
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Date and time</p>
-            <p className="text-[16px]">{formatDateTime(booking.requested_datetime)}</p>
-          </div>
-          <div>
-            <p className="mb-1 text-[14px] font-medium text-figma-muted">Status</p>
-            <BookingStatus status={booking.status} caregiverVerified={booking.caregiver_verified} />
-          </div>
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white text-figma-ink">
+      <AppBar title="Booking details" backHref="/bookings" backLabel="Back to My bookings" />
+      <main className="flex flex-col gap-4 p-5">
+        {/* frames VER-10 to VER-10d: the summary card (the recipient's name is the screen's heading), then the caregiver block */}
+        <section aria-label="Booking" className="flex flex-col items-start gap-2 rounded-[14px] border border-figma-border bg-white p-4">
+          <h1 className="text-[20px] font-bold leading-[1.4]">{booking.care_recipient_name}</h1>
+          <p className="text-[16px] leading-[1.4]">{BUNDLE_LINES[booking.bundle_code]}</p>
+          <p className="text-[16px] leading-[1.4]">{formatDateTime(booking.requested_datetime)}</p>
+          <BookingStatus status={booking.status} caregiverVerified={booking.caregiver_verified} />
         </section>
 
         {state && <CaregiverBlock state={state} name={state === 'verified' || state === 'started-unverified' ? booking.caregiver_name : null} />}

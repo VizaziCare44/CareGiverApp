@@ -1,7 +1,6 @@
 // The caregiver block on the family's Booking Detail (DEV-045; FD-VERIFY §6.1
 // Flow E, FR-011, FR-012, AC-011, AC-012). One place for the rule that picks the
-// state and for the words in it. Drafted from the ticket text; frames VER-10 to
-// VER-10d and the Flow E table were not available to read.
+// state and for the words in it. Worded as frames VER-10 to VER-10d.
 //
 // family_bookings supplies the name (null when it must not be shown) and
 // caregiver_verified; the booking status completes the picture:
@@ -34,13 +33,14 @@ export function caregiverBlockState(
   return null
 }
 
+// The words of frames VER-10 to VER-10d.
 export const CAREGIVER_BLOCK_TEXT = {
   heading: 'Your caregiver',
-  assigning: "We're assigning a caregiver…",
+  assigningTitle: 'Awaiting caregiver assignment',
+  assigning: "We're assigning a caregiver for this visit. Their name will appear here once it's confirmed.",
   confirming: 'Vizazi Care is confirming your caregiver for this visit.',
-  // PLACEHOLDER. FD-VERIFY §5.7(k) has a founder-confirmed sentence that goes here
-  // word for word, directly under the Verified pill. It is not in the ticket or in
-  // Linear, so this stands in until it is supplied; replacing this one string
-  // updates the screen and its tests.
-  verifiedSentence: '[Founder-confirmed sentence from FD-VERIFY §5.7(k) to be supplied]',
+  // The sentence drawn in frame VER-10b, under the Verified pill. FD-VERIFY §5.7(k) has a founder-confirmed
+  // sentence that goes here word for word; whether this is that sentence has not been confirmed, so check it with
+  // the founder before any release. Replacing this one string updates the screen and its tests.
+  verifiedSentence: "Verified means a Vizazi Care Admin has checked this caregiver's identity and reviewed them before they could be assigned to your family.",
 } as const

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { StatusChip } from '@/components/ui/status-chip'
 import { ActionLink } from '@/components/ui/action-button'
 import { CaregiverActions } from '@/components/admin/caregiver-actions'
+import { AdminMain } from '@/components/admin/admin-main'
+import { BUNDLES } from '@/lib/bookings/bundles'
+import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -26,13 +29,14 @@ interface HistoryEntry {
 
 interface AffectedBooking {
   id: string
+  bundle_code: BundleCode
   requested_datetime: string
   care_recipient_name: string
 }
 
 const actionText = {
-  verified: 'Marked as Verified',
-  removed: 'Removed Verified status',
+  verified: 'Marked Verified',
+  removed: 'Verified removed',
 } as const
 
 // FR-004, FR-016 / AC-009, AC-018, frames VER-02, 02b, 02c. Admin only
@@ -59,7 +63,7 @@ export default async function CaregiverDetailPage({ params }: { params: { id: st
     // not currently Verified: they need a new caregiver
     supabase
       .from('admin_booking_overview')
-      .select('id, requested_datetime, care_recipient_name')
+      .select('id, bundle_code, requested_datetime, care_recipient_name')
       .eq('caregiver_id', params.id)
       .eq('status', 'assigned')
       .eq('caregiver_verified', false)
@@ -76,83 +80,98 @@ export default async function CaregiverDetailPage({ params }: { params: { id: st
   const history = (historyResult.data ?? []) as unknown as HistoryEntry[]
   const affected = (affectedResult.data ?? []) as AffectedBooking[]
 
+  // the sentence under "Current status": who last changed it and when (frames VER-02, 02b, 02c)
+  const by = caregiver.last_changed_by_name ?? 'an Admin'
+  const currentStatus = caregiver.last_changed_at
+    ? caregiver.verified
+      ? `Marked Verified by ${by} on ${formatDateTime(caregiver.last_changed_at)}.`
+      : `Verified status removed by ${by} on ${formatDateTime(caregiver.last_changed_at)}.`
+    : 'Not verified. No one has marked this caregiver Verified yet.'
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-6 text-figma-ink">
-      <div>
-        <Link
-          href="/admin/caregivers"
-          className="-ml-2 inline-flex h-11 items-center gap-1 rounded-lg px-2 text-[16px] font-medium"
-        >
-          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-          Caregivers
-        </Link>
-        <h1 className="mt-2 text-[28px] font-bold leading-9">{caregiver.full_name}</h1>
+    <AdminMain>
+      <Link href="/admin/caregivers" className="inline-flex h-11 items-center gap-1 self-start text-[16px] font-semibold leading-[1.4] text-figma-primary underline">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.5 4.5l-5.5 5.5 5.5 5.5" />
+        </svg>
+        Caregivers
+      </Link>
+
+      <div className="flex flex-wrap items-center gap-4">
+        <h1 className="text-[28px] font-bold leading-[1.25]">{caregiver.full_name}</h1>
+        <StatusChip status={caregiver.verified ? 'verified' : 'not-verified'} />
       </div>
 
-      <section aria-labelledby="status-heading" className="flex flex-col gap-4">
-        <h2 id="status-heading" className="text-[18px] font-semibold">
-          Status
+      <section aria-labelledby="status-heading" className="flex flex-col items-start gap-3 rounded-[12px] border border-figma-border bg-white p-5">
+        <h2 id="status-heading" className="text-[14px] font-semibold leading-[1.4] text-figma-muted">
+          Current status
         </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <StatusChip status={caregiver.verified ? 'verified' : 'not-verified'} />
-          {caregiver.last_changed_at && (
-            <p className="text-[16px] text-figma-muted">
-              Last changed by {caregiver.last_changed_by_name ?? 'an Admin'} on {formatDateTime(caregiver.last_changed_at)}
-            </p>
-          )}
-        </div>
+        <p className="text-[16px] leading-[1.4]">{currentStatus}</p>
         {/* one action at a time, by current status */}
         <CaregiverActions caregiverId={caregiver.id} name={caregiver.full_name} verified={caregiver.verified} />
       </section>
 
-      <section aria-labelledby="affected-heading" className="flex flex-col gap-3">
-        <h2 id="affected-heading" className="text-[18px] font-semibold">
-          Bookings that need a new caregiver
-        </h2>
-        {affected.length === 0 ? (
-          <p className="rounded-xl border border-figma-line bg-white p-5 text-[16px]">No upcoming bookings are affected.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {affected.map((booking) => (
+      {affected.length > 0 && (
+        <section aria-labelledby="affected-heading" className="flex flex-col gap-3 rounded-[12px] border border-figma-ambertext bg-figma-amber p-5">
+          <h2 id="affected-heading" className="flex items-center gap-2 text-[18px] font-bold leading-[1.4] text-figma-ambertext">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 2.5l8 14H2z" />
+              <path d="M10 8v4M10 14.2v.1" />
+            </svg>
+            Bookings that need a new caregiver
+          </h2>
+          <ul className="flex flex-col">
+            {affected.map((booking, index) => (
               <li
                 key={booking.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-figma-line bg-white px-5 py-3"
+                className={['flex flex-wrap items-center justify-between gap-4 py-2 sm:flex-nowrap', index > 0 ? 'border-t border-figma-line' : ''].join(' ')}
               >
-                <div className="flex flex-col">
-                  <span className="text-[16px] font-semibold">{formatDateTime(booking.requested_datetime)}</span>
-                  <span className="text-[16px] text-figma-muted">For {booking.care_recipient_name}</span>
-                </div>
-                <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary">
+                <p className="min-w-0 flex-1 text-[15px] leading-[1.4]">
+                  {booking.care_recipient_name} · {BUNDLES[booking.bundle_code].name} · {formatDateTime(booking.requested_datetime)}
+                </p>
+                <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary" className="w-[140px] shrink-0">
                   Reassign
                 </ActionLink>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
 
-      <section aria-labelledby="history-heading" className="flex flex-col gap-3">
-        <h2 id="history-heading" className="text-[18px] font-semibold">
-          Verification history
-        </h2>
+      <section aria-labelledby="history-heading" className="flex flex-col gap-1 rounded-[12px] border border-figma-border bg-white p-5">
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h2 id="history-heading" className="text-[18px] font-bold leading-[1.4]">
+            Verification history
+          </h2>
+          <span className="text-[14px] leading-[1.4] text-figma-muted">Visible to Admin only</span>
+        </div>
         {history.length === 0 ? (
-          <p className="rounded-xl border border-figma-line bg-white p-5 text-[16px]">No verification changes yet.</p>
+          <p className="text-[16px] leading-[1.4] text-figma-muted">No verification changes yet.</p>
         ) : (
-          <ol className="flex flex-col gap-3">
-            {history.map((entry) => (
-              <li key={entry.id} className="flex flex-col gap-1 rounded-xl border border-figma-line bg-white px-5 py-3">
-                <span className="text-[16px] font-semibold">{actionText[entry.action]}</span>
-                <span className="text-[16px] text-figma-muted">
-                  By {entry.actor?.full_name ?? 'an Admin'}, {formatDateTime(entry.created_at)}
+          <ol className="flex flex-col">
+            {history.map((entry, index) => (
+              <li
+                key={entry.id}
+                className={['flex flex-col gap-1 py-[14px] md:flex-row md:items-start md:gap-6', index > 0 ? 'border-t border-figma-line' : ''].join(' ')}
+              >
+                <span className="flex items-center gap-2 text-[15px] font-semibold leading-[1.4] md:w-[200px] md:shrink-0">
+                  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {entry.action === 'verified' ? <path d="M3.5 8.5l3 3 6-7" /> : <path d="M3.5 8h9" />}
+                  </svg>
+                  {actionText[entry.action]}
                 </span>
-                <p className="mt-1 whitespace-pre-wrap text-[16px]">{entry.note}</p>
+                <span className="flex flex-col gap-0.5 md:w-[220px] md:shrink-0">
+                  <span className="text-[15px] leading-[1.4]">{entry.actor?.full_name ?? 'an Admin'}</span>
+                  <span className="text-[14px] leading-[1.4] text-figma-muted">{formatDateTime(entry.created_at)}</span>
+                </span>
+                <p className="min-w-0 flex-1 whitespace-pre-wrap text-[15px] leading-[1.4]">
+                  {entry.action === 'removed' ? `Reason: ${entry.note}` : entry.note}
+                </p>
               </li>
             ))}
           </ol>
         )}
       </section>
-    </main>
+    </AdminMain>
   )
 }

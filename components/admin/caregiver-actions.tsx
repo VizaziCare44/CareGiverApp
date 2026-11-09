@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
-import { AlertMessage } from '@/components/ui/alert-message'
+import { ErrorBanner } from '@/components/ui/error-banner'
+import { WarningNote } from '@/components/ui/info-note'
 import { CheckboxField } from '@/components/ui/checkbox-field'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { TextAreaField } from '@/components/ui/text-area-field'
@@ -31,7 +32,7 @@ export function CaregiverActions({ caregiverId, name, verified }: { caregiverId:
   }, [flash])
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full flex-col items-start gap-3">
       {flash && (
         <p ref={flashRef} role="status" tabIndex={-1} className="text-[16px] font-medium text-figma-softtext outline-none">
           {flash}
@@ -39,11 +40,11 @@ export function CaregiverActions({ caregiverId, name, verified }: { caregiverId:
       )}
 
       {verified ? (
-        <ActionButton variant="destructive" className="self-start" onClick={() => setOpen('remove')}>
-          Remove Verified
+        <ActionButton variant="destructive" className="w-full sm:w-[260px]" onClick={() => setOpen('remove')}>
+          Remove Verified status
         </ActionButton>
       ) : (
-        <ActionButton variant="primary" className="self-start" onClick={() => setOpen('verify')}>
+        <ActionButton variant="primary" className="w-full sm:w-[260px]" onClick={() => setOpen('verify')}>
           {VERIFY_DIALOG.submit}
         </ActionButton>
       )}
@@ -118,50 +119,53 @@ function MarkVerifiedDialog({
 
   return (
     <ModalDialog open={open} onClose={onClose} labelledBy="verify-dialog-title" locked={pending}>
-      <form onSubmit={submit} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <h2 id="verify-dialog-title" className="text-[22px] font-bold leading-[1.3]">
-            {VERIFY_DIALOG.title(name)}
-          </h2>
-          <p className="text-[16px] leading-[1.4] text-figma-muted">{VERIFY_DIALOG.intro(name)}</p>
-        </div>
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <h2 id="verify-dialog-title" className="text-[22px] font-bold leading-[1.25]">
+          {VERIFY_DIALOG.title}
+        </h2>
+        <p className="text-[16px] leading-[1.4] text-figma-muted">{VERIFY_DIALOG.intro(name)}</p>
 
         <fieldset className="flex flex-col">
           <legend className="sr-only">Confirm before marking {name} as Verified</legend>
           <CheckboxField checked={first} onChange={(e) => setFirst(e.target.checked)}>
-            {VERIFY_DIALOG.confirmations[0](name)}
+            {VERIFY_DIALOG.confirmations[0]}
           </CheckboxField>
           <CheckboxField checked={second} onChange={(e) => setSecond(e.target.checked)}>
-            {VERIFY_DIALOG.confirmations[1]()}
+            {VERIFY_DIALOG.confirmations[1]}
           </CheckboxField>
         </fieldset>
 
         <TextAreaField
           id="verify-note"
           label={VERIFY_DIALOG.noteLabel}
-          helper={VERIFY_DIALOG.noteHelper}
+          placeholder={VERIFY_DIALOG.notePlaceholder}
           value={note}
           maxLength={NOTE_MAX_LENGTH}
           onChange={(e) => setNote(e.target.value)}
           error={error?.field === 'note' ? error.message : null}
         />
 
-        {error && error.field !== 'note' && <AlertMessage>{error.message}</AlertMessage>}
+        <WarningNote>{VERIFY_DIALOG.warning}</WarningNote>
 
-        <div className="flex flex-col gap-2">
-          {hint && !pending && !stale && (
-            <p id="verify-hint" className="text-[14px] leading-[1.4] text-figma-muted">
-              {hint}
-            </p>
-          )}
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <ActionButton variant="secondary" disabled={pending} onClick={onClose}>
-              {stale ? VERIFY_DIALOG.close : VERIFY_DIALOG.cancel}
-            </ActionButton>
-            <ActionButton type="submit" disabled={!canSubmit} aria-describedby={hint ? 'verify-hint' : undefined}>
-              {pending ? pendingText : VERIFY_DIALOG.submit}
-            </ActionButton>
-          </div>
+        {error && error.field !== 'note' && <ErrorBanner>{error.message}</ErrorBanner>}
+
+        {hint && !pending && !stale && (
+          <p id="verify-hint" className="flex items-center gap-2 text-[14px] leading-[1.4] text-figma-muted">
+            <svg aria-hidden="true" className="shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 11v6M12 7.2v.1" />
+            </svg>
+            {hint}
+          </p>
+        )}
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <ActionButton variant="secondary" disabled={pending} onClick={onClose} className="sm:w-[140px]">
+            {stale ? VERIFY_DIALOG.close : VERIFY_DIALOG.cancel}
+          </ActionButton>
+          <ActionButton type="submit" disabled={!canSubmit} aria-describedby={hint ? 'verify-hint' : undefined} className="sm:w-[220px]">
+            {pending ? pendingText : VERIFY_DIALOG.submit}
+          </ActionButton>
         </div>
       </form>
     </ModalDialog>

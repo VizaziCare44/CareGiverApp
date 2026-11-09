@@ -52,7 +52,7 @@ test.describe('DEV-045 — family Booking Detail', () => {
     const id = await book('Waiting')
     await open(page, family.email, id)
 
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(`MediCheck for Waiting ${stamp}`)
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Waiting ${stamp}`)
     const summary = statusRow(page)
     await expect(summary).toContainText(`Waiting ${stamp}`)
     await expect(summary).toContainText('MediCheck')
@@ -62,7 +62,7 @@ test.describe('DEV-045 — family Booking Detail', () => {
     await expect(chip).toHaveCSS('background-color', 'rgb(255, 243, 220)')
     await expect(summary.locator('svg[data-icon="clock"]')).toHaveCount(1)
 
-    await expect(caregiverSection(page)).toContainText("We're assigning a caregiver…")
+    await expect(caregiverSection(page)).toContainText("We're assigning a caregiver for this visit.")
     await expect(page.getByRole('heading', { name: 'Your caregiver' })).toHaveCount(0)
     await expect(page.getByText('Verified')).toHaveCount(0)
     await testInfo.attach('booking-detail-state-1', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
@@ -172,7 +172,7 @@ test.describe('DEV-045 — family Booking Detail', () => {
     const { family, book, assign, unverify } = await setup(stamp)
     const id = await book('Live')
     await open(page, family.email, id)
-    await expect(caregiverSection(page)).toContainText("We're assigning a caregiver…")
+    await expect(caregiverSection(page)).toContainText("We're assigning a caregiver for this visit.")
 
     await assign(id)
     await page.reload()
@@ -192,7 +192,8 @@ test.describe('DEV-045 — family Booking Detail', () => {
     await page.goto('/bookings')
 
     const card = page.getByRole('listitem').filter({ hasText: `Reach ${stamp}` })
-    const link = card.getByRole('link', { name: 'View details' })
+    // the whole card is the link (frame VER-09: the chevron says so)
+    const link = card.getByRole('link')
     await expect(link).toHaveAttribute('href', `/bookings/${id}`)
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await link.click()
@@ -206,7 +207,7 @@ test.describe('DEV-045 — family Booking Detail', () => {
     const box = (await back.boundingBox())!
     expect(box.width).toBeGreaterThanOrEqual(44)
     expect(box.height).toBeGreaterThanOrEqual(44)
-    const title = bar.getByText('Booking', { exact: true })
+    const title = bar.getByText('Booking details', { exact: true })
     await expect(title).toHaveCSS('font-size', '18px')
     await expect(title).toHaveCSS('font-weight', '600')
 

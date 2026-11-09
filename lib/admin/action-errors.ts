@@ -94,7 +94,7 @@ export function describeActionError(code: ActionErrorCode, action: ActionName): 
     case 'NOT_SIGNED_IN':
       return { ...stay, message: 'Your session has ended. Please log in again.' }
     case 'CONNECTION':
-      return { ...stay, retry: true, message: `Couldn't ${verbFor(action)} — check your connection and try again.` }
+      return { ...stay, retry: true, message: `Couldn't ${verbFor(action)} — check your connection and try again` }
     case 'UNKNOWN':
     default:
       return { ...stay, retry: true, message: 'Something went wrong and nothing was saved. Please try again.' }

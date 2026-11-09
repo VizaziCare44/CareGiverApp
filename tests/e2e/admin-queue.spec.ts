@@ -40,57 +40,59 @@ test.describe('DEV-040 — Admin booking queue', () => {
 
     await logInViaUI(page, admin.email, undefined, '**/admin/queue')
 
-    // Requested tab (the default): DEV-022's cards, plus requested-at and the action
-    await expect(page.getByRole('link', { name: /^Requested \(\d+\)$/ })).toHaveAttribute('aria-current', 'page')
-    const requestedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Req ${stamp}` })
-    await expect(requestedRow).toContainText(`Requested by Family ${stamp}`)
-    await expect(requestedRow).toContainText('Visit: Tue 15 Jan 2030, 09:30 EAT')
-    await expect(requestedRow).toContainText(/Requested at: [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT/)
+    // Requested tab (the default): the table of frame VER-05, with the requested-at column and the action
+    await expect(page.getByRole('link', { name: 'Requested', exact: true })).toHaveAttribute('aria-current', 'page')
+    const requestedRow = page.getByRole('row').filter({ hasText: `Req ${stamp}` })
+    await expect(requestedRow).toContainText('MediCheck')
+    await expect(requestedRow).toContainText('Tue 15 Jan 2030, 09:30 EAT')
+    await expect(requestedRow).toContainText(/[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT/)
     // assigned bookings are not in this tab
-    await expect(page.getByText(`Recipient: Asg ${stamp}`)).toHaveCount(0)
+    await expect(page.getByRole('row').filter({ hasText: `Asg ${stamp}` })).toHaveCount(0)
 
-    // the action and the way into Booking Detail are links of their own; the row itself is neither a
-    // link nor a button, so a stray tap on it does nothing
+    // the action and the way into Booking Detail (the recipient's name) are links of their own; the row itself is
+    // neither a link nor a button, so a stray tap on it does nothing
     await expect(requestedRow.getByRole('link')).toHaveCount(2)
     await expect(requestedRow.getByRole('button')).toHaveCount(0)
-    await expect(requestedRow.getByRole('link', { name: 'View details' })).toHaveAttribute('href', `/admin/bookings/${requestedId}`)
+    await expect(requestedRow.getByRole('link', { name: `Req ${stamp}` })).toHaveAttribute('href', `/admin/bookings/${requestedId}`)
     const assign = requestedRow.getByRole('link', { name: 'Assign caregiver' })
     await expect(assign).toHaveAttribute('href', `/admin/bookings/${requestedId}/choose-caregiver`)
-    expect((await assign.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    expect((await assign.boundingBox())!.height).toBe(44)
 
     // Assigned tab
-    await page.getByRole('link', { name: /^Assigned \(\d+\)$/ }).click()
+    await page.getByRole('link', { name: 'Assigned', exact: true }).click()
     await page.waitForURL('**/admin/queue?tab=assigned')
-    await expect(page.getByRole('link', { name: /^Assigned \(\d+\)$/ })).toHaveAttribute('aria-current', 'page')
-    await expect(page.getByText(`Recipient: Req ${stamp}`)).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'Assigned', exact: true })).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByRole('row').filter({ hasText: `Req ${stamp}` })).toHaveCount(0)
 
-    const assignedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Asg ${stamp}` })
-    await expect(assignedRow).toContainText(`Caregiver: Queue A ${stamp}`)
-    await expect(assignedRow).toContainText('Visit: Wed 16 Jan 2030, 09:30 EAT')
-    await expect(assignedRow).toContainText('Assigned')
+    const assignedRow = page.getByRole('row').filter({ hasText: `Asg ${stamp}` })
+    await expect(assignedRow).toContainText(`Queue A ${stamp}`)
+    await expect(assignedRow).toContainText('Wed 16 Jan 2030, 09:30 EAT')
+    await expect(assignedRow.getByText('Verified', { exact: true })).toBeVisible()
     await expect(assignedRow.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
-    await expect(assignedRow.getByRole('link', { name: 'Reassign' })).toHaveAttribute('href', `/admin/bookings/${assignedId}/choose-caregiver`)
+    // a Verified caregiver: the action is Change caregiver
+    await expect(assignedRow.getByRole('link', { name: 'Change caregiver' })).toHaveAttribute('href', `/admin/bookings/${assignedId}/choose-caregiver`)
 
-    // caregiver lost Verified, visit not started: flagged, with the reassign entry
-    const flaggedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Flag ${stamp}` })
-    await expect(flaggedRow).toContainText(`Caregiver: Queue B ${stamp}`)
+    // caregiver lost Verified, visit not started: flagged, with Reassign
+    const flaggedRow = page.getByRole('row').filter({ hasText: `Flag ${stamp}` })
+    await expect(flaggedRow).toContainText(`Queue B ${stamp}`)
+    await expect(flaggedRow.getByText('Not verified', { exact: true })).toBeVisible()
     await expect(flaggedRow.getByText('Caregiver no longer Verified — reassign')).toBeVisible()
     await expect(flaggedRow.getByRole('link', { name: 'Reassign' })).toHaveAttribute('href', `/admin/bookings/${flaggedId}/choose-caregiver`)
 
-    // caregiver lost Verified but the visit has started: no flag and no entry (AC-008)
-    const startedRow = page.getByRole('listitem').filter({ hasText: `Recipient: Started ${stamp}` })
-    await expect(startedRow).toContainText(`Caregiver: Queue B ${stamp}`)
+    // caregiver lost Verified but the visit has started: no flag and no entry (AC-008), the status instead
+    const startedRow = page.getByRole('row').filter({ hasText: `Started ${stamp}` })
+    await expect(startedRow).toContainText(`Queue B ${stamp}`)
     await expect(startedRow).toContainText('In progress')
     await expect(startedRow.getByText('Caregiver no longer Verified — reassign')).toHaveCount(0)
     await expect(startedRow.getByRole('link', { name: 'Reassign' })).toHaveCount(0)
-    await expect(startedRow.getByRole('link')).toHaveCount(1) // View details only
+    await expect(startedRow.getByRole('link')).toHaveCount(1) // the recipient's name only
 
     await testInfo.attach('assigned-tab', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 
     // rows that can still change come before started ones
-    const texts = await page.getByRole('listitem').allInnerTexts()
+    const texts = await page.getByRole('row').allInnerTexts()
     const at = (needle: string) => texts.findIndex((t) => t.includes(needle))
-    expect(at(`Recipient: Flag ${stamp}`)).toBeLessThan(at(`Recipient: Started ${stamp}`))
-    expect(at(`Recipient: Asg ${stamp}`)).toBeLessThan(at(`Recipient: Started ${stamp}`))
+    expect(at(`Flag ${stamp}`)).toBeLessThan(at(`Started ${stamp}`))
+    expect(at(`Asg ${stamp}`)).toBeLessThan(at(`Started ${stamp}`))
   })
 })

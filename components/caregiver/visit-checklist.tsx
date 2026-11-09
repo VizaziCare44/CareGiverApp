@@ -14,7 +14,7 @@ export interface ChecklistRow {
  */
 export function VisitChecklist({ items }: { items: ChecklistRow[] }) {
   return (
-    <section aria-labelledby="visit-checklist-heading" className="flex flex-col gap-3 rounded-xl border border-figma-line bg-white p-5">
+    <section aria-labelledby="visit-checklist-heading" className="flex flex-col gap-3 rounded-[14px] border border-figma-border bg-white p-5">
       <h2 id="visit-checklist-heading" className="text-[18px] font-semibold leading-[1.3]">
         {CHECKLIST.heading}
       </h2>

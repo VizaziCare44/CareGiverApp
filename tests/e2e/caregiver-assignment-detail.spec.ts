@@ -54,14 +54,15 @@ async function expectUnavailable(page: Page, stamp: number) {
   await expect(mail).toHaveAttribute('href', `mailto:${CONTACT_EMAIL}`)
   await expect(mail).toHaveCSS('text-decoration-line', 'underline')
   expect(((await mail.boundingBox())!.height)).toBeLessThan(44)
-  const back = page.getByRole('link', { name: 'Back to my assignments' })
+  const back = page.getByRole('main').getByRole('link', { name: 'Back to my assignments' })
   await expect(back).toHaveAttribute('href', '/assignments')
   // nothing of the booking, no reason, and none of the forbidden words
   const text = await page.locator('body').innerText()
   expect(text).not.toMatch(/verified|removed|reassign/i)
   expect(text).not.toContain(String(stamp))
   expect(text).not.toContain('Takes tablets')
-  await expect(page.locator('header')).toHaveCount(0)
+  // frame VER-12b has the app bar (title "Assignment") over the note
+  await expect(page.locator('header')).toHaveText('Assignment')
 }
 
 test.describe('DEV-048 — caregiver Assignment Detail', () => {
@@ -136,7 +137,7 @@ test.describe('DEV-048 — caregiver Assignment Detail', () => {
     await testInfo.attach('assignment-unavailable', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' })
 
     // and the booking is no longer listed
-    await page.getByRole('link', { name: 'Back to my assignments' }).click()
+    await page.getByRole('main').getByRole('link', { name: 'Back to my assignments' }).click()
     await page.waitForURL('**/assignments')
     await expect(page.getByText(`Moving ${stamp}`)).toHaveCount(0)
   })

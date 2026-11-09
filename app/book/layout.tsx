@@ -1,9 +1,5 @@
 import { Suspense } from 'react'
-import { Inter } from 'next/font/google'
 import { BookingDraftProvider } from '@/lib/bookings/draft-context'
-
-// The Figma design language uses Inter; loaded for the booking screens built to it.
-const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 // Shared layout for the booking wizard (who → bundle → datetime → review →
 // confirmation). Staying mounted across these steps is what lets
@@ -12,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap' })
 // are white, as in the Figma frames (ACC-06 to ACC-11).
 export default function BookLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`min-h-screen bg-white ${inter.className}`}>
+    <div className="min-h-screen bg-white">
       <Suspense>
         <BookingDraftProvider>{children}</BookingDraftProvider>
       </Suspense>

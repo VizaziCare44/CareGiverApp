@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ChooseCaregiverForm, type CaregiverChoice } from '@/components/admin/choose-caregiver-form'
-import { ActionLink } from '@/components/ui/action-button'
+import { AdminMain } from '@/components/admin/admin-main'
 import { BUNDLES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
@@ -60,12 +60,14 @@ export default async function ChooseCaregiverPage({ params }: { params: { id: st
       const { data: bookings, error: bookingsError } = await supabase
         .from('admin_booking_overview')
         .select('caregiver_id, requested_datetime')
-        .in('caregiver_id', verified.map((c) => c.id))
+        .not('caregiver_id', 'is', null)
         .in('status', ['assigned', 'in_progress'])
         .neq('id', booking.id)
         .order('requested_datetime', { ascending: true })
       if (bookingsError) throw new Error(`Failed to load caregivers' bookings: ${bookingsError.message}`)
-      others.push(...((bookings ?? []) as typeof others))
+      // filtered here, not with .in(): a long list of caregiver ids makes the request address too long
+      const verifiedIds = new Set(verified.map((c) => c.id))
+      others.push(...((bookings ?? []) as typeof others).filter((o) => verifiedIds.has(o.caregiver_id)))
     }
 
     caregivers = verified.map((c) => ({
@@ -76,23 +78,23 @@ export default async function ChooseCaregiverPage({ params }: { params: { id: st
     }))
   }
 
+  const summary = `${booking.care_recipient_name} · ${BUNDLES[booking.bundle_code].name} · ${formatDateTime(booking.requested_datetime)}`
+  const mode = booking.status === 'assigned' ? 'change' : 'assign'
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-6 text-figma-ink">
-      <div>
-        <Link href={`/admin/bookings/${booking.id}`} className="-ml-2 inline-flex h-11 items-center gap-1 rounded-lg px-2 text-[16px] font-medium">
-          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-          Booking
-        </Link>
-        <h1 className="mt-2 text-[28px] font-bold leading-9">Choose a caregiver</h1>
-        <p className="mt-1 text-[16px] text-figma-muted">
-          {BUNDLES[booking.bundle_code].name} for {booking.care_recipient_name} · {formatDateTime(booking.requested_datetime)}
-        </p>
-      </div>
+    <AdminMain>
+      <Link href={`/admin/bookings/${booking.id}`} className="inline-flex h-11 items-center gap-1 self-start text-[16px] font-semibold leading-[1.4] text-figma-primary underline">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.5 4.5l-5.5 5.5 5.5 5.5" />
+        </svg>
+        Booking details
+      </Link>
+
+      <h1 className="text-[28px] font-bold leading-[1.25]">{mode === 'change' ? 'Change caregiver' : 'Choose a caregiver'}</h1>
+      <p className="text-[16px] font-semibold leading-[1.4]">{summary}</p>
 
       {!canChoose ? (
-        <p className="rounded-xl border border-figma-line bg-white p-5 text-[16px]">
+        <p className="rounded-[12px] border border-figma-border bg-white p-5 text-[16px] font-semibold leading-[1.4]">
           {booking.status === 'cancelled'
             ? "This booking is cancelled, so a caregiver can't be chosen."
             : "Visit started — caregiver can't be changed here."}
@@ -100,29 +102,25 @@ export default async function ChooseCaregiverPage({ params }: { params: { id: st
       ) : (
         <>
           {caregivers.length === 0 ? (
-            <div className="flex flex-col items-start gap-4 rounded-xl border border-figma-line bg-white p-5">
-              <p className="text-[16px]">No Verified caregivers yet. A caregiver has to be marked as Verified before they can be assigned.</p>
-              <ActionLink href="/admin/caregivers" variant="secondary">
+            <div className="flex flex-col items-start gap-4 rounded-[12px] border border-figma-border bg-white p-6">
+              <p className="text-[16px] font-semibold leading-[1.4]">No caregiver is Verified yet. Verify a caregiver first, then come back to assign this booking.</p>
+              <Link href="/admin/caregivers" className="inline-flex h-11 items-center text-[16px] font-semibold leading-[1.4] text-figma-primary underline">
                 Go to Caregivers
-              </ActionLink>
+              </Link>
             </div>
           ) : (
             <ChooseCaregiverForm
               bookingId={booking.id}
-              mode={booking.status === 'assigned' ? 'change' : 'assign'}
+              mode={mode}
               recipient={booking.care_recipient_name}
+              summary={summary}
               previousCaregiver={booking.caregiver_name}
               caregivers={caregivers}
+              notShown={notShown}
             />
-          )}
-
-          {notShown > 0 && (
-            <p className="text-[16px] text-figma-muted">
-              {notShown === 1 ? '1 caregiver is' : `${notShown} caregivers are`} not shown because they are not Verified.
-            </p>
           )}
         </>
       )}
-    </main>
+    </AdminMain>
   )
 }

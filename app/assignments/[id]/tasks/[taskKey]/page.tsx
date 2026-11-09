@@ -61,7 +61,7 @@ export default async function LogTaskPage({ params }: { params: { id: string; ta
         </div>
 
         {isMedicationAssistance(task.name) && (
-          <div className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-4 text-[14px] leading-[1.4]" data-testid="medication-help">
+          <div className="flex flex-col gap-2 rounded-[14px] border border-figma-border bg-white p-4 text-[14px] leading-[1.4]" data-testid="medication-help">
             <p>{MEDICATION_ASSISTANCE_NOTES.description}</p>
             <p>{MEDICATION_ASSISTANCE_NOTES.ifUnsure}</p>
           </div>

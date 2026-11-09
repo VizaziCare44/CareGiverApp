@@ -13,3 +13,16 @@ export function InfoNote({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+// "Warning" of the Admin dialogs (VER-03): the same note with an alert triangle, for what must not be typed.
+export function WarningNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex w-full items-start gap-2 rounded-[10px] bg-figma-surface p-3">
+      <svg aria-hidden="true" className="shrink-0 text-figma-ink" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 2.5l8 14H2z" />
+        <path d="M10 8v4M10 14.2v.1" />
+      </svg>
+      <p className="min-w-0 flex-1 text-[14px] leading-[1.4] text-figma-ink">{children}</p>
+    </div>
+  )
+}

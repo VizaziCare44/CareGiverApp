@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
 import { StatusChip } from '@/components/ui/status-chip'
-import { BUNDLES } from '@/lib/bookings/bundles'
+import { BUNDLE_LINES } from '@/lib/bookings/bundles'
+import { AdminMain } from '@/components/admin/admin-main'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
 import { bannerText } from '@/lib/admin/assign-dialog-text'
@@ -79,96 +80,100 @@ export default async function AdminBookingDetailPage({
   const needsNewCaregiver = !started && booking.status === 'assigned' && booking.caregiver_verified === false
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-6 text-figma-ink">
+    <AdminMain>
       {banner && (
-        <p role="status" className="rounded-xl border border-figma-line bg-figma-soft p-4 text-[16px] font-semibold text-figma-softtext">
+        <p role="status" className="rounded-[12px] border border-figma-primary bg-figma-soft p-4 text-[16px] font-semibold text-figma-softtext">
           {banner}
         </p>
       )}
 
-      <div>
-        <Link href="/admin/queue" className="-ml-2 inline-flex h-11 items-center gap-1 rounded-lg px-2 text-[16px] font-medium">
-          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-          Booking queue
-        </Link>
-        <h1 className="mt-2 text-[28px] font-bold leading-9">
-          {/* frames VER-06, 06b, 06c: "Booking · {recipient}" (FD-ADMINEXC R-09, decision 9) */}
-          Booking · {booking.care_recipient_name}
-        </h1>
-        <p className="mt-2 inline-block rounded-full bg-sand-100 px-3 py-1 text-[14px] font-medium text-sand-800">
-          {STATUS_LABEL[booking.status]}
-        </p>
+      <Link href="/admin/queue" className="inline-flex h-11 items-center gap-1 self-start text-[16px] font-semibold leading-[1.4] text-figma-primary underline">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.5 4.5l-5.5 5.5 5.5 5.5" />
+        </svg>
+        Booking Queue
+      </Link>
+
+      <div className="flex flex-wrap items-center gap-4">
+        {/* frames VER-06, 06b, 06c: "Booking · {recipient}" (FD-ADMINEXC R-09, decision 9) */}
+        <h1 className="text-[28px] font-bold leading-[1.25]">Booking · {booking.care_recipient_name}</h1>
+        {booking.status === 'requested' && <StatusChip status="awaiting" label="Requested" />}
+        {booking.status === 'assigned' && <StatusChip status="assigned" label="Assigned" />}
+        {/* a visit that has started has no chip in VER-06c: the words alone */}
+        {(booking.status === 'in_progress' || booking.status === 'completed' || booking.status === 'cancelled') && (
+          <span className="text-[14px] font-medium leading-[1.4]">{STATUS_LABEL[booking.status]}</span>
+        )}
       </div>
 
-      <section aria-labelledby="booking-heading" className="flex flex-col gap-4">
-        <h2 id="booking-heading" className="text-[18px] font-semibold">
+      <section aria-labelledby="booking-heading" className="rounded-[12px] border border-figma-border bg-white px-5 py-2">
+        <h2 id="booking-heading" className="sr-only">
           Booking
         </h2>
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-figma-line bg-white p-5 sm:grid-cols-[10rem_1fr]">
-          <Row label="Recipient">{booking.care_recipient_name}</Row>
-          <Row label="Care notes">
-            {careNotes ? <span className="whitespace-pre-wrap">{careNotes}</span> : <span className="text-figma-muted">No care notes given.</span>}
-          </Row>
-          <Row label="Bundle">{BUNDLES[booking.bundle_code].name}</Row>
-          <Row label="Visit">{formatDateTime(booking.requested_datetime)}</Row>
-          <Row label="Status">{STATUS_LABEL[booking.status]}</Row>
+        <dl className="flex flex-col">
+          <Row label="Care recipient">{booking.care_recipient_name}</Row>
+          <Row label="Care notes">{careNotes ? <span className="whitespace-pre-wrap">{careNotes}</span> : <span className="text-figma-muted">No care notes given.</span>}</Row>
+          <Row label="Bundle">{BUNDLE_LINES[booking.bundle_code]}</Row>
+          <Row label="Date and time of the visit">{formatDateTime(booking.requested_datetime)}</Row>
           <Row label="Requested at">{formatDateTime(booking.created_at)}</Row>
+          {/* not drawn in VER-06 to 06c; kept so the Admin can reach the family (DEV-022, DEV-041) */}
           <Row label="Requested by">
             {booking.family_name} · {booking.family_phone ?? '—'}
           </Row>
+          {booking.caregiver_id && (
+            <>
+              <Row label="Caregiver">
+                <span className="flex flex-col items-start gap-1.5">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{booking.caregiver_name}</span>
+                    <StatusChip status={booking.caregiver_verified ? 'verified' : 'not-verified'} />
+                  </span>
+                  {needsNewCaregiver && (
+                    <span className="flex items-center gap-1.5 text-[14px] font-semibold leading-[1.4] text-figma-ambertext">
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                        <path d="M10 2.5l8 14H2z" />
+                        <path d="M10 8v4M10 14.2v.1" />
+                      </svg>
+                      Caregiver no longer Verified — reassign
+                    </span>
+                  )}
+                </span>
+              </Row>
+              <Row label="Assigned by">{assignedBy ?? '—'}</Row>
+              <Row label="Assigned at">{booking.assigned_at ? formatDateTime(booking.assigned_at) : '—'}</Row>
+            </>
+          )}
         </dl>
       </section>
 
-      {booking.caregiver_id && (
-        <section aria-labelledby="caregiver-heading" className="flex flex-col gap-4">
-          <h2 id="caregiver-heading" className="text-[18px] font-semibold">
-            Caregiver
-          </h2>
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-figma-line bg-white p-5 sm:grid-cols-[10rem_1fr]">
-            <Row label="Caregiver">
-              <span className="flex flex-wrap items-center gap-3">
-                <span className="font-semibold">{booking.caregiver_name}</span>
-                <StatusChip status={booking.caregiver_verified ? 'verified' : 'not-verified'} />
-              </span>
-            </Row>
-            <Row label="Assigned by">{assignedBy ?? '—'}</Row>
-            <Row label="Assigned at">{booking.assigned_at ? formatDateTime(booking.assigned_at) : '—'}</Row>
-          </dl>
-          {needsNewCaregiver && (
-            <p className="flex items-start gap-1.5 text-[16px] font-medium leading-[1.4] text-figma-danger">
-              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="mt-0.5 shrink-0">
-                <circle cx="9" cy="9" r="7.5" />
-                <path d="M9 5.2v4.6M9 12.4v.1" />
-              </svg>
-              Caregiver no longer Verified — reassign
-            </p>
-          )}
-        </section>
-      )}
-
       {/* one action at a time, by status; none once the visit has started */}
       {booking.status === 'requested' && (
-        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="primary" className="self-start">
+        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="primary" className="w-full self-start sm:w-[260px]">
           Assign caregiver
         </ActionLink>
       )}
       {booking.status === 'assigned' && (
-        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary" className="self-start">
+        <ActionLink href={`/admin/bookings/${booking.id}/choose-caregiver`} variant="secondary" className="w-full self-start sm:w-[260px]">
           Change caregiver
         </ActionLink>
       )}
-      {started && <p className="text-[16px] text-figma-muted">Visit started — caregiver can&apos;t be changed here.</p>}
-    </main>
+      {started && (
+        <p className="flex items-center gap-2 text-[16px] leading-[1.4]">
+          <svg aria-hidden="true" className="shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 11v6M12 7.2v.1" />
+          </svg>
+          Visit started — caregiver can&apos;t be changed here.
+        </p>
+      )}
+    </AdminMain>
   )
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <>
-      <dt className="text-[14px] font-medium text-figma-muted">{label}</dt>
-      <dd className="text-[16px] leading-[1.4]">{children}</dd>
-    </>
+    <div className="flex flex-col gap-1 border-t border-figma-line py-3 first:border-t-0 sm:flex-row sm:gap-6">
+      <dt className="text-[14px] leading-[1.4] text-figma-muted sm:w-[220px] sm:shrink-0">{label}</dt>
+      <dd className="min-w-0 flex-1 text-[16px] font-medium leading-[1.4]">{children}</dd>
+    </div>
   )
 }

@@ -1,34 +1,23 @@
 // Text of the Assign and Change caregiver confirmation dialogs and the banner
-// that follows (DEV-043). A DRAFT: the wording of frames VER-08, 08b, 08c, 08d
-// and the consequence text of FD-VERIFY §6.1 Flows C and D were not available.
-// What is fixed is what the ticket asks for (the reminder that the family is not
-// notified automatically) and what the system really does: the caregiver gains
-// (or loses) the booking and the care notes at once, and the family sees the
-// caregiver's name once the booking is assigned to a Verified caregiver.
+// that follows (DEV-043), as frames VER-08 and VER-08b of "FD-VERIFY screens" word them. The frames do not
+// carry the "family is not notified automatically" reminder in the Assign dialog; the Change dialog has it.
 // Changing the text is an edit here and nowhere else.
 
 export type AssignMode = 'assign' | 'change'
 
-export const FAMILY_NOT_NOTIFIED = 'The family is not notified automatically. Tell them yourself if they should know.'
-
 export const ASSIGN_DIALOG = {
   assign: {
-    title: (caregiver: string) => `Assign ${caregiver} to this booking`,
-    consequences: (caregiver: string, recipient: string) => [
-      `${caregiver} will see this booking, and the care notes for ${recipient}, in their assignments.`,
-      'The family will see who their caregiver is when they open the booking.',
-      FAMILY_NOT_NOTIFIED,
-    ],
-    submit: 'Assign caregiver',
+    title: 'Assign caregiver',
+    // the line under the summary: who will see what, and what the family sees
+    body: (caregiver: string, recipient: string) =>
+      `${caregiver} will see this booking and ${recipient}'s care notes. The family will see ${caregiver}'s name and Verified badge when they next open the app.`,
+    submit: 'Assign',
     banner: 'Caregiver assigned.',
   },
   change: {
-    title: (caregiver: string) => `Change the caregiver to ${caregiver}`,
-    consequences: (caregiver: string, recipient: string, previous: string) => [
-      `${previous} loses access to this booking and to the care notes for ${recipient} at once.`,
-      `${caregiver} will see this booking, and the care notes, in their assignments.`,
-      `The family will see the new caregiver the next time they open the booking. ${FAMILY_NOT_NOTIFIED}`,
-    ],
+    title: 'Change caregiver',
+    body: (caregiver: string, previous: string) =>
+      `${caregiver} will see this booking and the care notes. ${previous} will lose access to this booking and the care notes. The family is not notified automatically — they will see the change when they next open the app.`,
     submit: 'Change caregiver',
     banner: 'Caregiver changed.',
   },

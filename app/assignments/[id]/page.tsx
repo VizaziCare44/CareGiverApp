@@ -110,9 +110,9 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
 
   if (summary) {
     return (
-      <div className="min-h-screen text-figma-ink">
+      <div className="mx-auto min-h-screen w-full max-w-md bg-white text-figma-ink">
         <AppBar title="Assignment" backHref="/assignments" backLabel="Back to my assignments" />
-        <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6">
+        <main className="flex flex-col gap-4 p-5">
           <VisitSummary
             recipientName={booking.care_recipients?.name ?? ''}
             bundleLine={BUNDLE_LINES[booking.bundle_code]}
@@ -131,31 +131,23 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   const canCheckIn = assigned && visit?.day_state === 'today' && !visit.other_visit_booking_id
 
   return (
-    <div className="min-h-screen text-figma-ink">
+    <div className="mx-auto min-h-screen w-full max-w-md bg-white text-figma-ink">
       <AppBar title="Assignment" backHref="/assignments" backLabel="Back to my assignments" />
-      <main className={`mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6 ${canCheckIn ? 'pb-28' : ''} ${inProgress ? 'pb-48' : ''}`}>
-        <h1 className="text-[28px] font-bold leading-9">{booking.care_recipients?.name}</h1>
+      <main className={`flex flex-col gap-4 p-5 ${canCheckIn ? 'pb-28' : ''} ${inProgress ? 'pb-48' : ''}`}>
+        <h1 className="sr-only">{booking.care_recipients?.name}</h1>
 
-        <section aria-label="Booking" className="flex flex-col gap-4 rounded-xl border border-figma-line bg-white p-5">
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Care recipient</p>
-            <p className="text-[16px]">{booking.care_recipients?.name}</p>
-          </div>
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Bundle</p>
-            <p className="text-[16px]">{BUNDLE_LINES[booking.bundle_code]}</p>
-          </div>
-          <div>
-            <p className="text-[14px] font-medium text-figma-muted">Date and time</p>
-            <p className="text-[16px]">{formatDateTime(booking.requested_datetime)}</p>
-          </div>
+        {/* frame VER-12: one card of rows, each a small label over the value (the care notes are the last row) */}
+        <section aria-label="Booking" className="flex flex-col rounded-[14px] border border-figma-border bg-white px-4 py-1">
+          <SummaryRow label="Care recipient">{booking.care_recipients?.name}</SummaryRow>
+          <SummaryRow label="Bundle">{BUNDLE_LINES[booking.bundle_code]}</SummaryRow>
+          <SummaryRow label="Date and time of the visit">{formatDateTime(booking.requested_datetime)}</SummaryRow>
           {/* the care notes are part of the booking summary, the top block (FD-VISIT 6.1, 6.6(f)); everything FD-VISIT adds is below it */}
-          <section aria-labelledby="care-notes-heading" className="flex flex-col gap-2 border-t border-figma-line pt-4">
-            <h2 id="care-notes-heading" className="text-[18px] font-semibold leading-[1.3]">
+          <section aria-labelledby="care-notes-heading" className="flex flex-col gap-0.5 border-t border-figma-line py-[10px]">
+            <h2 id="care-notes-heading" className="text-[13px] font-normal leading-[1.4] text-figma-muted">
               Care notes
             </h2>
             {careNotes ? (
-              <p className="whitespace-pre-wrap text-[16px] leading-[1.4]">{careNotes}</p>
+              <p className="whitespace-pre-wrap text-[16px] font-semibold leading-[1.4]">{careNotes}</p>
             ) : (
               <p className="text-[16px] leading-[1.4] text-figma-muted">No care notes given.</p>
             )}
@@ -208,6 +200,15 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
           visitDate={formatDate(booking.requested_datetime)}
         />
       )}
+    </div>
+  )
+}
+
+function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 border-t border-figma-line py-[10px] first:border-t-0">
+      <p className="text-[13px] leading-[1.4] text-figma-muted">{label}</p>
+      <p className="text-[16px] font-semibold leading-[1.4]">{children}</p>
     </div>
   )
 }

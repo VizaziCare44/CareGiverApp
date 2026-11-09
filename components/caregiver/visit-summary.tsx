@@ -43,14 +43,14 @@ export function VisitSummary({
         </p>
       </div>
 
-      <section aria-label="Visit" className="flex flex-col gap-4 rounded-xl border border-figma-line bg-white p-5">
+      <section aria-label="Visit" className="flex flex-col gap-4 rounded-[14px] border border-figma-border bg-white p-5">
         <Row label={SUMMARY.careRecipient} value={recipientName} />
         <Row label={SUMMARY.bundle} value={bundleLine} />
         <Row label={SUMMARY.checkedIn} value={formatDateTime(checkedInAt)} />
         <Row label={SUMMARY.checkedOut} value={formatDateTime(checkedOutAt)} />
       </section>
 
-      <section aria-labelledby="summary-tasks-heading" className="flex flex-col gap-3 rounded-xl border border-figma-line bg-white p-5">
+      <section aria-labelledby="summary-tasks-heading" className="flex flex-col gap-3 rounded-[14px] border border-figma-border bg-white p-5">
         <h2 id="summary-tasks-heading" className="text-[18px] font-semibold leading-[1.3]">
           {SUMMARY.tasks}
         </h2>
@@ -72,7 +72,7 @@ export function VisitSummary({
       </section>
 
       {visitNote && (
-        <section aria-labelledby="summary-note-heading" className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-5">
+        <section aria-labelledby="summary-note-heading" className="flex flex-col gap-2 rounded-[14px] border border-figma-border bg-white p-5">
           <h2 id="summary-note-heading" className="text-[18px] font-semibold leading-[1.3]">
             {SUMMARY.visitNote}
           </h2>

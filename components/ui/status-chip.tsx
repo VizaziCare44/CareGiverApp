@@ -10,14 +10,16 @@ const NEUTRAL = 'bg-figma-surface text-figma-ink border border-figma-border'
 
 // One exception on the Admin's Exceptions screen (FD-ADMINEXC §7): the same neutral look, the label and the
 // icon chosen by the caller (person, clock, hourglass, empty box, shield, page); nothing carries a colour.
-const chips = {
+const chips: Record<string, { label: string; className: string; icon: keyof typeof icons; spacing?: string }> = {
   exception: { label: 'Exception', className: NEUTRAL, icon: 'dash' },
   done: { label: 'Done', className: NEUTRAL, icon: 'check' },
   'not-done': { label: 'Not done', className: NEUTRAL, icon: 'dash' },
   'not-recorded': { label: 'Not recorded', className: NEUTRAL, icon: 'dash' },
+  // Pill/Verified: 28 high, 8 left and 12 right, 4 between the icon and the word, semibold
   verified: {
     label: 'Verified',
     className: 'bg-figma-soft text-figma-softtext',
+    spacing: 'gap-1 py-1 pl-2 pr-3 text-[14px] leading-[1.4] font-semibold',
     icon: 'check',
   },
   'not-verified': {
@@ -56,7 +58,7 @@ const chips = {
     className: 'bg-figma-soft text-figma-softtext',
     icon: 'check',
   },
-} as const
+}
 
 const icons = {
   check: <path d="M3.5 8.5l3 3 6-7" />,
@@ -85,10 +87,13 @@ const icons = {
 // between the icon and the word. The size takes no colour or tone: the fill, outline and dark text are
 // the chip's own. Used only inside the report; the default is unchanged.
 const sizes = {
-  default: 'gap-1.5 py-[5px] pl-[10px] pr-3 text-[14px] leading-[1.4]',
+  default: 'gap-1.5 py-[5px] pl-[10px] pr-3 text-[14px] font-medium leading-[1.4]',
   // 31px = 21 line + 2 x 4 padding + 2 x 1 outline, so the padding with the outline is 10px and 5px as drawn
-  report: 'gap-1.5 px-[9px] py-[4px] text-[16px] leading-[21px]',
+  report: 'gap-1.5 px-[9px] py-[4px] text-[16px] font-medium leading-[21px]',
 } as const
+
+type StatusChipKind =
+  | 'exception' | 'done' | 'not-done' | 'not-recorded' | 'verified' | 'not-verified' | 'awaiting' | 'day-passed' | 'in-progress' | 'completed' | 'assigned'
 
 /** `label` replaces the default words when the same look carries a different message. */
 export function StatusChip({
@@ -97,7 +102,7 @@ export function StatusChip({
   size = 'default',
   icon,
 }: {
-  status: keyof typeof chips
+  status: StatusChipKind
   label?: string
   size?: keyof typeof sizes
   /** Replaces the chip's own icon (used by the Exceptions screen). */
@@ -107,7 +112,7 @@ export function StatusChip({
   const iconName = icon ?? chip.icon
   return (
     <span
-      className={['inline-flex items-center rounded-full font-medium whitespace-nowrap', sizes[size], chip.className].join(' ')}
+      className={['inline-flex items-center rounded-full whitespace-nowrap', size === 'default' && chip.spacing ? chip.spacing : sizes[size], chip.className].join(' ')}
     >
       <svg
         aria-hidden="true"

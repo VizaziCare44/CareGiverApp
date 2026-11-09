@@ -17,7 +17,7 @@ const icons = {
 export function VisitTasks({ bookingId, tasks }: { bookingId: string; tasks: VisitTask[] }) {
   const { logged, total } = requiredProgress(tasks)
   return (
-    <section aria-labelledby="visit-tasks-heading" className="flex flex-col gap-3 rounded-xl border border-figma-line bg-white p-5">
+    <section aria-labelledby="visit-tasks-heading" className="flex flex-col gap-3 rounded-[14px] border border-figma-border bg-white p-5">
       <h2 id="visit-tasks-heading" className="text-[18px] font-semibold leading-[1.3]">
         {TASKS.heading}
       </h2>

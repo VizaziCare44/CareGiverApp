@@ -130,7 +130,7 @@ test.describe('DEV-078 — My Bookings on the screen, with factory bookings', ()
     await expect(card('Requested').getByText('Awaiting caregiver assignment')).toHaveCSS('background-color', 'rgb(255, 243, 220)')
     await expect(card('Assigned').getByText('Caregiver assigned')).toHaveCSS('background-color', 'rgb(227, 244, 242)')
     await expect(card('Cancelled').getByText('Cancelled', { exact: true })).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-    await expect(card('Cancelled').locator('svg')).toHaveCount(0)
+    await expect(card('Cancelled').locator('svg[data-icon]')).toHaveCount(0)
   })
 
   test('contrast of both chips is at least 4.5:1, and the words carry the meaning, not the colour alone', async ({ page }) => {

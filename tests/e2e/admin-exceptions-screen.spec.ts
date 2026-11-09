@@ -52,7 +52,7 @@ test.describe('DEV-080 — the Exceptions screen (§7)', () => {
   test('the third tab after Caregivers, the title, the line, the load line and Refresh', async ({ page }) => {
     await signedInAdmin(page)
     const nav = page.getByRole('navigation', { name: 'Main' })
-    await expect(nav.getByRole('link')).toHaveText(['Booking queue', 'Caregivers', 'Exceptions'])
+    await expect(nav.getByRole('link')).toHaveText(['Booking Queue', 'Caregivers', 'Exceptions'])
     await nav.getByRole('link', { name: 'Exceptions' }).click()
     await page.waitForURL('**/admin/exceptions')
     await expect(nav.getByRole('link', { name: 'Exceptions' })).toHaveAttribute('aria-current', 'page')

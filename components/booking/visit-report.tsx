@@ -25,7 +25,7 @@ const words = 'whitespace-pre-wrap text-[16px] leading-[1.4] text-figma-ink [ove
  * An Optional task never logged shows its name and "Not recorded" and no time.
  */
 export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visit: FamilyVisitRow; tasks: FamilyVisitTaskRow[] }) {
-  const card = 'flex flex-col gap-5 rounded-xl border border-figma-line bg-white p-5'
+  const card = 'flex flex-col gap-5 rounded-[14px] border border-figma-border bg-white p-5'
   const line = countLine(tasks)
   return (
     <>

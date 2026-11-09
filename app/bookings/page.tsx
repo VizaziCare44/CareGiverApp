@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
+import { AppBar } from '@/components/ui/app-bar'
 import { BookingStatus } from '@/components/booking/booking-status'
-import { BUNDLES } from '@/lib/bookings/bundles'
+import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import { orderBookings } from '@/lib/bookings/order'
 import type { FamilyBookingStatus } from '@/lib/bookings/status-label'
 import type { BundleCode } from '@/lib/bookings/types'
@@ -22,9 +23,9 @@ interface MyBooking {
 // from family_bookings (which already limits the rows to the signed-in
 // family and never carries the caregiver's contact details). Each card shows the
 // recipient, the bundle, the date and time (Africa/Nairobi) and a status label
-// whose icon and words say the same thing. The caregiver is not named here; that
-// is Booking Detail (DEV-045). No bookings yet: a message and "Book care", which
-// starts at the Care Recipient List where the family picks who the care is for.
+// whose icon and words say the same thing; the whole card is the link to Booking Detail (the chevron says so).
+// The caregiver is not named here; that is Booking Detail (DEV-045). No bookings yet: a sentence and
+// "Book care" at the bottom, which starts at the Care Recipient List where the family picks who the care is for.
 export default async function MyBookingsPage() {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -35,30 +36,42 @@ export default async function MyBookingsPage() {
   const bookings = orderBookings((data ?? []) as MyBooking[])
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10 text-figma-ink">
-      <h1 className="text-[28px] font-bold leading-9">My bookings</h1>
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white text-figma-ink">
+      <AppBar title="My bookings" backHref="/recipients" backLabel="Back to Care recipients" />
+      <main className="flex flex-1 flex-col gap-4 p-5">
+        <h1 className="sr-only">My bookings</h1>
 
-      {bookings.length === 0 ? (
-        <div className="flex flex-col items-start gap-4 rounded-xl border border-figma-line bg-white p-5">
-          <p className="text-[18px]">You haven&apos;t requested a booking yet.</p>
-          <ActionLink href="/recipients">Book care</ActionLink>
-        </div>
-      ) : (
-        <ul className="flex flex-col gap-4">
-          {bookings.map((booking) => (
-            <li key={booking.id} className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-5">
-              <p className="text-[18px] font-semibold leading-[1.3]">{booking.care_recipient_name}</p>
-              <p className="text-[16px]">{BUNDLES[booking.bundle_code].name}</p>
-              <p className="text-[16px] text-figma-muted">{formatDateTime(booking.requested_datetime)}</p>
-              <BookingStatus status={booking.status} caregiverVerified={booking.caregiver_verified} />
-              {/* a link of its own, like the Admin queue's: a stray tap on the card does nothing */}
-              <Link href={`/bookings/${booking.id}`} className="inline-flex h-12 items-center self-start text-[16px] font-semibold text-figma-softtext underline">
-                View details
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+        {bookings.length === 0 ? (
+          <>
+            <p className="text-[18px] font-semibold leading-[1.4]">You haven&apos;t requested a booking yet.</p>
+            <div className="flex-1" />
+            <ActionLink href="/recipients" className="w-full">
+              Book care
+            </ActionLink>
+          </>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {bookings.map((booking) => (
+              <li key={booking.id}>
+                <Link
+                  href={`/bookings/${booking.id}`}
+                  className="flex flex-col gap-2 rounded-[14px] border border-figma-border bg-white p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2"
+                >
+                  <span className="flex items-center">
+                    <span className="min-w-0 flex-1 text-[18px] font-bold leading-[1.4]">{booking.care_recipient_name}</span>
+                    <svg aria-hidden="true" className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                  <span className="text-[15px] leading-[1.4]">{BUNDLE_LINES[booking.bundle_code]}</span>
+                  <span className="text-[15px] leading-[1.4] text-figma-muted">{formatDateTime(booking.requested_datetime)}</span>
+                  <BookingStatus status={booking.status} caregiverVerified={booking.caregiver_verified} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+    </div>
   )
 }

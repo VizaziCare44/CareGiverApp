@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { AppBar } from '@/components/ui/app-bar'
 import { MissingBookingHelp } from '@/components/caregiver/missing-booking-help'
 import { StatusChip } from '@/components/ui/status-chip'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
@@ -51,12 +52,14 @@ export default async function MyAssignmentsPage() {
   const assignments = orderAssignments(((data ?? []) as unknown as Booking[]).map((booking) => ({ ...booking, day_state: dayStateOf.get(booking.id) ?? null })))
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10 text-figma-ink">
-      <h1 className="text-[28px] font-bold leading-9">My assignments</h1>
+    <div className="mx-auto min-h-screen w-full max-w-md bg-white text-figma-ink">
+      <AppBar title="My assignments" backHref="/" backLabel="Back" />
+      <main className="flex flex-col gap-4 p-5">
+      <h1 className="sr-only">My assignments</h1>
 
       {assignments.length === 0 ? (
-        <div className="rounded-xl border border-figma-line bg-white p-5">
-          <p className="text-[18px] leading-[1.4]">No bookings assigned to you yet. When Vizazi Care assigns you a visit, it will appear here.</p>
+        <div className="rounded-[14px] border border-figma-border bg-white p-4">
+          <p className="text-[16px] leading-[1.4]">No bookings assigned to you yet. When Vizazi Care assigns you a visit, it will appear here.</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-4">
@@ -68,19 +71,19 @@ export default async function MyAssignmentsPage() {
                   href={`/assignments/${assignment.id}`}
                   data-group={group}
                   className={[
-                    'flex min-h-11 flex-col gap-1 rounded-xl bg-white p-5',
+                    'flex min-h-11 flex-col gap-1.5 rounded-[14px] bg-white p-4',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2',
-                    group === 'in-progress' ? 'border-2 border-figma-primary' : 'border border-figma-line',
+                    group === 'in-progress' ? 'border-2 border-figma-primary p-[15px]' : 'border border-figma-border',
                   ].join(' ')}
                 >
                   <span className="flex items-start justify-between gap-3">
-                    <span className="text-[18px] font-semibold leading-[1.3]">{formatDateTime(assignment.requested_datetime)}</span>
+                    <span className="text-[17px] font-bold leading-[1.4]">{formatDateTime(assignment.requested_datetime)}</span>
                     <svg
                       aria-hidden="true"
                       data-testid="card-chevron"
-                      className="mt-0.5 shrink-0"
-                      width="24"
-                      height="24"
+                      className="shrink-0"
+                      width="22"
+                      height="22"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -91,8 +94,8 @@ export default async function MyAssignmentsPage() {
                       <path d="M9 5l7 7-7 7" />
                     </svg>
                   </span>
-                  <span className="text-[16px] leading-[1.4]">{assignment.care_recipients?.name}</span>
-                  <span className="text-[16px] leading-[1.4] text-figma-muted">{BUNDLE_LINES[assignment.bundle_code]}</span>
+                  <span className="text-[16px] font-semibold leading-[1.4]">{assignment.care_recipients?.name}</span>
+                  <span className="text-[15px] leading-[1.4] text-figma-muted">{BUNDLE_LINES[assignment.bundle_code]}</span>
                   {group === 'in-progress' && (
                     <span className="mt-2 flex">
                       <StatusChip status="in-progress" label={IN_PROGRESS_LABEL} />
@@ -111,6 +114,7 @@ export default async function MyAssignmentsPage() {
       )}
 
       <MissingBookingHelp />
-    </main>
+      </main>
+    </div>
   )
 }

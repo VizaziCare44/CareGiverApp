@@ -20,10 +20,10 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
   test('the button stays disabled until both confirmations and the note are done, and says what is missing', async ({ page }) => {
     const { dialog } = await openDetail(page, 'Dialog Caregiver')
 
-    await expect(dialog.getByRole('heading', { name: 'Mark Dialog Caregiver as Verified' })).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Mark as Verified' })).toBeVisible()
     const submit = dialog.getByRole('button', { name: 'Mark as Verified' })
-    const first = dialog.getByRole('checkbox', { name: /I have met Dialog Caregiver in person/ })
-    const second = dialog.getByRole('checkbox', { name: 'I have checked their references.' })
+    const first = dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" })
+    const second = dialog.getByRole('checkbox', { name: 'I have reviewed this caregiver' })
     const note = dialog.getByLabel('What did you check?')
 
     // the note is required and has a helper warning against ID numbers; nothing asks for an ID
@@ -32,18 +32,18 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
     await expect(dialog.getByRole('textbox')).toHaveCount(1)
 
     await expect(submit).toBeDisabled()
-    await expect(dialog.getByText('Still needed: tick the first box, tick the second box, write what you checked.')).toBeVisible()
+    await expect(dialog.getByText('To continue: tick both boxes and write what you checked.')).toBeVisible()
 
     await first.check()
-    await expect(dialog.getByText('Still needed: tick the second box, write what you checked.')).toBeVisible()
+    await expect(dialog.getByText('To continue: tick the other box and write what you checked.')).toBeVisible()
     await second.check()
-    await expect(dialog.getByText('Still needed: write what you checked.')).toBeVisible()
+    await expect(dialog.getByText('To continue: write what you checked.')).toBeVisible()
     await expect(submit).toBeDisabled()
 
     await note.fill('   ')
     await expect(submit).toBeDisabled()
     await note.fill('Met in person, two references called')
-    await expect(dialog.getByText(/Still needed/)).toHaveCount(0)
+    await expect(dialog.getByText(/To continue/)).toHaveCount(0)
     await expect(submit).toBeEnabled()
 
     // both confirmations are required, not just the note
@@ -54,33 +54,33 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
   test('saving marks the caregiver Verified and the page shows it', async ({ page }) => {
     const { adminName, dialog } = await openDetail(page, 'Saved Caregiver')
 
-    await dialog.getByRole('checkbox', { name: /I have met Saved Caregiver in person/ }).check()
-    await dialog.getByRole('checkbox', { name: 'I have checked their references.' }).check()
+    await dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" }).check()
+    await dialog.getByRole('checkbox', { name: 'I have reviewed this caregiver' }).check()
     await dialog.getByLabel('What did you check?').fill('Met in person, two references called')
     await dialog.getByRole('button', { name: 'Mark as Verified' }).click()
 
     await expect(dialog).toBeHidden()
     await expect(page.getByRole('status')).toHaveText('Saved Caregiver is now Verified.')
     await expect(page.getByText('Verified', { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Remove Verified' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Remove Verified status', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Mark as Verified' })).toHaveCount(0)
 
     const history = page.getByRole('region', { name: 'Verification history' }).getByRole('listitem')
     await expect(history).toHaveCount(1)
-    await expect(history.first()).toContainText('Marked as Verified')
+    await expect(history.first()).toContainText('Marked Verified')
     await expect(history.first()).toContainText('Met in person, two references called')
-    await expect(history.first()).toContainText(`By ${adminName}`)
+    await expect(history.first()).toContainText(adminName)
   })
 
   test('cancelling and Escape close it, and reopening starts empty', async ({ page }) => {
     const { dialog } = await openDetail(page, 'Cancel Caregiver')
-    await dialog.getByRole('checkbox', { name: /I have met/ }).check()
+    await dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" }).check()
     await dialog.getByLabel('What did you check?').fill('half done')
     await dialog.getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog).toBeHidden()
 
     await page.getByRole('button', { name: 'Mark as Verified' }).click()
-    await expect(dialog.getByRole('checkbox', { name: /I have met/ })).not.toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" })).not.toBeChecked()
     await expect(dialog.getByLabel('What did you check?')).toHaveValue('')
 
     await page.keyboard.press('Escape')
@@ -90,8 +90,8 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
 
   test('shows Saving… while the request runs and a double tap sends it once', async ({ page }) => {
     const { dialog, caregiver } = await openDetail(page, 'Slow Caregiver')
-    await dialog.getByRole('checkbox', { name: /I have met/ }).check()
-    await dialog.getByRole('checkbox', { name: 'I have checked their references.' }).check()
+    await dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" }).check()
+    await dialog.getByRole('checkbox', { name: 'I have reviewed this caregiver' }).check()
     await dialog.getByLabel('What did you check?').fill('Met in person')
 
     let posts = 0
@@ -117,18 +117,18 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
 
   test('a lost connection keeps the dialog open with the note, and a retry works', async ({ page }) => {
     const { dialog, caregiver } = await openDetail(page, 'Offline Caregiver')
-    await dialog.getByRole('checkbox', { name: /I have met/ }).check()
-    await dialog.getByRole('checkbox', { name: 'I have checked their references.' }).check()
+    await dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" }).check()
+    await dialog.getByRole('checkbox', { name: 'I have reviewed this caregiver' }).check()
     await dialog.getByLabel('What did you check?').fill('Met in person, kept through the failure')
 
     const url = `**/admin/caregivers/${caregiver.userId}`
     await page.route(url, (route) => (route.request().method() === 'POST' ? route.abort() : route.continue()))
 
     await dialog.getByRole('button', { name: 'Mark as Verified' }).click()
-    await expect(dialog.getByRole('alert')).toHaveText("Couldn't save — check your connection and try again.")
+    await expect(dialog.getByRole('alert')).toHaveText("Couldn't save — check your connection and try again")
     await expect(dialog).toBeVisible()
     await expect(dialog.getByLabel('What did you check?')).toHaveValue('Met in person, kept through the failure')
-    await expect(dialog.getByRole('checkbox', { name: /I have met/ })).toBeChecked()
+    await expect(dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" })).toBeChecked()
     // nothing shown to the user looks like a code
     await expect(dialog.getByText(/[A-Z]{2,}_[A-Z_]+/)).toHaveCount(0)
 
@@ -142,8 +142,8 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
 
   test('if the status changed meanwhile, it says so, keeps the note and offers only Close', async ({ page }) => {
     const { admin, caregiver, dialog } = await openDetail(page, 'Raced Caregiver')
-    await dialog.getByRole('checkbox', { name: /I have met/ }).check()
-    await dialog.getByRole('checkbox', { name: 'I have checked their references.' }).check()
+    await dialog.getByRole('checkbox', { name: "I have checked this caregiver's identity" }).check()
+    await dialog.getByRole('checkbox', { name: 'I have reviewed this caregiver' }).check()
     await dialog.getByLabel('What did you check?').fill('My note')
 
     // another Admin verifies the same caregiver while this dialog is open
@@ -160,7 +160,7 @@ test.describe('DEV-038 — Mark as Verified dialog', () => {
     await expect(dialog).toBeHidden()
     // the page behind has refreshed to the real status and history
     await expect(page.getByText('Verified', { exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Remove Verified' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Remove Verified status', exact: true })).toBeVisible()
     await expect(page.getByRole('region', { name: 'Verification history' }).getByRole('listitem')).toHaveCount(1)
   })
 })

@@ -1,9 +1,10 @@
 import type { InputHTMLAttributes, ReactNode } from 'react'
 
-// A choice card with a radio on the left, in the same style as CheckboxField
-// (24px, 2px border, primary colour when chosen). The whole card is the label,
-// so the tap target is large; a disabled choice is muted and cannot be chosen.
-// It is a real radio, so the keyboard (arrow keys) and screen readers work as usual.
+// "Caregiver option" of the Admin frames (VER-07, 07c): a 12px-radius card with a 24px radio at the left, 20px
+// padding and 16 between the radio and the text. Unselected: white, 1px border. Chosen: the soft teal fill, a 3px
+// primary border and the radio filled with a white check, so a choice is never colour alone. The current
+// caregiver (disabled) has the surface fill and a grey radio and cannot be chosen. The whole card is the label,
+// so the tap target is large; it is a real radio, so the keyboard (arrow keys) and screen readers work as usual.
 export function RadioCard({
   children,
   className = '',
@@ -12,19 +13,33 @@ export function RadioCard({
   return (
     <label
       className={[
-        'flex items-start gap-3 rounded-xl border bg-white p-4',
-        'has-[:checked]:border-2 has-[:checked]:border-figma-primary has-[:checked]:p-[15px]',
-        props.disabled ? 'cursor-not-allowed border-figma-line bg-figma-surface' : 'cursor-pointer border-figma-line',
+        'flex items-start gap-4 rounded-[12px] border p-5',
+        'has-[:checked]:border-[3px] has-[:checked]:border-figma-primary has-[:checked]:bg-figma-soft has-[:checked]:p-[18px]',
+        'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-figma-primary has-[:focus-visible]:ring-offset-2',
+        props.disabled ? 'cursor-not-allowed border-figma-border bg-figma-surface' : 'cursor-pointer border-figma-border bg-white',
         className,
       ].join(' ')}
     >
-      <span className="relative mt-0.5 flex h-6 w-6 shrink-0">
+      <span className="relative flex size-6 shrink-0">
         <input
           type="radio"
-          className="peer h-6 w-6 shrink-0 appearance-none rounded-full border-2 border-figma-border bg-white checked:border-figma-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2 disabled:border-figma-line"
+          className="peer size-6 shrink-0 appearance-none rounded-full border-2 border-figma-border bg-white checked:border-figma-primary checked:bg-figma-primary focus-visible:outline-none disabled:border-figma-border disabled:bg-figma-line"
           {...props}
         />
-        <span aria-hidden="true" className="pointer-events-none absolute inset-0 m-auto hidden h-3 w-3 rounded-full bg-figma-primary peer-checked:block" />
+        <svg
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 m-auto hidden text-white peer-checked:block"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-2">{children}</span>
     </label>

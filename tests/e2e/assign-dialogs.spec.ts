@@ -2,8 +2,8 @@ import { test, expect, type Page } from '@playwright/test'
 import { apiAddRecipient, createUserWithRole, logInViaUI, serviceClient } from './helpers'
 
 // DEV-043: the Assign and Change caregiver confirmation dialogs (frames VER-08,
-// 08b, 08c, 08d): the consequence text including that the family is not
-// notified automatically, "Assigning…" with the button disabled, the conflict
+// 08b, 08c, 08d): the consequence text (the Change dialog says the family is not
+// notified automatically), "Assigning…" with the button disabled, the conflict
 // cases (booking already assigned or no longer assigned; caregiver no longer
 // Verified), a lost connection keeping the selection, and on success Booking
 // Detail in its new state with a banner.
@@ -33,6 +33,8 @@ async function setup(stamp: number) {
   return { admin, careA, careB, book }
 }
 
+// the button under the caregivers: "Assign caregiver", then "Assign {name}" once one is chosen ("Change …" for a reassignment)
+const NEXT = /^(Assign caregiver|Assign .+|Change caregiver|Change to .+)$/
 const radio = (page: Page, name: string) => page.getByRole('radio', { name: new RegExp(name) })
 
 async function openChooser(page: Page, adminEmail: string, bookingId: string) {
@@ -57,23 +59,23 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     await openChooser(page, admin.email, bookingId)
 
     // Continue waits for a choice, then opens the confirmation
-    const next = page.getByRole('button', { name: 'Continue' })
+    const next = page.getByRole('button', { name: NEXT })
     await expect(next).toBeDisabled()
     await radio(page, `Dialog A ${stamp}`).check()
     await next.click()
 
     const dialog = page.getByRole('dialog')
-    await expect(dialog.getByRole('heading', { name: `Assign Dialog A ${stamp} to this booking` })).toBeVisible()
-    await expect(dialog.getByText(new RegExp(`Dialog A ${stamp} will see this booking, and the care notes for Assign ${stamp}`))).toBeVisible()
-    await expect(dialog.getByText(/The family is not notified automatically/)).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Assign caregiver' })).toBeVisible()
+    await expect(dialog.getByText(new RegExp(`Dialog A ${stamp} will see this booking and Assign ${stamp}.s care notes`))).toBeVisible()
+    await expect(dialog.getByText(new RegExp(`The family will see Dialog A ${stamp}.s name and Verified badge`))).toBeVisible()
     await testInfo.attach('assign-dialog', { body: await page.screenshot(), contentType: 'image/png' })
 
-    await dialog.getByRole('button', { name: 'Assign caregiver' }).click()
+    await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
 
     // Booking Detail in its new state, with a banner
     await page.waitForURL(`**/admin/bookings/${bookingId}?banner=assigned`)
     await expect(page.getByRole('status').filter({ hasText: 'Caregiver assigned.' })).toBeVisible()
-    const block = page.getByRole('region', { name: 'Caregiver' })
+    const block = page.getByRole('region', { name: 'Booking', exact: true })
     await expect(block.getByText(`Dialog A ${stamp}`)).toBeVisible()
     await expect(block.getByText('Verified', { exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Change caregiver' })).toBeVisible()
@@ -89,17 +91,17 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     await openChooser(page, admin.email, bookingId)
 
     await radio(page, `Dialog B ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
 
     const dialog = page.getByRole('dialog')
-    await expect(dialog.getByRole('heading', { name: `Change the caregiver to Dialog B ${stamp}` })).toBeVisible()
-    await expect(dialog.getByText(new RegExp(`Dialog A ${stamp} loses access to this booking and to the care notes for Change ${stamp} at once`))).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Change caregiver' })).toBeVisible()
+    await expect(dialog.getByText(new RegExp(`Dialog A ${stamp} will lose access to this booking and the care notes`))).toBeVisible()
     await expect(dialog.getByText(/The family is not notified automatically/)).toBeVisible()
 
     await dialog.getByRole('button', { name: 'Change caregiver' }).click()
     await page.waitForURL(`**/admin/bookings/${bookingId}?banner=changed`)
     await expect(page.getByRole('status').filter({ hasText: 'Caregiver changed.' })).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Caregiver' }).getByText(`Dialog B ${stamp}`)).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Booking', exact: true }).getByText(`Dialog B ${stamp}`)).toBeVisible()
 
     expect(await assignments(bookingId)).toEqual([
       { caregiver_id: careA.userId, previous_caregiver_id: null },
@@ -114,13 +116,13 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     await openChooser(page, admin.email, bookingId)
 
     await radio(page, `Dialog A ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click()
     await expect(page.getByRole('dialog')).toBeHidden()
     await expect(radio(page, `Dialog A ${stamp}`)).toBeChecked()
     expect(await assignments(bookingId)).toEqual([])
 
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toBeHidden()
     expect(await assignments(bookingId)).toEqual([])
@@ -132,7 +134,7 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     const bookingId = await book('Slow')
     await openChooser(page, admin.email, bookingId)
     await radio(page, `Dialog A ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
 
     let posts = 0
     await page.route(`**/admin/bookings/${bookingId}/choose-caregiver`, async (route) => {
@@ -144,7 +146,7 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     })
 
     const dialog = page.getByRole('dialog')
-    await dialog.getByRole('button', { name: 'Assign caregiver' }).dblclick()
+    await dialog.getByRole('button', { name: 'Assign', exact: true }).dblclick()
     const assigning = dialog.getByRole('button', { name: 'Assigning…' })
     await expect(assigning).toBeVisible()
     await expect(assigning).toBeDisabled()
@@ -161,14 +163,14 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     const bookingId = await book('Offline')
     await openChooser(page, admin.email, bookingId)
     await radio(page, `Dialog A ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
 
     const url = `**/admin/bookings/${bookingId}/choose-caregiver`
     await page.route(url, (route) => (route.request().method() === 'POST' ? route.abort() : route.continue()))
 
     const dialog = page.getByRole('dialog')
-    await dialog.getByRole('button', { name: 'Assign caregiver' }).click()
-    await expect(dialog.getByRole('alert')).toHaveText("Couldn't assign — check your connection and try again.")
+    await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
+    await expect(dialog.getByRole('alert')).toHaveText("Couldn't assign — check your connection and try again")
     await expect(dialog).toBeVisible()
     await expect(dialog.getByText(/[A-Z]{2,}_[A-Z_]+/)).toHaveCount(0)
 
@@ -178,8 +180,8 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     expect(await assignments(bookingId)).toEqual([])
 
     await page.unroute(url)
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.getByRole('dialog').getByRole('button', { name: 'Assign caregiver' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Assign', exact: true }).click()
     await page.waitForURL(`**/admin/bookings/${bookingId}?banner=assigned`)
     expect(await assignments(bookingId)).toEqual([{ caregiver_id: careA.userId, previous_caregiver_id: null }])
   })
@@ -190,20 +192,20 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     const bookingId = await book('Raced')
     await openChooser(page, admin.email, bookingId)
     await radio(page, `Dialog B ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
 
     // another Admin assigns it to A while this dialog is open
     const other = await admin.client.rpc('assign_booking', { p_booking_id: bookingId, p_caregiver_id: careA.userId })
     expect(other.error).toBeNull()
 
     const dialog = page.getByRole('dialog')
-    await dialog.getByRole('button', { name: 'Assign caregiver' }).click()
+    await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
     await expect(dialog.getByRole('alert')).toContainText('This booking has changed since you opened it')
     // wait for the page behind to refresh (the booking is now assigned to A), then check the
     // dialog's own words have not turned into the Change flow's under the Admin
     await expect(page.locator('label').filter({ hasText: `Dialog A ${stamp}` }).getByText('Currently assigned')).toBeAttached()
-    await expect(dialog.getByRole('heading', { name: `Assign Dialog B ${stamp} to this booking` })).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Assign caregiver' })).toBeDisabled()
+    await expect(dialog.getByRole('heading', { name: 'Assign caregiver' })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Assign', exact: true })).toBeDisabled()
     await expect(dialog.getByText(/BOOKING_NOT_REQUESTED/)).toHaveCount(0)
 
     await dialog.getByRole('button', { name: 'Close' }).click()
@@ -219,17 +221,17 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     const bookingId = await book('Lost')
     await openChooser(page, admin.email, bookingId)
     await radio(page, `Dialog B ${stamp}`).check()
-    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByRole('button', { name: NEXT }).click()
 
     // B loses Verified while the dialog is open
     const removed = await admin.client.rpc('remove_caregiver_verification', { p_caregiver_id: careB.userId, p_note: 'Reference failed' })
     expect(removed.error).toBeNull()
 
     const dialog = page.getByRole('dialog')
-    await dialog.getByRole('button', { name: 'Assign caregiver' }).click()
+    await dialog.getByRole('button', { name: 'Assign', exact: true }).click()
     await expect(dialog.getByRole('alert')).toContainText('no longer Verified')
     // the dialog's own text does not change under the Admin
-    await expect(dialog.getByRole('heading', { name: `Assign Dialog B ${stamp} to this booking` })).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Assign caregiver' })).toBeVisible()
     await expect(dialog.getByText(/CAREGIVER_NOT_VERIFIED/)).toHaveCount(0)
 
     await dialog.getByRole('button', { name: 'Close' }).click()
@@ -237,7 +239,7 @@ test.describe('DEV-043 — Assign and Change caregiver dialogs', () => {
     // B is gone from the list, the choice is cleared, and Continue waits for a new one
     await expect(radio(page, `Dialog B ${stamp}`)).toHaveCount(0)
     await expect(page.getByRole('radio', { checked: true })).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: NEXT })).toBeDisabled()
     expect(await assignments(bookingId)).toEqual([])
   })
 })

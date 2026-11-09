@@ -8,6 +8,8 @@ import { useEffect, useRef, type ReactNode } from 'react'
  * ignored while `locked` (a request is running) so a half-sent action cannot be
  * dismissed. Clicking the backdrop does not close it.
  *
+ * The default is the Admin dialog of frames VER-03 to VER-08: 560 wide, 16px radius, 24px padding, 16 between its parts, the page dimmed with the ink colour at 55%.
+ *
  * `size="compact"` is the small confirmation of ACC-11 (Leave without finishing):
  * 16px radius, 20px padding, 12px between its parts, the page dimmed with the ink
  * colour at 55%.
@@ -49,10 +51,10 @@ export function ModalDialog({
       className={
         compact
           ? 'm-auto w-[calc(100%-64px)] max-w-[326px] rounded-2xl border-0 bg-white p-0 text-figma-ink shadow-modal backdrop:bg-[rgba(31,41,51,0.55)]'
-          : 'm-auto w-[calc(100%-32px)] max-w-lg rounded-xl border border-figma-line bg-white p-0 text-figma-ink shadow-modal backdrop:bg-black/40'
+          : 'm-auto w-[calc(100%-32px)] max-w-[560px] rounded-2xl border-0 bg-white p-0 text-figma-ink shadow-modal backdrop:bg-[rgba(31,41,51,0.55)]'
       }
     >
-      <div className={compact ? 'flex flex-col gap-3 p-5' : 'flex flex-col gap-5 p-6'}>{children}</div>
+      <div className={compact ? 'flex flex-col gap-3 p-5' : 'flex flex-col gap-4 p-6'}>{children}</div>
     </dialog>
   )
 }
