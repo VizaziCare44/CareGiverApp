@@ -2,13 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ActionButton } from '@/components/ui/action-button'
+import { ErrorBanner } from '@/components/ui/error-banner'
+import { Field } from '@/components/ui/field'
+import { TextLink } from '@/components/ui/text-link'
 
-// FR-001 / AC-001. Inline, on-blur validation per FD-ACC §6.5 — errors stay
-// next to the field they belong to; invalid input never creates an account.
+// FR-001 / AC-001, frames ACC-01 and ACC-01b. Inline, on-blur validation per FD-ACC §6.5 — errors stay
+// next to the field they belong to (the box turns red, an icon and the message sit under it); invalid input never
+// creates an account.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignUpPage() {
@@ -23,10 +25,10 @@ export default function SignUpPage() {
   const [checkEmail, setCheckEmail] = useState(false)
 
   const errors = {
-    fullName: touched.fullName && !fullName.trim() ? 'Enter your full name.' : undefined,
-    email: touched.email && !EMAIL_RE.test(email) ? 'Enter a valid email address.' : undefined,
-    phone: touched.phone && !phone.trim() ? 'Enter your phone number.' : undefined,
-    password: touched.password && password.length < 8 ? 'Password must be at least 8 characters.' : undefined,
+    fullName: touched.fullName && !fullName.trim() ? 'Enter your full name' : undefined,
+    email: touched.email && !EMAIL_RE.test(email) ? 'Enter a valid email address, like name@example.com' : undefined,
+    phone: touched.phone && !phone.trim() ? 'Enter your phone number' : undefined,
+    password: touched.password && password.length < 8 ? 'Password must be at least 8 characters' : undefined,
   }
 
   const isValid = fullName.trim() && EMAIL_RE.test(email) && phone.trim() && password.length >= 8
@@ -71,9 +73,9 @@ export default function SignUpPage() {
 
   if (checkEmail) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-        <h1 className="text-2xl text-foreground">Check your email</h1>
-        <p className="text-lg text-muted-foreground">
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-4 bg-white p-5 text-center text-figma-ink">
+        <h1 className="text-[24px] font-bold leading-[1.25]">Check your email</h1>
+        <p className="text-[18px] leading-[1.4]">
           We sent a confirmation link to <strong>{email}</strong>. Follow it to activate your account.
         </p>
       </main>
@@ -81,68 +83,64 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <div>
-        <h1 className="text-2xl text-foreground">Create your account</h1>
-        <p className="mt-1 text-base text-muted-foreground">So Vizazi Care can identify you and your bookings.</p>
-      </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white text-figma-ink">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col gap-4 p-5">
+        <h1 className="text-[24px] font-bold leading-[1.25]">Create your account</h1>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-        <Input
+        {formError && <ErrorBanner testId="form-error">{formError}</ErrorBanner>}
+
+        <Field
           label="Full name"
+          placeholder="Full name"
+          autoComplete="name"
           required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, fullName: true }))}
           error={errors.fullName}
         />
-        <Input
-          label="Email address"
+        <Field
+          label="Email"
           type="email"
+          placeholder="name@example.com"
+          autoComplete="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, email: true }))}
           error={errors.email}
         />
-        <Input
+        <Field
           label="Phone number"
           type="tel"
+          placeholder="Phone number"
+          autoComplete="tel"
           required
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
           error={errors.phone}
         />
-        <Input
+        <Field
           label="Password"
           type="password"
+          placeholder="Password"
+          autoComplete="new-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, password: true }))}
           error={errors.password}
-          hint="At least 8 characters."
         />
 
-        {formError && (
-          <p role="alert" className="flex items-center gap-1.5 text-sm status-error">
-            <span aria-hidden="true">⚠</span>
-            {formError}
-          </p>
-        )}
-
-        <Button type="submit" loading={submitting} className="w-full">
-          Sign up
-        </Button>
+        <div className="flex-1" />
+        <ActionButton type="submit" disabled={submitting} aria-busy={submitting || undefined} className="w-full">
+          {submitting ? 'Creating account…' : 'Create account'}
+        </ActionButton>
+        <TextLink href="/log-in" block>
+          Already have an account? Log in
+        </TextLink>
       </form>
-
-      <p className="text-center text-base text-muted-foreground">
-        Already have an account?{' '}
-        <Link href="/log-in" className="font-medium text-sage-700 underline">
-          Log in
-        </Link>
-      </p>
     </main>
   )
 }

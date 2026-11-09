@@ -111,7 +111,7 @@ export async function generateRecoveryTokenHash(email: string) {
 // this helper's fixed expectation wasn't).
 export async function logInViaUI(page: Page, email: string, password = TEST_PASSWORD, expectedUrl = '**/recipients') {
   await page.goto('/log-in')
-  await page.getByLabel('Email address').fill(email)
+  await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Log in' }).click()
   await page.waitForURL(expectedUrl)

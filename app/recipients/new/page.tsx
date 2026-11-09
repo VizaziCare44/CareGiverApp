@@ -2,10 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ActionButton } from '@/components/ui/action-button'
+import { AppBar } from '@/components/ui/app-bar'
+import { ErrorBanner } from '@/components/ui/error-banner'
+import { Field } from '@/components/ui/field'
+import { InfoNote } from '@/components/ui/info-note'
+import { TextAreaField } from '@/components/ui/text-area-field'
 import { addCareRecipient } from './actions'
 
+// FR-002 / AC-004 / BR-004, frame ACC-05: the AppBar "Add care recipient" (its back target returns to the list),
+// "Full name (required)", "Care notes (optional)", the note saying who can see care notes (disclosed before the
+// Family Member types anything sensitive, FD-ACC §6.5), and "Save recipient" at the bottom.
 export default function AddCareRecipientPage() {
   const router = useRouter()
   const [name, setName] = useState('')
@@ -34,47 +41,35 @@ export default function AddCareRecipientPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-10">
-      <h1 className="text-2xl text-foreground">Add a care recipient</h1>
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white text-figma-ink">
+      <AppBar title="Add care recipient" backHref="/recipients" backLabel="Back" />
+      <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col gap-4 p-5">
+        <h1 className="sr-only">Add care recipient</h1>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-        <Input
-          label="Name"
+        {formError && <ErrorBanner>{formError}</ErrorBanner>}
+
+        <Field
+          label="Full name (required)"
+          placeholder="Full name"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => setNameTouched(true)}
           error={nameError}
         />
+        <TextAreaField
+          id="care-notes"
+          label="Care notes (optional)"
+          placeholder="Anything the caregiver should know"
+          value={careNotes}
+          onChange={(e) => setCareNotes(e.target.value)}
+        />
+        <InfoNote>Care notes are visible to Vizazi Care Admin and to the caregiver assigned to this person&apos;s booking.</InfoNote>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="care-notes" className="text-base font-medium text-foreground">
-            Care notes
-          </label>
-          {/* Trust/transparency microcopy per FD-ACC §6.5 — disclosed before
-              the FM types anything sensitive. */}
-          <p className="text-sm text-muted-foreground">
-            Optional. Visible to Vizazi Care admin and to the caregiver assigned to this recipient&apos;s booking.
-          </p>
-          <textarea
-            id="care-notes"
-            rows={4}
-            value={careNotes}
-            onChange={(e) => setCareNotes(e.target.value)}
-            className="rounded-lg border border-border bg-surface px-4 py-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trust-500"
-          />
-        </div>
-
-        {formError && (
-          <p role="alert" className="flex items-center gap-1.5 text-sm status-error">
-            <span aria-hidden="true">⚠</span>
-            {formError}
-          </p>
-        )}
-
-        <Button type="submit" loading={submitting} loadingText="Saving…" className="w-full">
-          Save
-        </Button>
+        <div className="flex-1" />
+        <ActionButton type="submit" disabled={submitting} aria-busy={submitting || undefined} className="w-full">
+          {submitting ? 'Saving…' : 'Save recipient'}
+        </ActionButton>
       </form>
     </main>
   )

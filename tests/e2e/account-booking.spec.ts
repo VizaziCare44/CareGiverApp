@@ -21,10 +21,10 @@ test.describe('AC-001 — Account creation', () => {
     const email = randomEmail()
     await page.goto('/sign-up')
     await page.getByLabel('Full name').fill('Amara Otieno')
-    await page.getByLabel('Email address').fill(email)
+    await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Phone number').fill('+254712345678')
     await page.getByLabel('Password', { exact: false }).fill(TEST_PASSWORD)
-    await page.getByRole('button', { name: 'Sign up' }).click()
+    await page.getByRole('button', { name: 'Create account' }).click()
 
     // Email confirmation is required on this project (§7.3/DEV-008) —
     // signUp() creates the account (auth.users + profiles row, via the
@@ -39,27 +39,27 @@ test.describe('AC-001 — Account creation', () => {
   test('TC-ACC-002', async ({ page }) => {
     await page.goto('/sign-up')
     await page.getByLabel('Full name').fill('Amara Otieno')
-    await page.getByLabel('Email address').fill('not-an-email')
-    await page.getByLabel('Email address').blur()
-    await expect(page.getByText('Enter a valid email address.')).toBeVisible()
+    await page.getByLabel('Email', { exact: true }).fill('not-an-email')
+    await page.getByLabel('Email', { exact: true }).blur()
+    await expect(page.getByText('Enter a valid email address, like name@example.com')).toBeVisible()
 
     await page.getByLabel('Phone number').fill('+254712345678')
     await page.getByLabel('Password', { exact: false }).fill(TEST_PASSWORD)
-    await page.getByRole('button', { name: 'Sign up' }).click()
+    await page.getByRole('button', { name: 'Create account' }).click()
 
     await expect(page).toHaveURL(/sign-up/)
-    await expect(page.getByText('Enter a valid email address.')).toBeVisible()
+    await expect(page.getByText('Enter a valid email address, like name@example.com')).toBeVisible()
   })
 
   test('TC-ACC-003', async ({ page }) => {
     await page.goto('/sign-up')
-    await page.getByLabel('Email address').fill(randomEmail())
+    await page.getByLabel('Email', { exact: true }).fill(randomEmail())
     await page.getByLabel('Phone number').fill('+254712345678')
     await page.getByLabel('Password', { exact: false }).fill(TEST_PASSWORD)
-    await page.getByRole('button', { name: 'Sign up' }).click()
+    await page.getByRole('button', { name: 'Create account' }).click()
 
     await expect(page).toHaveURL(/sign-up/)
-    await expect(page.getByText('Enter your full name.')).toBeVisible()
+    await expect(page.getByText('Enter your full name')).toBeVisible()
   })
 })
 
@@ -208,8 +208,8 @@ test.describe('AC-004 — Care notes are optional', () => {
     // specifically because of the colons, confirmed against the Care
     // notes textarea on this same page (a stable, non-generated id),
     // which resolves fine via getByLabel. getByRole sidesteps it entirely.
-    await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Baba Kariuki')
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('textbox', { name: 'Full name (required)', exact: true }).fill('Baba Kariuki')
+    await page.getByRole('button', { name: 'Save recipient' }).click()
 
     await page.waitForURL('**/recipients')
     await expect(page.getByText('Baba Kariuki', { exact: true })).toBeVisible()
@@ -220,7 +220,7 @@ test.describe('AC-004 — Care notes are optional', () => {
     await logInViaUI(page, email)
     await page.goto('/recipients/new')
     await page.getByLabel('Care notes').fill('Diabetic, needs insulin reminder')
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Save recipient' }).click()
 
     await expect(page).toHaveURL(/recipients\/new/)
     await expect(page.getByText('Name is required.')).toBeVisible()
@@ -238,12 +238,12 @@ test.describe('AC-005 — Returning-user login', () => {
     const { email } = await apiSignUp({ fullName: 'James Mutua', phone: '+254700000009' })
 
     await page.goto('/log-in')
-    await page.getByLabel('Email address').fill(email)
+    await page.getByLabel('Email', { exact: true }).fill(email)
     await page.getByLabel('Password').fill('WrongPassword123')
     await page.getByRole('button', { name: 'Log in' }).click()
     await expect(page.getByText('Email or password incorrect.')).toBeVisible()
 
-    await page.getByLabel('Email address').fill(randomEmail())
+    await page.getByLabel('Email', { exact: true }).fill(randomEmail())
     await page.getByLabel('Password').fill('WrongPassword123')
     await page.getByRole('button', { name: 'Log in' }).click()
     await expect(page.getByText('Email or password incorrect.')).toBeVisible()

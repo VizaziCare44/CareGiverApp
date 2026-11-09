@@ -6,6 +6,7 @@ import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import { formatDate, formatDateTime, monthGrid, nairobiToday, slotToInstant, ZONE_LABEL } from '@/lib/datetime'
 import { ActionButton } from '@/components/ui/action-button'
+import { InfoNote } from '@/components/ui/info-note'
 import { BookingScreen } from './booking-screen'
 
 // FR-005, frames ACC-08 (MediCheck) and ACC-08b (Doctor's Day Out). A month calendar (Monday first, the
@@ -173,13 +174,7 @@ export function DateTimeSelect() {
         </p>
       )}
 
-      <div className="flex items-start gap-2 rounded-[10px] bg-figma-surface p-3">
-        <svg aria-hidden="true" className="shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 11v6M12 7.2v.1" />
-        </svg>
-        <p className="min-w-0 flex-1 text-[14px] leading-[1.4]">Choosing a time does not reserve it. Your request is confirmed once Vizazi Care assigns a caregiver.</p>
-      </div>
+      <InfoNote>Choosing a time does not reserve it. Your request is confirmed once Vizazi Care assigns a caregiver.</InfoNote>
 
       <ActionButton disabled={!date || !time} onClick={handleContinue} className="w-full">
         Continue

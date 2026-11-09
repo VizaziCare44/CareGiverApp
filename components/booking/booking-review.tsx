@@ -6,6 +6,7 @@ import { useBookingDraft } from '@/lib/bookings/draft-context'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
 import { formatDateTime, slotToInstant } from '@/lib/datetime'
 import { ActionButton } from '@/components/ui/action-button'
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { BookingScreen } from './booking-screen'
 import { BookingSummary } from './booking-summary'
 import { submitBooking } from '@/app/book/review/actions'
@@ -82,15 +83,7 @@ export function BookingReview() {
 
       <p className="text-[15px] leading-[1.4] text-figma-muted">This is a request for one visit. We&apos;ll confirm your caregiver after you submit.</p>
 
-      {error && (
-        <div role="alert" className="flex items-start gap-2 rounded-[10px] border border-figma-danger bg-figma-dangersoft p-3" data-testid="submit-error">
-          <svg aria-hidden="true" className="shrink-0 text-figma-danger" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3.5l9.5 16.5h-19L12 3.5z" />
-            <path d="M12 10v4.5M12 17.4v.1" />
-          </svg>
-          <p className="min-w-0 flex-1 text-[15px] font-medium leading-[1.4] text-figma-danger">{error}</p>
-        </div>
-      )}
+      {error && <ErrorBanner testId="submit-error">{error}</ErrorBanner>}
 
       <div className="flex-1" />
       <ActionButton onClick={handleSubmit} disabled={submitting} aria-busy={submitting || undefined} className="w-full" data-testid="submit-booking">

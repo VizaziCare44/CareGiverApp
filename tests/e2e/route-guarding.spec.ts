@@ -147,7 +147,7 @@ test.describe('DEV-049 — route guarding', () => {
     expect(removed.error).toBeNull()
 
     await page.goto('/log-in')
-    await page.getByLabel('Email address').fill(user.email)
+    await page.getByLabel('Email', { exact: true }).fill(user.email)
     await page.getByLabel('Password').fill(TEST_PASSWORD)
     await page.getByRole('button', { name: 'Log in' }).click()
     await page.waitForTimeout(2500)

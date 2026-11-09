@@ -30,7 +30,7 @@ test.describe('DEV-046 — links into My Bookings', () => {
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     // the rest of the screen is as it was
     await expect(page.getByRole('heading', { name: 'Care recipients' })).toBeVisible()
-    await expect(page.getByRole('button', { name: `Book care for Linked ${stamp}` })).toBeVisible()
+    await expect(page.getByRole('link', { name: `Book care for Linked ${stamp}` })).toBeVisible()
 
     await link.click()
     await page.waitForURL('**/bookings')
@@ -40,7 +40,7 @@ test.describe('DEV-046 — links into My Bookings', () => {
   test('the link is also there on the first-time empty state', async ({ page }) => {
     const family = await createUserWithRole('family_member', 'No Recipients Yet')
     await logInViaUI(page, family.email)
-    await expect(page.getByText('Add your first care recipient to get started.')).toBeVisible()
+    await expect(page.getByText('Add the person you are arranging care for to start a booking.')).toBeVisible()
     await expect(page.getByRole('link', { name: 'My bookings' })).toHaveAttribute('href', '/bookings')
   })
 

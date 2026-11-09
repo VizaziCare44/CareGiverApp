@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ActionButton } from '@/components/ui/action-button'
+import { ErrorBanner } from '@/components/ui/error-banner'
+import { Field } from '@/components/ui/field'
+import { TextLink } from '@/components/ui/text-link'
 
-// FR-007 / AC-005. Generic invalid-credentials error (§6.5, TC-ACC-011) —
+// FR-007 / AC-005, frames ACC-02 and ACC-02b. Generic invalid-credentials error (§6.5, TC-ACC-011) —
 // wrong password and non-existent email must be indistinguishable, for
 // basic account-enumeration hygiene. Password recovery (DEV-027) reverses
 // FD-ACC §2.5/§3.5's original Beta-scope exclusion, per founder decision
@@ -41,44 +42,28 @@ export default function LogInPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
-      <div>
-        <h1 className="text-2xl text-foreground">Welcome back</h1>
-        <p className="mt-1 text-base text-muted-foreground">Log in to your Vizazi Care account.</p>
-      </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-white text-figma-ink">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col gap-4 p-5">
+        <h1 className="text-[24px] font-bold leading-[1.25]">Log in</h1>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-        <Input label="Email address" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Input
-          label="Password"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        <Link href="/forgot-password" className="-mt-2 self-start text-base font-medium text-sage-700 underline">
+        <Field label="Email" type="email" placeholder="name@example.com" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field label="Password" type="password" placeholder="Password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+
+        {/* DEV-027, founder decision 2026-10-01: the frames predate it, so it is not drawn there; it sits under the fields as a text link */}
+        <TextLink href="/forgot-password" className="-mt-2 self-start">
           Forgot password?
-        </Link>
+        </TextLink>
 
-        {error && (
-          <p role="alert" className="flex items-center gap-1.5 text-sm status-error">
-            <span aria-hidden="true">⚠</span>
-            {error}
-          </p>
-        )}
-
-        <Button type="submit" loading={submitting} loadingText="Logging in…" className="w-full">
-          Log in
-        </Button>
+        <div className="flex-1" />
+        <ActionButton type="submit" disabled={submitting} aria-busy={submitting || undefined} className="w-full">
+          {submitting ? 'Logging in…' : 'Log in'}
+        </ActionButton>
+        <TextLink href="/sign-up" block>
+          New here? Create an account
+        </TextLink>
       </form>
-
-      <p className="text-center text-base text-muted-foreground">
-        New to Vizazi Care?{' '}
-        <Link href="/sign-up" className="font-medium text-sage-700 underline">
-          Create an account
-        </Link>
-      </p>
     </main>
   )
 }

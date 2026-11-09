@@ -66,7 +66,7 @@ test.describe('DEV-055 — persona sessions', () => {
 
     test('sees the first-time empty states', async ({ page }) => {
       await page.goto('/recipients')
-      await expect(page.getByText('Add your first care recipient to get started.')).toBeVisible()
+      await expect(page.getByText('Add the person you are arranging care for to start a booking.')).toBeVisible()
       await page.goto('/bookings')
       await expect(page.getByText("You haven't requested a booking yet.")).toBeVisible()
     })
