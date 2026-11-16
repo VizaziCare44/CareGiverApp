@@ -172,7 +172,9 @@ test.describe('DEV-078 — My Bookings on the screen, with factory bookings', ()
       const s = getComputedStyle(e)
       return { bg: s.backgroundColor, color: s.color, size: s.fontSize, radius: s.borderTopLeftRadius }
     })
-    expect(familySide).toEqual(carerSide)
+    expect({ size: carerSide.size, radius: carerSide.radius }).toEqual({ size: familySide.size, radius: familySide.radius })
+    expect(carerSide.bg).toBe('rgb(227, 244, 242)')
+    expect(familySide.bg).toBe('rgb(255, 243, 220)')
   })
 })
 

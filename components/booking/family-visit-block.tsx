@@ -76,7 +76,7 @@ export function FamilyVisitBlock({ bookingId, bundleCode, status: initialStatus,
   if (state === 'not-available') {
     return (
       <section aria-label={FAMILY_VISIT.heading} data-testid="visit-block">
-        <Notice>
+        <Notice family>
           <p>{FAMILY_VISIT.notAvailable}</p>
           <ContactAddressRow />
         </Notice>
