@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
 import { StatusChip } from '@/components/ui/status-chip'
 import { AdminMain } from '@/components/admin/admin-main'
-import { BUNDLES } from '@/lib/bookings/bundles'
+import { BUNDLES, BUNDLE_LINES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
 import { formatDateTime } from '@/lib/datetime'
 
@@ -40,6 +40,70 @@ function EmptyState({ children }: { children: string }) {
     <div className="flex items-center justify-center rounded-[12px] border border-figma-border bg-white p-10">
       <p className="text-center text-[16px] font-semibold leading-[1.4]">{children}</p>
     </div>
+  )
+}
+
+// Under 1280 wide a card for each booking instead of the table (the frames are 1280; a phone gets what the table
+// holds, one under another, as the Exceptions screen does): the recipient's name is the link to Booking Detail,
+// then the bundle line, the visit and, in the Requested tab, when it was requested; in the Assigned tab the
+// caregiver with the Verified chip and the flag; the action last, full width and 48 high on a phone.
+const cardClass = 'flex flex-col gap-1 rounded-[12px] border border-figma-border bg-white p-4 text-[15px] leading-[1.4]'
+
+function RequestedCards({ rows }: { rows: QueueRow[] }) {
+  return (
+    <ul className="flex flex-col gap-4 xl:hidden" data-testid="queue-cards">
+      {rows.map((row) => (
+        <li key={row.id} className={cardClass}>
+          <RecipientLink id={row.id} name={row.care_recipient_name} />
+          <p className="text-figma-muted">{BUNDLE_LINES[row.bundle_code]}</p>
+          <p>Visit: {formatDateTime(row.requested_datetime)}</p>
+          <p className="text-figma-muted">Requested at: {formatDateTime(row.created_at)}</p>
+          <ActionLink href={`/admin/bookings/${row.id}/choose-caregiver`} variant="secondary" size="compact" className="mt-2 w-full whitespace-nowrap max-md:h-12 md:w-[190px]">
+            Assign caregiver
+          </ActionLink>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function AssignedCards({ rows }: { rows: QueueRow[] }) {
+  return (
+    <ul className="flex flex-col gap-4 xl:hidden" data-testid="queue-cards">
+      {rows.map((row) => {
+        const started = row.status === 'in_progress' || row.status === 'completed'
+        const needsNewCaregiver = !started && row.caregiver_verified === false
+        return (
+          <li key={row.id} className={cardClass}>
+            <RecipientLink id={row.id} name={row.care_recipient_name} />
+            <p className="text-figma-muted">{BUNDLE_LINES[row.bundle_code]}</p>
+            <p>Visit: {formatDateTime(row.requested_datetime)}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="font-semibold">{row.caregiver_name ?? '—'}</span>
+              {row.caregiver_name && <StatusChip status={row.caregiver_verified ? 'verified' : 'not-verified'} />}
+            </div>
+            {needsNewCaregiver && (
+              <p className="flex items-center gap-1.5 text-[14px] font-semibold leading-[1.4] text-figma-ambertext">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="M10 2.5l8 14H2z" />
+                  <path d="M10 8v4M10 14.2v.1" />
+                </svg>
+                Caregiver no longer Verified — reassign
+              </p>
+            )}
+            <div className="mt-2">
+              {started ? (
+                <StatusChip status={row.status === 'in_progress' ? 'in-progress' : 'completed'} />
+              ) : (
+                <ActionLink href={`/admin/bookings/${row.id}/choose-caregiver`} variant="secondary" size="compact" className="w-full whitespace-nowrap max-md:h-12 md:w-[190px]">
+                  {needsNewCaregiver ? 'Reassign' : 'Change caregiver'}
+                </ActionLink>
+              )}
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -102,7 +166,8 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
         requested.length === 0 ? (
           <EmptyState>No new requests.</EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-[12px] border border-figma-border bg-white">
+          <>
+          <div className="hidden overflow-x-auto rounded-[12px] border border-figma-border bg-white xl:block">
             <table className="w-full min-w-[1000px] table-fixed border-collapse">
               <thead>
                 <tr className="h-11 bg-figma-surface">
@@ -132,11 +197,14 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
               </tbody>
             </table>
           </div>
+          <RequestedCards rows={requested} />
+          </>
         )
       ) : assigned.length === 0 ? (
         <EmptyState>No assigned bookings yet.</EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-[12px] border border-figma-border bg-white">
+        <>
+        <div className="hidden overflow-x-auto rounded-[12px] border border-figma-border bg-white xl:block">
           <table className="w-full min-w-[1000px] table-fixed border-collapse">
             <thead>
               <tr className="h-11 bg-figma-surface">
@@ -192,6 +260,8 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: {
             </tbody>
           </table>
         </div>
+        <AssignedCards rows={assigned} />
+        </>
       )}
     </AdminMain>
   )

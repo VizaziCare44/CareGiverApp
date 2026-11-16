@@ -223,3 +223,29 @@ test.describe('Admin screens — the frames of sections D to F', () => {
     expect(await css(dialog, 'color')).toBe(INK)
   })
 })
+
+// The Booking Queue on a phone: cards instead of the table, nothing scrolls sideways, the action 48 high and full width.
+test.describe('Booking Queue on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('the Requested and Assigned tabs are cards, with no sideways scroll and a full-width 48px action', async ({ page }) => {
+    const stamp = Date.now()
+    const { admin, verified, bookingId } = await setup(stamp)
+    await admin.client.rpc('assign_booking', { p_booking_id: bookingId, p_caregiver_id: verified.userId })
+    await logInViaUI(page, admin.email, undefined, '**/admin/queue')
+
+    for (const path of ['/admin/queue', '/admin/queue?tab=assigned']) {
+      await page.goto(path)
+      await expect(page.getByTestId('queue-cards')).toBeVisible()
+      await expect(page.locator('table')).toBeHidden()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    }
+    const card = page.getByTestId('queue-cards').getByRole('listitem').filter({ hasText: `Frame Recipient ${stamp}` })
+    await expect(card).toContainText(`Frame Verified ${stamp}`)
+    const action = card.getByRole('link', { name: 'Change caregiver' })
+    const box = (await action.boundingBox())!
+    expect(box.height).toBe(48)
+    expect(box.width).toBeGreaterThan(300)
+    await expect(card.getByRole('link', { name: `Frame Recipient ${stamp}` })).toHaveAttribute('href', `/admin/bookings/${bookingId}`)
+  })
+})
