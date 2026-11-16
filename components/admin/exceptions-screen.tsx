@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadExceptionsAction } from '@/app/admin/exceptions/actions'
 import { ActionButton, ActionLink } from '@/components/ui/action-button'
+import { CircleAlertIcon } from '@/components/admin/circle-alert-icon'
 import { StatusChip } from '@/components/ui/status-chip'
-import { BUNDLES } from '@/lib/bookings/bundles'
-import { formatDateTime, formatTime } from '@/lib/datetime'
+import { BUNDLE_LINES } from '@/lib/bookings/bundles'
+import { formatDateTime } from '@/lib/datetime'
 import { exceptionLines, type ExceptionRow } from '@/lib/admin/exceptions'
 import { EXCEPTIONS_TEXT } from '@/lib/admin/exceptions-text'
 
@@ -23,18 +24,20 @@ import { EXCEPTIONS_TEXT } from '@/lib/admin/exceptions-text'
 
 const body = 'text-[16px] leading-[1.4]'
 const words = 'whitespace-pre-wrap [overflow-wrap:anywhere]'
+// the frames (EXC-01 to EXC-04b) draw the details, the bundle line and the labels in the muted colour; the size stays 16
+const muted = 'text-figma-muted'
 
 function Blocks({ row }: { row: ExceptionRow }) {
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col gap-4">
       {exceptionLines(row).map((line) => (
-        <li key={line.kind} data-testid={`exception-${line.kind}`} className="flex flex-col items-start gap-1">
+        <li key={line.kind} data-testid={'exception-' + line.kind} className="flex flex-col items-start gap-1.5">
           <StatusChip status="exception" label={line.label} icon={line.icon} size="report" />
-          {line.detail && <p className={`${body} ${words}`}>{line.detail}</p>}
+          {line.detail && <p className={body + ' ' + words + ' ' + muted}>{line.detail}</p>}
           {line.tasks.map((task, index) => (
-            <div key={`${task.name}-${index}`} className={`${body} ${words}`}>
+            <div key={task.name + '-' + index} className={body + ' ' + words}>
               <p className="font-semibold">{task.name}</p>
-              <p data-testid="exception-reason">Reason: {task.reason}</p>
+              <p className={muted} data-testid="exception-reason">Reason: {task.reason}</p>
             </div>
           ))}
         </li>
@@ -46,41 +49,44 @@ function Blocks({ row }: { row: ExceptionRow }) {
 function OpenBooking({ row, className }: { row: ExceptionRow; className: string }) {
   return (
     <ActionLink
-      href={`/admin/bookings/${row.booking_id}`}
+      href={'/admin/bookings/' + row.booking_id}
       variant="secondary"
-      className={`min-w-[44px] ${className}`}
-      aria-label={`${EXCEPTIONS_TEXT.openBooking}: ${row.recipient_name}, ${formatDateTime(row.requested_datetime)}`}
+      size="compact"
+      className={'min-w-[44px] whitespace-nowrap ' + className}
+      aria-label={EXCEPTIONS_TEXT.openBooking + ': ' + row.recipient_name + ', ' + formatDateTime(row.requested_datetime)}
     >
       {EXCEPTIONS_TEXT.openBooking}
     </ActionLink>
   )
 }
 
+// EXC-01: from 1024 wide a table in a white box with a 12px radius; the header row 44 high on the surface grey, the
+// columns 240, 220, 160, the exceptions and 140 (plus 16 padding each side), the rows 16 inside with a line between.
 function Table({ rows }: { rows: ExceptionRow[] }) {
-  const head = `px-4 py-3 text-left text-[16px] font-semibold ${words}`
+  const head = 'px-4 text-left align-middle text-[16px] font-semibold leading-[1.4] ' + muted + ' ' + words
   return (
-    <div className="hidden lg:block" data-testid="exceptions-table">
-      <table className="w-full table-fixed border-collapse rounded-xl border border-figma-line bg-white">
+    <div className="hidden overflow-hidden rounded-[12px] border border-figma-border bg-white lg:block" data-testid="exceptions-table">
+      <table className="w-full table-fixed border-collapse">
         <thead className="bg-figma-surface">
-          <tr>
-            <th scope="col" className={head}>{EXCEPTIONS_TEXT.columns.visit}</th>
-            <th scope="col" className={head}>{EXCEPTIONS_TEXT.columns.recipient}</th>
-            <th scope="col" className={head}>{EXCEPTIONS_TEXT.columns.caregiver}</th>
-            <th scope="col" className={`${head} w-[34%]`}>{EXCEPTIONS_TEXT.columns.exceptions}</th>
-            <th scope="col" className={`${head} w-[14%]`}>{EXCEPTIONS_TEXT.columns.action}</th>
+          <tr className="h-11">
+            <th scope="col" className={head + ' w-[28%]'}>{EXCEPTIONS_TEXT.columns.visit}</th>
+            <th scope="col" className={head + ' w-[20%]'}>{EXCEPTIONS_TEXT.columns.recipient}</th>
+            <th scope="col" className={head + ' w-[15%]'}>{EXCEPTIONS_TEXT.columns.caregiver}</th>
+            <th scope="col" className={head}>{EXCEPTIONS_TEXT.columns.exceptions}</th>
+            <th scope="col" className={head + ' w-[14%]'}>{EXCEPTIONS_TEXT.columns.action}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.booking_id} data-testid="exception-row" className="border-t border-figma-line align-top">
-              <td className={`px-4 py-4 ${body}`}>{formatDateTime(row.requested_datetime)}</td>
-              <td className={`px-4 py-4 ${body} ${words}`}>
+              <td className={'p-4 ' + body}>{formatDateTime(row.requested_datetime)}</td>
+              <td className={'p-4 ' + body + ' ' + words}>
                 <p className="font-semibold">{row.recipient_name}</p>
-                <p>{BUNDLES[row.bundle_code].name}</p>
+                <p className={muted}>{BUNDLE_LINES[row.bundle_code]}</p>
               </td>
-              <td className={`px-4 py-4 ${body} ${words}`}>{row.caregiver_name ?? '—'}</td>
-              <td className="px-4 py-4"><Blocks row={row} /></td>
-              <td className="px-4 py-4"><OpenBooking row={row} className="w-full" /></td>
+              <td className={'p-4 ' + body + ' ' + words}>{row.caregiver_name ?? '—'}</td>
+              <td className="p-4"><Blocks row={row} /></td>
+              <td className="p-4"><OpenBooking row={row} className="w-full" /></td>
             </tr>
           ))}
         </tbody>
@@ -89,23 +95,22 @@ function Table({ rows }: { rows: ExceptionRow[] }) {
   )
 }
 
+// EXC-01b, 01c, 01d: under 1024 a card for each, the date in bold, the recipient and the bundle line, the caregiver;
+// from 768 the exceptions beside them, under 768 under them after a line, and Open booking last.
 function Cards({ rows }: { rows: ExceptionRow[] }) {
   return (
     <ul className="flex flex-col gap-4 lg:hidden" data-testid="exceptions-cards">
       {rows.map((row) => (
-        <li key={row.booking_id} data-testid="exception-card" className="grid gap-4 rounded-xl border border-figma-line bg-white p-5 md:grid-cols-2">
-          <div className={`flex flex-col gap-2 ${body} ${words}`}>
+        <li key={row.booking_id} data-testid="exception-card" className="grid gap-4 rounded-[12px] border border-figma-border bg-white p-4 md:grid-cols-2">
+          <div className={'flex flex-col gap-0.5 border-b border-figma-line pb-4 md:border-b-0 md:pb-0 ' + body + ' ' + words}>
             <p className="font-semibold">{formatDateTime(row.requested_datetime)}</p>
-            <p>
-              <span className="font-semibold">{row.recipient_name}</span>
-              <br />
-              {BUNDLES[row.bundle_code].name}
-            </p>
-            <p>{row.caregiver_name ?? '—'}</p>
+            <p>{row.recipient_name}</p>
+            <p className={muted}>{BUNDLE_LINES[row.bundle_code]}</p>
+            <p className={muted}>Caregiver: {row.caregiver_name ?? '—'}</p>
           </div>
           <div className="flex flex-col gap-4">
             <Blocks row={row} />
-            <OpenBooking row={row} className="w-full md:ml-auto md:w-auto" />
+            <OpenBooking row={row} className="w-full max-md:h-12 md:ml-auto md:w-auto md:px-6" />
           </div>
         </li>
       ))}
@@ -113,11 +118,15 @@ function Cards({ rows }: { rows: ExceptionRow[] }) {
   )
 }
 
+// EXC-03: inside the white box the words, then three placeholders, each a long grey bar and a short one under it
 function Placeholders() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="h-16 animate-pulse rounded-xl bg-figma-line" />
+        <div key={index} className="flex animate-pulse flex-col gap-1.5">
+          <div className="h-3 rounded-full bg-figma-line" />
+          <div className="h-3 w-40 rounded-full bg-figma-line" />
+        </div>
       ))}
     </div>
   )
@@ -158,47 +167,55 @@ export function ExceptionsScreen() {
   const showPanel = failed && !busy
 
   let loadLine: string = EXCEPTIONS_TEXT.loading
-  if (!loading) loadLine = neverLoaded ? EXCEPTIONS_TEXT.notLoaded : EXCEPTIONS_TEXT.loaded(formatTime(loadedAt!))
+  if (!loading) loadLine = neverLoaded ? EXCEPTIONS_TEXT.notLoaded : EXCEPTIONS_TEXT.loaded(formatDateTime(loadedAt!))
+
+  const box = 'flex flex-col gap-3 rounded-[12px] border border-figma-border bg-white p-5'
 
   return (
-    <section aria-label="Exceptions list" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-4">
-        <p className={body} data-testid="loaded-line" aria-live="polite">
+    <section aria-label="Exceptions list" className="flex flex-col gap-5">
+      <div className="flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
+        <p className={body + ' ' + muted} data-testid="loaded-line" aria-live="polite">
           {loadLine}
         </p>
         {!(failed && neverLoaded) && (
-          <ActionButton variant="secondary" onClick={() => void load()} disabled={busy}>
+          <ActionButton variant="secondary" size="compact" className="min-w-[120px]" onClick={() => void load()} disabled={busy}>
             {busy && !loading ? EXCEPTIONS_TEXT.refreshing : EXCEPTIONS_TEXT.refresh}
           </ActionButton>
         )}
       </div>
 
       {showPanel && (
-        <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-figma-border bg-figma-surface p-5" data-testid="exceptions-error">
-          <p className={body}>{EXCEPTIONS_TEXT.error}</p>
-          <ActionButton onClick={() => void load()} disabled={busy}>
+        <div role="alert" className={box + ' items-start'} data-testid="exceptions-error">
+          <p className={'flex items-start gap-2 ' + body}>
+            <CircleAlertIcon />
+            {EXCEPTIONS_TEXT.error}
+          </p>
+          <ActionButton size="compact" onClick={() => void load()} disabled={busy}>
             {EXCEPTIONS_TEXT.tryAgain}
           </ActionButton>
         </div>
       )}
       {failed && busy && (
-        <div role="status" className="flex flex-col items-start gap-3 rounded-xl border border-figma-border bg-figma-surface p-5">
-          <p className={body}>{EXCEPTIONS_TEXT.error}</p>
-          <ActionButton disabled>{EXCEPTIONS_TEXT.tryingAgain}</ActionButton>
+        <div role="status" className={box + ' items-start'}>
+          <p className={'flex items-start gap-2 ' + body}>
+            <CircleAlertIcon />
+            {EXCEPTIONS_TEXT.error}
+          </p>
+          <ActionButton size="compact" disabled>{EXCEPTIONS_TEXT.tryingAgain}</ActionButton>
         </div>
       )}
 
       {loading && (
-        <div className="flex flex-col gap-3">
-          <p className={`${body} font-semibold`}>{EXCEPTIONS_TEXT.loadingList}</p>
+        <div className={box}>
+          <p className={body}>{EXCEPTIONS_TEXT.loadingList}</p>
           <Placeholders />
         </div>
       )}
 
       {!loading && !neverLoaded && rows.length === 0 && (
-        <div className="flex flex-col gap-2 rounded-xl border border-figma-line bg-white p-5" data-testid="exceptions-empty">
-          <h2 className="text-[20px] font-semibold leading-[1.3]">{EXCEPTIONS_TEXT.emptyHeading}</h2>
-          <p className={body}>{EXCEPTIONS_TEXT.emptyBody}</p>
+        <div className="flex flex-col gap-1 rounded-[12px] border border-figma-border bg-white p-5" data-testid="exceptions-empty">
+          <h2 className="text-[20px] font-semibold leading-[1.4]">{EXCEPTIONS_TEXT.emptyHeading}</h2>
+          <p className={body + ' ' + muted}>{EXCEPTIONS_TEXT.emptyBody}</p>
         </div>
       )}
 

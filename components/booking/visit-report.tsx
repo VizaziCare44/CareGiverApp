@@ -25,26 +25,26 @@ const words = 'whitespace-pre-wrap text-[16px] leading-[1.4] text-figma-ink [ove
  * An Optional task never logged shows its name and "Not recorded" and no time.
  */
 export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visit: FamilyVisitRow; tasks: FamilyVisitTaskRow[] }) {
-  const card = 'flex flex-col gap-5 rounded-[14px] border border-figma-border bg-white p-5'
+  const card = 'flex flex-col gap-2.5 rounded-[14px] border border-figma-border bg-white p-4'
   const line = countLine(tasks)
   return (
     <>
       <section aria-labelledby="report-heading" className={card} data-testid="visit-report">
-        <h2 id="report-heading" className="text-[18px] font-semibold leading-[1.3] text-figma-ink">
+        <h2 id="report-heading" className="text-[20px] font-semibold leading-[1.4] text-figma-ink">
           {reportTitle(bundle)}
         </h2>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           <div>
-            <p className="text-[16px] font-medium leading-[1.4] text-figma-ink">{FAMILY_VISIT.checkedInAt}</p>
-            <p className="text-[16px] leading-[1.4] text-figma-ink" data-testid="report-checked-in">
+            <p className="text-[16px] leading-[1.4] text-figma-ink">{FAMILY_VISIT.checkedInAt}</p>
+            <p className="text-[16px] font-semibold leading-[1.4] text-figma-ink" data-testid="report-checked-in">
               {formatDateTime(visit.checked_in_at)}
             </p>
           </div>
           {visit.checked_out_at && (
             <div>
-              <p className="text-[16px] font-medium leading-[1.4] text-figma-ink">{FAMILY_REPORT.checkedOutAt}</p>
-              <p className="text-[16px] leading-[1.4] text-figma-ink" data-testid="report-checked-out">
+              <p className="text-[16px] leading-[1.4] text-figma-ink">{FAMILY_REPORT.checkedOutAt}</p>
+              <p className="text-[16px] font-semibold leading-[1.4] text-figma-ink" data-testid="report-checked-out">
                 {formatDateTime(visit.checked_out_at)}
               </p>
             </div>
@@ -55,30 +55,28 @@ export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visi
 
         {/* the count line (DEV-077): plain text, in the same dark as the rest; none for a report with no tasks */}
         {line && (
-          <p className="text-[16px] leading-[1.4] text-figma-ink" data-testid="report-count-line">
+          <p className="text-[16px] font-medium leading-[1.4] text-figma-ink" data-testid="report-count-line">
             {line}
           </p>
         )}
 
         <ul className="flex flex-col">
           {tasks.map((task) => (
-            <li key={task.sort_order} data-testid="report-task" className="flex flex-col gap-2 border-t border-figma-line py-4 first:border-t-0 first:pt-0 last:pb-0">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[16px] font-medium leading-[1.4] text-figma-ink [overflow-wrap:anywhere]">{task.name}</span>
+            <li key={task.sort_order} data-testid="report-task" className="flex flex-col items-start gap-1.5 border-t border-figma-line py-1.5 last:pb-0">
+              <span className="w-full text-[16px] font-semibold leading-[1.4] text-figma-ink [overflow-wrap:anywhere]">{task.name}</span>
+              <div className="flex flex-wrap items-center gap-2.5">
                 <StatusChip status={chipFor[task.outcome]} size="report" />
+                {task.logged_at && <p className="text-[16px] leading-[1.4] text-figma-ink">{FAMILY_REPORT.loggedAt(formatTime(task.logged_at))}</p>}
               </div>
-              {task.logged_at && <p className="text-[16px] leading-[1.4] text-figma-ink">{FAMILY_REPORT.loggedAt(formatTime(task.logged_at))}</p>}
               {task.outcome === 'not_done' && task.reason && (
-                <div>
-                  <p className="text-[16px] font-medium leading-[1.4] text-figma-ink">{FAMILY_REPORT.reason}</p>
-                  <p className={words}>{task.reason}</p>
-                </div>
+                <p className={words}>
+                  <span className="font-semibold">{FAMILY_REPORT.reason}</span> {task.reason}
+                </p>
               )}
               {task.outcome === 'done' && task.note && (
-                <div>
-                  <p className="text-[16px] font-medium leading-[1.4] text-figma-ink">{FAMILY_REPORT.note}</p>
-                  <p className={words}>{task.note}</p>
-                </div>
+                <p className={words}>
+                  <span className="font-semibold">{FAMILY_REPORT.note}</span> {task.note}
+                </p>
               )}
             </li>
           ))}
@@ -87,7 +85,7 @@ export function VisitReport({ bundle, visit, tasks }: { bundle: BundleCode; visi
 
       {visit.visit_note && (
         <section aria-labelledby="report-note-heading" className={card} data-testid="visit-note-card">
-          <h2 id="report-note-heading" className="text-[18px] font-semibold leading-[1.3] text-figma-ink">
+          <h2 id="report-note-heading" className="text-[16px] leading-[1.4] text-figma-ink">
             {FAMILY_REPORT.visitNoteHeading}
           </h2>
           <p className={words}>{visit.visit_note}</p>

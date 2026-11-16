@@ -119,7 +119,8 @@ test.describe('DEV-076 — the MediCheck report, in the order of §6.1', () => {
     await expect(vitals).toContainText('Done')
     await expect(vitals).toContainText('Note:')
     await expect(vitals).toContainText(/Logged at \d{2}:\d{2} EAT/)
-    expect(await vitals.getByText('Blood pressure 128/82').innerText()).toBe(MULTI_LINE_READINGS)
+    // the label "Note:" starts the same paragraph (frames FAM-03 to FAM-06)
+    expect(await vitals.getByText('Blood pressure 128/82').innerText()).toBe(`Note: ${MULTI_LINE_READINGS}`)
 
     const companionship = taskBlock(page, 'Companionship')
     await expect(companionship).toContainText('Not recorded')
@@ -224,11 +225,11 @@ test.describe('DEV-076 — the outcome chips and the 16px floor', () => {
   test('a Not done task is drawn exactly like a Done task: the same computed style on its name and on its text', async ({ page }) => {
     const { family, booking } = data.medicheck
     await open(page, family, booking.id)
-    const nameStyle = (name: string) => style(taskBlock(page, name).locator('span.font-medium').first())
+    const nameStyle = (name: string) => style(taskBlock(page, name).locator('span.font-semibold').first())
     expect(await nameStyle('Medication assistance')).toEqual(await nameStyle('Vitals check'))
     // (the heights differ with the amount of text, so they are left out)
-    const textOf = async (name: string, label: string) => ({ ...(await style(taskBlock(page, name).getByText(label, { exact: true }).locator('xpath=following-sibling::p'))), height: '' })
-    expect(await textOf('Medication assistance', 'Reason:')).toEqual(await textOf('Vitals check', 'Note:'))
+    const textOf = async (name: string) => ({ ...(await style(taskBlock(page, name).locator('p.whitespace-pre-wrap'))), height: '' })
+    expect(await textOf('Medication assistance')).toEqual(await textOf('Vitals check'))
   })
 
   test('the status chips and the caregiver chips on their own screens still compute 14px', async ({ page }) => {
@@ -250,8 +251,8 @@ test.describe('DEV-076 — the caregiver\'s words, in full, as text', () => {
   test('a 2,000-character task note, a 500-character reason and a 2,000-character visit note are shown whole', async ({ page }) => {
     const { family, booking, taskNote, reason, visitNote } = data.long
     await open(page, family, booking.id)
-    expect(await taskBlock(page, 'Vitals check').locator('p.whitespace-pre-wrap').innerText()).toBe(taskNote)
-    expect(await taskBlock(page, 'Medication assistance').locator('p.whitespace-pre-wrap').innerText()).toBe(reason)
+    expect(await taskBlock(page, 'Vitals check').locator('p.whitespace-pre-wrap').innerText()).toBe(`Note: ${taskNote}`)
+    expect(await taskBlock(page, 'Medication assistance').locator('p.whitespace-pre-wrap').innerText()).toBe(`Reason: ${reason}`)
     expect(await page.getByTestId('visit-note-card').locator('p').innerText()).toBe(visitNote)
     // nothing behind "show more"
     await expect(page.getByText(/show more|read more|see more/i)).toHaveCount(0)

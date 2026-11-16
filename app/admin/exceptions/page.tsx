@@ -1,3 +1,4 @@
+import { AdminMain } from '@/components/admin/admin-main'
 import { ExceptionsScreen } from '@/components/admin/exceptions-screen'
 import { EXCEPTIONS_TEXT } from '@/lib/admin/exceptions-text'
 
@@ -7,10 +8,10 @@ import { EXCEPTIONS_TEXT } from '@/lib/admin/exceptions-text'
 // alerts, has no auto-refresh and changes nothing (R-07, R-08).
 export default function ExceptionsPage() {
   return (
-    <main className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 text-figma-ink">
-      <h1 className="text-[28px] font-bold leading-9">{EXCEPTIONS_TEXT.title}</h1>
-      <p className="text-[16px] leading-[1.4]">{EXCEPTIONS_TEXT.intro}</p>
+    <AdminMain>
+      <h1 className="text-[28px] font-bold leading-[1.25]">{EXCEPTIONS_TEXT.title}</h1>
+      <p className="text-[16px] leading-[1.4] text-figma-muted">{EXCEPTIONS_TEXT.intro}</p>
       <ExceptionsScreen />
-    </main>
+    </AdminMain>
   )
 }

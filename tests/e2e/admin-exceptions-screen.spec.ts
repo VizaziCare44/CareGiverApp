@@ -45,7 +45,7 @@ const loaded = (page: Page) => page.getByTestId('loaded-line')
 
 async function openScreen(page: Page) {
   await page.goto('/admin/exceptions')
-  await expect(loaded(page)).toHaveText(/^Loaded \d\d:\d\d EAT$/)
+  await expect(loaded(page)).toHaveText(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
 }
 
 test.describe('DEV-080 — the Exceptions screen (§7)', () => {
@@ -58,7 +58,7 @@ test.describe('DEV-080 — the Exceptions screen (§7)', () => {
     await expect(nav.getByRole('link', { name: 'Exceptions' })).toHaveAttribute('aria-current', 'page')
     await expect(page.getByRole('heading', { level: 1, name: 'Exceptions' })).toBeVisible()
     await expect(page.getByText('Last 7 days. This list sends no alerts.', { exact: true })).toBeVisible()
-    await expect(loaded(page)).toHaveText(/^Loaded \d\d:\d\d EAT$/)
+    await expect(loaded(page)).toHaveText(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
     await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
   })
 
@@ -200,7 +200,7 @@ test.describe('DEV-080 — the states (AC-012)', () => {
     await expect(loaded(page)).toHaveText('Loading…')
     await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toBeDisabled()
     release()
-    await expect(loaded(page)).toHaveText(/^Loaded \d\d:\d\d EAT$/)
+    await expect(loaded(page)).toHaveText(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
     await expect(rowOf(page, b)).toHaveCount(1)
   })
 
@@ -232,7 +232,7 @@ test.describe('DEV-080 — the states (AC-012)', () => {
 
     await page.unroute('**/admin/exceptions')
     await page.getByRole('button', { name: 'Try again', exact: true }).click()
-    await expect(loaded(page)).toHaveText(/^Loaded \d\d:\d\d EAT$/)
+    await expect(loaded(page)).toHaveText(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
     await expect(rowOf(page, b)).toHaveCount(1)
     await expect(page.getByTestId('exceptions-error')).toHaveCount(0)
   })
@@ -427,8 +427,8 @@ test.describe('DEV-081 — time zones (AC-009)', () => {
       expect(there.visit).toBe(here.visit)
       expect(here.visit).toBe(formatDateTime(R))
       expect(here.visit).toMatch(/ EAT$/)
-      expect(there.loaded).toMatch(/^Loaded \d\d:\d\d EAT$/)
-      expect(here.loaded).toMatch(/^Loaded \d\d:\d\d EAT$/)
+      expect(there.loaded).toMatch(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
+      expect(here.loaded).toMatch(/^Loaded [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} EAT$/)
     } finally {
       await other.close()
     }

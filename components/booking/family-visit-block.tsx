@@ -57,17 +57,18 @@ export function FamilyVisitBlock({ bookingId, bundleCode, status: initialStatus,
   }
 
   if (state === 'in-progress' && reads.visit) {
+    // frame FAM-02: a surface card like the caregiver block, the label "Visit", then "Checked in at" and the time in 20px bold
     return (
-      <section aria-labelledby="visit-heading" className={card} data-testid="visit-block">
-        <h2 id="visit-heading" className="text-[18px] font-semibold leading-[1.3]">
+      <section aria-labelledby="visit-heading" className="flex flex-col gap-[10px] rounded-[14px] bg-figma-surface p-4" data-testid="visit-block">
+        <h2 id="visit-heading" className="text-[14px] font-semibold leading-[1.4] text-figma-muted">
           {FAMILY_VISIT.heading}
         </h2>
-        <div>
-          <p className="text-[14px] font-medium text-figma-muted">{FAMILY_VISIT.checkedInAt}</p>
-          <p className="text-[16px]" data-testid="visit-checked-in">
+        <p className="text-[20px] font-bold leading-[1.4]">
+          <span className="block">{FAMILY_VISIT.checkedInAt}</span>
+          <span className="block" data-testid="visit-checked-in">
             {formatDateTime(reads.visit.checked_in_at)}
-          </p>
-        </div>
+          </span>
+        </p>
         <p className="text-[16px] leading-[1.4]">{FAMILY_VISIT.inProgressLine}</p>
       </section>
     )
@@ -76,7 +77,7 @@ export function FamilyVisitBlock({ bookingId, bundleCode, status: initialStatus,
   if (state === 'not-available') {
     return (
       <section aria-label={FAMILY_VISIT.heading} data-testid="visit-block">
-        <Notice family>
+        <Notice>
           <p>{FAMILY_VISIT.notAvailable}</p>
           <ContactAddressRow />
         </Notice>
