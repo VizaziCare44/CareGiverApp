@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { formatTime } from '../../lib/datetime'
+import { formatDateTime } from '../../lib/datetime'
 import { canCheckOut, requiredProgress, stillToLog, unloggedOptionalName, type VisitTask } from '../../lib/visits/progress'
 import { logInViaUI, serviceClient } from './helpers'
 import { makeBooking, makeCaregiver, makeFamily, makeRecipient, nairobiTime, type TestCaregiver } from './factories'
@@ -78,7 +78,7 @@ test.describe('DEV-065 — Assignment Detail in progress', () => {
 
     await expect(page.getByText('In progress', { exact: true })).toBeVisible()
     await expect(page.locator('[data-icon="clock"]').first()).toBeVisible()
-    await expect(page.getByTestId('checked-in-line')).toHaveText(`Checked in: ${formatTime(checkedInAt)}`)
+    await expect(page.getByTestId('checked-in-line')).toHaveText(`Checked in: ${formatDateTime(checkedInAt)}`)
 
     const card = page.getByRole('region', { name: 'Tasks' })
     await expect(card.getByTestId('tasks-progress')).toHaveText('Required tasks logged: 0 of 2. Tap a task to log it.')

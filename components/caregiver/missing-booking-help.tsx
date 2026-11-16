@@ -7,7 +7,7 @@ import { CONTACT } from '@/lib/contact'
  */
 export function ContactEmailLink() {
   return (
-    <a href={`mailto:${CONTACT.email}`} className="text-figma-softtext underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary">
+    <a href={`mailto:${CONTACT.email}`} className="text-figma-primary underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary">
       {CONTACT.email}
     </a>
   )
@@ -22,11 +22,11 @@ export function ContactEmailLink() {
  * built, and DEV-064 reuses it at the width of its notice. The full stop is inside
  * the tap target but is not read out or underlined.
  */
-export function ContactAddressRow() {
+export function ContactAddressRow({ large = false }: { large?: boolean }) {
   return (
     <a
       href={`mailto:${CONTACT.email}`}
-      className="flex min-h-11 w-full items-center text-[14px] leading-[1.4] text-figma-softtext focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary"
+      className={`flex min-h-11 w-full items-center ${large ? 'text-[16px]' : 'text-[14px]'} leading-[1.4] text-figma-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary`}
     >
       <span className="underline">{CONTACT.email}</span>
       <span aria-hidden="true">.</span>

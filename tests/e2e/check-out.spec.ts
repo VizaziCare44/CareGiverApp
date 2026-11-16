@@ -228,7 +228,7 @@ test.describe('DEV-067 — when it goes wrong, and the limits', () => {
 
     await page.route(`**/assignments/${booking.id}`, (route) => (route.request().method() === 'POST' ? route.abort() : route.continue()))
     await confirmButton(page).click()
-    await expect(page.locator('p[role="alert"]')).toHaveText('Not checked out. Check your connection and try again. What you typed is still here.')
+    await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveText('Not checked out. Check your connection and try again. What you typed is still here.')
     await expect(dialog(page).getByLabel('Note about the visit (optional)')).toHaveValue('Quiet visit')
     expect((await visitRow(booking.id)).checked_out_at).toBeNull()
 

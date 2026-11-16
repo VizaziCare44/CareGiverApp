@@ -1,3 +1,4 @@
+import { TaskTag } from '@/components/caregiver/task-tag'
 import { CHECKLIST, MEDICATION_ASSISTANCE_NOTES } from '@/lib/visits/assignment-text'
 
 export interface ChecklistRow {
@@ -8,28 +9,28 @@ export interface ChecklistRow {
 
 /**
  * The checklist block, the same in every state of Assignment Detail (read-only here; the
- * tasks are logged from DEV-065 on): the heading, the line, the tasks in order with
- * Required or Optional as text, and under Medication assistance its description and the
- * if-unsure sentence.
+ * tasks are logged from DEV-065 on) as frames VIS-02 to VIS-05b draw it: the heading and the line, then
+ * each task with its name and Required or Optional (the tag), and under Medication assistance its
+ * description and the if-unsure sentence.
  */
 export function VisitChecklist({ items }: { items: ChecklistRow[] }) {
   return (
-    <section aria-labelledby="visit-checklist-heading" className="flex flex-col gap-3 rounded-[14px] border border-figma-border bg-white p-5">
-      <h2 id="visit-checklist-heading" className="text-[18px] font-semibold leading-[1.3]">
+    <section aria-labelledby="visit-checklist-heading" className="flex flex-col rounded-[14px] border border-figma-border bg-white px-4 pb-1.5 pt-3.5">
+      <h2 id="visit-checklist-heading" className="text-[18px] font-semibold leading-[1.4]">
         {CHECKLIST.heading}
       </h2>
-      <p className="text-[14px] leading-[1.4] text-figma-muted">{CHECKLIST.line}</p>
-      <ol className="flex flex-col gap-3">
+      <p className="border-b border-figma-line pb-2 text-[14px] leading-[1.4] text-figma-muted">{CHECKLIST.line}</p>
+      <ol className="flex flex-col">
         {items.map((item) => (
-          <li key={item.task_key} data-testid="checklist-task" className="flex flex-col gap-1 border-t border-figma-line pt-3 first:border-t-0 first:pt-0">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[16px] font-medium">{item.name}</span>
-              <span className="text-[14px] text-figma-muted">{item.is_required ? CHECKLIST.required : CHECKLIST.optional}</span>
-            </div>
+          <li key={item.task_key} data-testid="checklist-task" className="flex flex-col gap-1.5 border-t border-figma-line py-3 first:border-t-0">
+            <span className="text-[16px] font-semibold leading-[1.4]">{item.name}</span>
+            <span>
+              <TaskTag required={item.is_required} />
+            </span>
             {item.name === MEDICATION_ASSISTANCE_NOTES.taskName && (
               <>
-                <p className="text-[14px] leading-[1.4]">{MEDICATION_ASSISTANCE_NOTES.description}</p>
-                <p className="text-[14px] leading-[1.4]">{MEDICATION_ASSISTANCE_NOTES.ifUnsure}</p>
+                <p className="text-[14px] leading-[1.4] text-figma-muted">{MEDICATION_ASSISTANCE_NOTES.description}</p>
+                <p className="text-[14px] leading-[1.4] text-figma-muted">{MEDICATION_ASSISTANCE_NOTES.ifUnsure}</p>
               </>
             )}
           </li>

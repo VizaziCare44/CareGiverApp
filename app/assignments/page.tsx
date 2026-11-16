@@ -76,36 +76,22 @@ export default async function MyAssignmentsPage() {
                     group === 'in-progress' ? 'border-2 border-figma-primary p-[15px]' : 'border border-figma-border',
                   ].join(' ')}
                 >
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="text-[17px] font-bold leading-[1.4]">{formatDateTime(assignment.requested_datetime)}</span>
-                    <svg
-                      aria-hidden="true"
-                      data-testid="card-chevron"
-                      className="shrink-0"
-                      width="22"
-                      height="22"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                  {/* frame VIS-01: the status chip (when there is one) sits first, with the chevron at the right of that row; a card without a status has the date there */}
+                  <span className="flex items-center justify-between gap-3">
+                    {group === 'in-progress' ? (
+                      <StatusChip status="visit-in-progress" label={IN_PROGRESS_LABEL} />
+                    ) : group === 'passed' ? (
+                      <StatusChip status="day-passed" />
+                    ) : (
+                      <span className="text-[16px] font-semibold leading-[1.4]">{formatDateTime(assignment.requested_datetime)}</span>
+                    )}
+                    <svg aria-hidden="true" data-testid="card-chevron" className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 5l7 7-7 7" />
                     </svg>
                   </span>
+                  {group !== 'upcoming' && <span className="text-[16px] font-semibold leading-[1.4]">{formatDateTime(assignment.requested_datetime)}</span>}
                   <span className="text-[16px] font-semibold leading-[1.4]">{assignment.care_recipients?.name}</span>
                   <span className="text-[15px] leading-[1.4] text-figma-muted">{BUNDLE_LINES[assignment.bundle_code]}</span>
-                  {group === 'in-progress' && (
-                    <span className="mt-2 flex">
-                      <StatusChip status="in-progress" label={IN_PROGRESS_LABEL} />
-                    </span>
-                  )}
-                  {group === 'passed' && (
-                    <span className="mt-2 flex">
-                      <StatusChip status="day-passed" />
-                    </span>
-                  )}
                 </Link>
               </li>
             )

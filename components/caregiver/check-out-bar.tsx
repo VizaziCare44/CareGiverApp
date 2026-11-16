@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
-import { AlertMessage } from '@/components/ui/alert-message'
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { TextAreaField } from '@/components/ui/text-area-field'
 import { checkOutAction } from '@/app/assignments/[id]/actions'
@@ -56,8 +56,8 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-figma-line bg-white px-6 py-4" data-testid="check-out-bar">
-        <div className="mx-auto flex max-w-2xl flex-col gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-figma-line bg-white px-5 py-4" data-testid="check-out-bar">
+        <div className="mx-auto flex max-w-md flex-col gap-[10px]">
           {line && (
             <p id="check-out-line" className="text-[14px] leading-[1.4] text-figma-muted" data-testid="check-out-line">
               {line}
@@ -69,15 +69,15 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
         </div>
       </div>
 
-      <ModalDialog open={open} onClose={close} labelledBy="check-out-dialog-title" locked={pending}>
+      <ModalDialog open={open} onClose={close} labelledBy="check-out-dialog-title" locked={pending} size="compact">
         <form
-          className="flex flex-col gap-5"
+          className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault()
             void confirm()
           }}
         >
-          <h2 id="check-out-dialog-title" className="text-[22px] font-bold leading-[1.3]">
+          <h2 id="check-out-dialog-title" className="text-[20px] font-bold leading-[1.3]">
             {CHECK_OUT_DIALOG.title}
           </h2>
           <div className="flex flex-col gap-3 text-[16px] leading-[1.4]">
@@ -93,6 +93,8 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
             <TextAreaField
               id="visit-note"
               label={CHECK_OUT_DIALOG.noteLabel}
+              placeholder="Type a note here"
+              short
               value={note}
               disabled={pending}
               onChange={(event) => setNote(event.target.value)}
@@ -104,14 +106,15 @@ export function CheckOutBar({ bookingId, tasks }: { bookingId: string; tasks: Vi
             )}
           </div>
 
-          {error?.message && <AlertMessage>{error.message}</AlertMessage>}
+          {error?.message && <ErrorBanner>{error.message}</ErrorBanner>}
 
-          <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
-            <ActionButton variant="secondary" disabled={pending} onClick={close}>
-              {CHECK_OUT_DIALOG.back}
-            </ActionButton>
-            <ActionButton type="submit" disabled={pending || tooLong}>
+          {/* frame VIS-08: the two buttons one under the other, the action first */}
+          <div className="flex flex-col gap-3">
+            <ActionButton type="submit" disabled={pending || tooLong} className="w-full">
               {pending ? pendingText : CHECK_OUT_DIALOG.confirm}
+            </ActionButton>
+            <ActionButton variant="secondary" disabled={pending} onClick={close} className="w-full">
+              {CHECK_OUT_DIALOG.back}
             </ActionButton>
           </div>
         </form>

@@ -40,7 +40,8 @@ export const CHECK_IN_DIALOG = {
   cancel: 'Cancel',
 }
 
-export const checkedInLine = (time: string) => `Checked in: ${time}`
+/** The date and the time together, as the frames draw it: "Checked in: Wed 14 Oct 2026, 09:04 EAT". */
+export const checkedInLine = (dateTime: string) => `Checked in: ${dateTime}`
 
 // In progress (DEV-065; frames VIS-06, VIS-06b, VIS-06c), §6.5.
 export const TASKS = {

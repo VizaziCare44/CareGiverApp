@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton, ActionLink } from '@/components/ui/action-button'
-import { AlertMessage } from '@/components/ui/alert-message'
+import { ErrorBanner } from '@/components/ui/error-banner'
+import { Notice } from '@/components/caregiver/notice'
 import { TextAreaField } from '@/components/ui/text-area-field'
 import { logTaskAction } from '@/app/assignments/[id]/tasks/[taskKey]/actions'
 import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { LOG_TASK, NOTE_LIMIT, REASON_LIMIT, fieldFor, lengthOf } from '@/lib/visits/log-task-text'
-import { formatTime } from '@/lib/datetime'
+import { formatDateTime } from '@/lib/datetime'
 
 type Outcome = 'done' | 'not_done'
 
@@ -35,12 +36,15 @@ export function LogTaskForm({
   taskName,
   noteRequired,
   current,
+  header,
 }: {
   bookingId: string
   taskKey: string
   taskName: string
   noteRequired: boolean
   current: CurrentEntry | null
+  /** The task's name, its tag and what the task is (frames VIS-07 to VIS-07d), drawn under the error banner. */
+  header: ReactNode
 }) {
   const router = useRouter()
   // after a success the screen moves to the assignment, so the form stays locked until it does
@@ -81,15 +85,25 @@ export function LogTaskForm({
 
   return (
     <form
-      className="flex flex-col gap-5"
+      className="flex flex-col gap-4 pb-44"
       onSubmit={(event) => {
         event.preventDefault()
         void save()
       }}
     >
+      {error?.message && <ErrorBanner ink>{error.message}</ErrorBanner>}
+
+      {header}
+
+      {current && (
+        <Notice>
+          <p data-testid="change-line">{LOG_TASK.loggedAs(current.outcome === 'done' ? 'Done' : 'Not done', formatDateTime(current.loggedAt))}</p>
+        </Notice>
+      )}
+
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-[14px] font-medium text-figma-ink">{LOG_TASK.outcomeLegend}</legend>
-        <div role="radiogroup" aria-label={LOG_TASK.outcomeLegend} className="grid grid-cols-2 gap-3">
+        <legend className="mb-2 text-[14px] font-medium leading-[1.4] text-figma-ink">{LOG_TASK.outcomeLegend}</legend>
+        <div role="radiogroup" aria-label={LOG_TASK.outcomeLegend} className="grid grid-cols-2 gap-2">
           {(['done', 'not_done'] as const).map((value) => {
             const selected = outcome === value
             return (
@@ -101,14 +115,14 @@ export function LogTaskForm({
                 disabled={pending}
                 onClick={() => setOutcome(value)}
                 className={[
-                  'inline-flex min-h-[52px] items-center justify-center gap-2 rounded-[10px] px-4 text-[16px] font-semibold leading-[1.4]',
+                  'inline-flex h-[52px] items-center justify-center gap-2 rounded-[10px] px-3 text-[16px] leading-[1.4]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed',
-                  selected ? 'bg-figma-primary text-white' : 'border-2 border-figma-primary bg-white text-figma-primary',
+                  selected ? 'border-2 border-figma-primary bg-figma-soft font-semibold text-figma-softtext' : 'border border-figma-border bg-white font-medium text-figma-ink',
                 ].join(' ')}
               >
                 {selected && (
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3.5 8.5l3 3 6-7" />
+                    {value === 'done' ? <path d="M3.5 8.5l3 3 6-7" /> : <path d="M3.5 8h9" />}
                   </svg>
                 )}
                 {value === 'done' ? LOG_TASK.done : LOG_TASK.notDone}
@@ -124,6 +138,8 @@ export function LogTaskForm({
             id="task-text"
             label={field.label}
             helper={field.prompt ?? undefined}
+            short
+            placeholder={outcome === 'done' ? (field.label.startsWith('Readings') ? 'Type the readings here' : 'Type a note here') : 'Type the reason here'}
             value={text}
             disabled={pending}
             onChange={(event) => (outcome === 'done' ? setNote(event.target.value) : setReason(event.target.value))}
@@ -142,16 +158,18 @@ export function LogTaskForm({
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        <p className="text-[14px] leading-[1.4] text-figma-muted" data-testid="change-line">
-          {current ? LOG_TASK.loggedAs(current.outcome === 'done' ? 'Done' : 'Not done', formatTime(current.loggedAt)) : LOG_TASK.changeLine}
-        </p>
-
-        {error?.message && <AlertMessage>{error.message}</AlertMessage>}
-
-        <ActionButton type="submit" disabled={!canSave} className="w-full">
-          {pending ? pendingText : error?.retry ? LOG_TASK.tryAgain : current ? LOG_TASK.saveChange : LOG_TASK.save}
-        </ActionButton>
+      {/* frames VIS-07 to VIS-07d: the action bar fixed at the bottom, the line and the button; a task that already has an entry has the button only */}
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-figma-line bg-white px-5 py-4">
+        <div className="mx-auto flex max-w-md flex-col gap-[10px]">
+          {!current && (
+            <p className="text-[14px] leading-[1.4] text-figma-muted" data-testid="change-line">
+              {LOG_TASK.changeLine}
+            </p>
+          )}
+          <ActionButton type="submit" disabled={!canSave} className="w-full">
+            {pending ? pendingText : error?.retry ? LOG_TASK.tryAgain : current ? LOG_TASK.saveChange : LOG_TASK.save}
+          </ActionButton>
+        </div>
       </div>
     </form>
   )

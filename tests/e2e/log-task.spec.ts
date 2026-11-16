@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { formatTime } from '../../lib/datetime'
+import { formatDateTime } from '../../lib/datetime'
 import { logInViaUI, serviceClient } from './helpers'
 import { makeBooking, makeCaregiver, makeFamily, makeRecipient, nairobiTime, type TestCaregiver } from './factories'
 
@@ -104,7 +104,7 @@ test.describe('DEV-066 — Log or change a task', () => {
     await expect(save(page)).toBeDisabled()
     const needed = page.getByTestId('needed-line')
     await expect(needed).toHaveText('A note is needed to log this task as Done.')
-    await expect(page.locator('p[role="alert"]')).toHaveCount(0)
+    await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveCount(0)
     await field.fill('   ')
     await expect(save(page)).toBeDisabled()
 
@@ -202,7 +202,7 @@ test.describe('DEV-066 — Log or change a task', () => {
     // it opens on the entry that counts
     await expect(done(page)).toHaveAttribute('aria-checked', 'true')
     await expect(page.getByLabel('Note (optional)')).toHaveValue('Gave the morning tablets')
-    const when = formatTime((await entries(booking.id, task))[0].logged_at)
+    const when = formatDateTime((await entries(booking.id, task))[0].logged_at)
     await expect(page.getByTestId('change-line')).toHaveText(`Logged as Done on ${when}. You can change it until you check out. The earlier entry stays in the visit record.`)
     await expect(page.getByRole('button', { name: 'Save change', exact: true })).toBeEnabled()
     await expect(save(page)).toHaveCount(0)
@@ -234,7 +234,7 @@ test.describe('DEV-066 — Log or change a task', () => {
     // the connection drops for the save
     await page.route(`**/assignments/${booking.id}/tasks/${task}`, (route) => (route.request().method() === 'POST' ? route.abort() : route.continue()))
     await save(page).click()
-    await expect(page.locator('p[role="alert"]')).toHaveText('Not saved. Check your connection and try again. What you typed is still here.')
+    await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveText('Not saved. Check your connection and try again. What you typed is still here.')
     await expect(page.getByLabel('Readings')).toHaveValue('BP 118/76')
     expect(await entries(booking.id, task)).toHaveLength(0)
     const retry = page.getByRole('button', { name: 'Try again', exact: true })

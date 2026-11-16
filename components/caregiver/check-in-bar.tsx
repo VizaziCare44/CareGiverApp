@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ActionButton } from '@/components/ui/action-button'
-import { AlertMessage } from '@/components/ui/alert-message'
+import { ErrorBanner } from '@/components/ui/error-banner'
 import { ModalDialog } from '@/components/ui/modal-dialog'
 import { checkInAction } from '@/app/assignments/[id]/actions'
 import { useVisitAction } from '@/components/caregiver/use-visit-action'
 import { CHECK_IN_DIALOG, checkedInLine } from '@/lib/visits/assignment-text'
-import { formatTime } from '@/lib/datetime'
+import { formatDateTime } from '@/lib/datetime'
 
 /**
  * The Check in button in the bar fixed at the bottom of the screen (VIS-03, VIS-03b) and
@@ -44,11 +44,11 @@ export function CheckInBar({ bookingId, recipientName, bundleName, visitDate }: 
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-figma-line bg-white px-6 py-4" data-testid="check-in-bar">
-        <div className="mx-auto flex max-w-2xl flex-col gap-2">
+      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-figma-line bg-white px-5 py-4" data-testid="check-in-bar">
+        <div className="mx-auto flex max-w-md flex-col gap-[10px]">
           {checkedInAt ? (
-            <p role="status" className="text-[16px] font-medium">
-              {checkedInLine(formatTime(checkedInAt))}
+            <p role="status" className="text-[15px] font-semibold">
+              {checkedInLine(formatDateTime(checkedInAt))}
             </p>
           ) : (
             <ActionButton className="w-full" onClick={() => setOpen(true)}>
@@ -58,21 +58,20 @@ export function CheckInBar({ bookingId, recipientName, bundleName, visitDate }: 
         </div>
       </div>
 
-      <ModalDialog open={open} onClose={close} labelledBy="check-in-dialog-title" locked={pending}>
-        <h2 id="check-in-dialog-title" className="text-[22px] font-bold leading-[1.3]">
+      <ModalDialog open={open} onClose={close} labelledBy="check-in-dialog-title" locked={pending} size="compact">
+        <h2 id="check-in-dialog-title" className="text-[20px] font-bold leading-[1.3]">
           {CHECK_IN_DIALOG.title}
         </h2>
-        <div className="flex flex-col gap-2 text-[16px] leading-[1.4]">
-          <p className="font-medium">{CHECK_IN_DIALOG.detail(recipientName, bundleName, visitDate)}</p>
-          <p>{CHECK_IN_DIALOG.body}</p>
-        </div>
-        {error?.message && <AlertMessage>{error.message}</AlertMessage>}
-        <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
-          <ActionButton variant="secondary" disabled={pending} onClick={close}>
-            {CHECK_IN_DIALOG.cancel}
-          </ActionButton>
-          <ActionButton disabled={pending} onClick={confirm}>
+        <p className="text-[15px] leading-[1.4] text-figma-muted">{CHECK_IN_DIALOG.detail(recipientName, bundleName, visitDate)}</p>
+        <p className="text-[16px] leading-[1.4]">{CHECK_IN_DIALOG.body}</p>
+        {error?.message && <ErrorBanner>{error.message}</ErrorBanner>}
+        {/* frame VIS-04: the two buttons one under the other, the action first */}
+        <div className="flex flex-col gap-3">
+          <ActionButton disabled={pending} onClick={confirm} className="w-full">
             {pending ? pendingText : CHECK_IN_DIALOG.confirm}
+          </ActionButton>
+          <ActionButton variant="secondary" disabled={pending} onClick={close} className="w-full">
+            {CHECK_IN_DIALOG.cancel}
           </ActionButton>
         </div>
       </ModalDialog>

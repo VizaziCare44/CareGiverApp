@@ -9,6 +9,7 @@ export function TextAreaField({
   label,
   helper,
   error,
+  short = false,
   className = '',
   ...props
 }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> & {
@@ -16,6 +17,8 @@ export function TextAreaField({
   label: string
   helper?: string
   error?: string | null
+  /** 80px high instead of 112, as in the Caregiver's frames (VIS-07, VIS-08). */
+  short?: boolean
 }) {
   const describedBy = [helper ? `${id}-helper` : null, error ? `${id}-error` : null].filter(Boolean).join(' ') || undefined
 
@@ -25,7 +28,7 @@ export function TextAreaField({
         {label}
       </label>
       {helper && (
-        <p id={`${id}-helper`} className="text-[14px] leading-[1.4] text-figma-muted">
+        <p id={`${id}-helper`} className={`${short ? 'text-[13px]' : 'text-[14px]'} leading-[1.4] text-figma-muted`}>
           {helper}
         </p>
       )}
@@ -34,7 +37,7 @@ export function TextAreaField({
         aria-describedby={describedBy}
         aria-invalid={error ? true : undefined}
         className={[
-          'min-h-[112px] w-full resize-y rounded-[10px] bg-white px-[14px] py-3 text-[16px] leading-[1.4] text-figma-ink',
+          `${short ? 'min-h-[80px]' : 'min-h-[112px]'} w-full resize-y rounded-[10px] bg-white px-[14px] py-3 text-[16px] leading-[1.4] text-figma-ink`,
           'placeholder:text-figma-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary focus-visible:ring-offset-2',
           error ? 'border-2 border-figma-danger' : 'border border-figma-border',
         ].join(' ')}

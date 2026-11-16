@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
@@ -10,6 +9,7 @@ import { CheckOutBar } from '@/components/caregiver/check-out-bar'
 import { VisitChecklist, type ChecklistRow } from '@/components/caregiver/visit-checklist'
 import { VisitTasks } from '@/components/caregiver/visit-tasks'
 import { StatusChip } from '@/components/ui/status-chip'
+import { TextLink } from '@/components/ui/text-link'
 import { VisitSummary, type SummaryTask } from '@/components/caregiver/visit-summary'
 import { BUNDLES, BUNDLE_LINES } from '@/lib/bookings/bundles'
 import type { BundleCode } from '@/lib/bookings/types'
@@ -111,7 +111,7 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
   if (summary) {
     return (
       <div className="mx-auto min-h-screen w-full max-w-md bg-white text-figma-ink">
-        <AppBar title="Assignment" backHref="/assignments" backLabel="Back to my assignments" />
+        <AppBar title="Visit summary" backHref="/assignments" backLabel="Back to my assignments" />
         <main className="flex flex-col gap-4 p-5">
           <VisitSummary
             recipientName={booking.care_recipients?.name ?? ''}
@@ -136,6 +136,16 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
       <main className={`flex flex-col gap-4 p-5 ${canCheckIn ? 'pb-28' : ''} ${inProgress ? 'pb-48' : ''}`}>
         <h1 className="sr-only">{booking.care_recipients?.name}</h1>
 
+        {/* frames VIS-06 to VIS-06c: the status and the check-in time come first, above the summary */}
+        {visit?.checked_in_at && !assigned && (
+          <div className="flex flex-col items-start gap-2">
+            {inProgress && <StatusChip status="visit-in-progress" label={IN_PROGRESS_LABEL} />}
+            <p className="text-[15px] font-semibold leading-[1.4]" data-testid="checked-in-line">
+              {checkedInLine(formatDateTime(visit.checked_in_at))}
+            </p>
+          </div>
+        )}
+
         {/* frame VER-12: one card of rows, each a small label over the value (the care notes are the last row) */}
         <section aria-label="Booking" className="flex flex-col rounded-[14px] border border-figma-border bg-white px-4 py-1">
           <SummaryRow label="Care recipient">{booking.care_recipients?.name}</SummaryRow>
@@ -154,35 +164,25 @@ export default async function AssignmentDetailPage({ params }: { params: { id: s
           </section>
         </section>
 
-        {visit?.checked_in_at && !assigned && (
-          <div className="flex flex-col items-start gap-2">
-            {inProgress && <StatusChip status="in-progress" label={IN_PROGRESS_LABEL} />}
-            <p className="text-[16px] font-medium" data-testid="checked-in-line">
-              {checkedInLine(formatTime(visit.checked_in_at))}
-            </p>
-          </div>
-        )}
-
         {assigned && visit?.day_state === 'before' && (
           <Notice>
             <p>{beforeTheDay(booking.requested_datetime)}</p>
           </Notice>
         )}
         {assigned && visit?.day_state === 'today' && visit.other_visit_booking_id && visit.other_visit_recipient_name && visit.other_visit_bundle_code && (
-          <Notice>
-            <p>{anotherVisitInProgress(visit.other_visit_recipient_name, visit.other_visit_bundle_code)}</p>
-            <Link
-              href={`/assignments/${visit.other_visit_booking_id}`}
-              className="flex min-h-11 items-center self-start text-figma-softtext underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-figma-primary"
-            >
+          <>
+            <Notice>
+              <p>{anotherVisitInProgress(visit.other_visit_recipient_name, visit.other_visit_bundle_code)}</p>
+            </Notice>
+            <TextLink href={`/assignments/${visit.other_visit_booking_id}`} className="self-start">
               {GO_TO_VISIT_IN_PROGRESS}
-            </Link>
-          </Notice>
+            </TextLink>
+          </>
         )}
         {assigned && visit?.day_state === 'passed' && (
           <Notice>
             <p>{DAY_PASSED}</p>
-            <ContactAddressRow />
+            <ContactAddressRow large />
           </Notice>
         )}
 

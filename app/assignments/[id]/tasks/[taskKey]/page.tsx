@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
-import { ActionLink } from '@/components/ui/action-button'
+import { TextLink } from '@/components/ui/text-link'
+import { TaskTag } from '@/components/caregiver/task-tag'
 import { BookingUnavailable } from '@/components/caregiver/booking-unavailable'
 import { LogTaskForm, type CurrentEntry } from '@/components/caregiver/log-task-form'
-import { CHECKLIST, MEDICATION_ASSISTANCE_NOTES } from '@/lib/visits/assignment-text'
+import { MEDICATION_ASSISTANCE_NOTES } from '@/lib/visits/assignment-text'
 import { LOG_TASK, isMedicationAssistance } from '@/lib/visits/log-task-text'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -51,29 +52,33 @@ export default async function LogTaskPage({ params }: { params: { id: string; ta
   const current: CurrentEntry | null =
     task.outcome && task.logged_at ? { outcome: task.outcome, note: task.note, reason: task.reason, loggedAt: task.logged_at } : null
 
-  return (
-    <div className="min-h-screen text-figma-ink">
-      <AppBar title={LOG_TASK.title} backHref={`/assignments/${params.id}`} backLabel={LOG_TASK.backToAssignment} />
-      <main className="mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-[28px] font-bold leading-9">{task.name}</h1>
-          <p className="text-[14px] text-figma-muted">{task.is_required ? CHECKLIST.required : CHECKLIST.optional}</p>
+  const header = (
+    <div className="flex flex-col items-start gap-2">
+      <h1 className="text-[22px] font-semibold leading-[1.4]">{task.name}</h1>
+      <TaskTag required={task.is_required} />
+      {isMedicationAssistance(task.name) && (
+        <div className="flex flex-col gap-3" data-testid="medication-help">
+          <p className="text-[14px] leading-[1.4] text-figma-muted">{MEDICATION_ASSISTANCE_NOTES.description}</p>
+          <p className="text-[14px] leading-[1.4] text-figma-muted">{MEDICATION_ASSISTANCE_NOTES.ifUnsure}</p>
         </div>
+      )}
+    </div>
+  )
 
-        {isMedicationAssistance(task.name) && (
-          <div className="flex flex-col gap-2 rounded-[14px] border border-figma-border bg-white p-4 text-[14px] leading-[1.4]" data-testid="medication-help">
-            <p>{MEDICATION_ASSISTANCE_NOTES.description}</p>
-            <p>{MEDICATION_ASSISTANCE_NOTES.ifUnsure}</p>
-          </div>
-        )}
-
+  return (
+    <div className="mx-auto min-h-screen w-full max-w-md bg-white text-figma-ink">
+      <AppBar title={LOG_TASK.title} backHref={`/assignments/${params.id}`} backLabel={LOG_TASK.backToAssignment} />
+      <main className="flex flex-col gap-4 p-5">
         {checkedOut ? (
-          <div className="flex flex-col gap-4" data-testid="already-checked-out">
-            <p className="text-[16px] leading-[1.4]">{LOG_TASK.alreadyCheckedOut}</p>
-            <ActionLink href={`/assignments/${params.id}`} variant="secondary" className="self-start">
-              {LOG_TASK.backToAssignment}
-            </ActionLink>
-          </div>
+          <>
+            {header}
+            <div className="flex flex-col gap-4" data-testid="already-checked-out">
+              <p className="text-[16px] leading-[1.4]">{LOG_TASK.alreadyCheckedOut}</p>
+              <TextLink href={`/assignments/${params.id}`} className="self-start">
+                {LOG_TASK.backToAssignment}
+              </TextLink>
+            </div>
+          </>
         ) : (
           <LogTaskForm
             // a new entry elsewhere (another device) gives a fresh form, not stale typing
@@ -83,6 +88,7 @@ export default async function LogTaskPage({ params }: { params: { id: string; ta
             taskName={task.name}
             noteRequired={task.note_required_for_done}
             current={current}
+            header={header}
           />
         )}
       </main>

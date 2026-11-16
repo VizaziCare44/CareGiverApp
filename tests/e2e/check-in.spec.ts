@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { formatDate, formatTime } from '../../lib/datetime'
+import { formatDate, formatDateTime } from '../../lib/datetime'
 import { logInViaUI, serviceClient } from './helpers'
 import { factoryAdmin, makeBooking, makeCaregiver, makeFamily, makeRecipient, nairobiTime } from './factories'
 
@@ -136,7 +136,7 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
     await expect(line).toBeVisible()
     const { data } = await serviceClient().from('visits').select('id, checked_in_at, caregiver_id').eq('booking_id', booking.id).single()
     expect(data!.caregiver_id).toBe(caregiver.userId)
-    await expect(line).toHaveText(`Checked in: ${formatTime(data!.checked_in_at)}`)
+    await expect(line).toHaveText(`Checked in: ${formatDateTime(data!.checked_in_at)}`)
     await expect(page.getByRole('button', { name: /check in/i })).toHaveCount(0)
     await expect(bar(page)).toHaveCount(0)
 
@@ -150,7 +150,7 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
 
     // a reload keeps it
     await page.reload()
-    await expect(page.getByTestId('checked-in-line')).toHaveText(`Checked in: ${formatTime(data!.checked_in_at)}`)
+    await expect(page.getByTestId('checked-in-line')).toHaveText(`Checked in: ${formatDateTime(data!.checked_in_at)}`)
   })
 
   test('a double tap on Check in checks in once', async ({ page }) => {
@@ -176,9 +176,10 @@ test.describe('DEV-064 — Assignment Detail before and at check-in', () => {
     await expect(notice).toContainText(
       'You already have a visit in progress (First Recipient, MediCheck). Check out of that visit first, then check in here.',
     )
-    const link = notice.getByRole('link', { name: 'Go to the visit in progress' })
+    // frame VIS-05: the text link sits right under the note, outside it
+    const link = page.getByRole('link', { name: 'Go to the visit in progress' })
     await expect(link).toHaveAttribute('href', `/assignments/${first.id}`)
-    // the link is directly under the sentence, inside the notice
+    // the link is directly under the note
     const sentence = (await notice.locator('p').boundingBox())!
     const linkBox = (await link.boundingBox())!
     expect(linkBox.y).toBeGreaterThanOrEqual(sentence.y + sentence.height - 1)

@@ -27,6 +27,11 @@ const chips: Record<string, { label: string; className: string; icon: keyof type
     className: 'bg-figma-surface text-figma-ink border border-figma-border',
     icon: 'dash',
   },
+  // the Caregiver's screens (VIS-01, VIS-06 to VIS-09): the clock chip of a visit in progress is the soft green one, a
+  // task with an outcome Done is the soft green check, and a task without one is the amber clock
+  'visit-in-progress': { label: 'In progress', className: 'bg-figma-soft text-figma-softtext', icon: 'clock' },
+  'task-done': { label: 'Done', className: 'bg-figma-soft text-figma-softtext', icon: 'check' },
+  'not-logged': { label: 'Not logged yet', className: 'bg-figma-amber text-figma-ambertext', icon: 'clock' },
   // a booking that is waiting on someone (Chip/Clock)
   awaiting: {
     label: 'Awaiting caregiver assignment',
@@ -93,7 +98,7 @@ const sizes = {
 } as const
 
 type StatusChipKind =
-  | 'exception' | 'done' | 'not-done' | 'not-recorded' | 'verified' | 'not-verified' | 'awaiting' | 'day-passed' | 'in-progress' | 'completed' | 'assigned'
+  | 'exception' | 'done' | 'not-done' | 'not-recorded' | 'verified' | 'not-verified' | 'awaiting' | 'day-passed' | 'in-progress' | 'completed' | 'assigned' | 'visit-in-progress' | 'task-done' | 'not-logged'
 
 /** `label` replaces the default words when the same look carries a different message. */
 export function StatusChip({
