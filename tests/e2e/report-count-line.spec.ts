@@ -106,7 +106,9 @@ test.describe('DEV-077 — the count line in the report', () => {
       const s = (e: HTMLElement) => ({ color: getComputedStyle(e).color, size: getComputedStyle(e).fontSize, weight: getComputedStyle(e).fontWeight, background: getComputedStyle(e).backgroundColor })
       return { count: s(count), recorded: s(recorded) }
     })
-    expect(styles.count).toEqual(styles.recorded)
+    // the same colour, size and background; the weight is Medium, as frame FAM-04 draws the count line
+    expect({ ...styles.count, weight: '' }).toEqual({ ...styles.recorded, weight: '' })
+    expect(styles.count.weight).toBe('500')
     expect(styles.count.size).toBe('16px')
     expect(styles.count.background).toBe('rgba(0, 0, 0, 0)')
   })
