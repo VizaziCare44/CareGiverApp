@@ -138,7 +138,7 @@ test.describe('AC-003 — Booking visible to Admin', () => {
     const adminContext = await browser.newContext()
     const adminPage = await adminContext.newPage()
     await logInViaUI(adminPage, adminEmail, TEST_PASSWORD, '**/admin/queue')
-    await expect(adminPage.getByText(recipientName)).toBeVisible()
+    await expect(adminPage.getByRole('row').filter({ hasText: recipientName })).toBeVisible()
     await adminContext.close()
   })
 
