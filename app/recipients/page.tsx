@@ -58,6 +58,10 @@ export default async function RecipientsPage() {
           </ActionLink>
         </>
       )}
+
+      <TextLink href="/account/password" className="self-start">
+        Change password
+      </TextLink>
     </main>
   )
 }

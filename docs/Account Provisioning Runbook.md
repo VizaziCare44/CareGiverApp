@@ -50,7 +50,7 @@ No ID number, ID image or background-check document is stored anywhere (AC-017).
 
 Give the person the email and the temporary password in person or through a password manager's share feature. Do not send the password by email or in a chat message in plain text.
 
-**Known gap:** there is no change-password screen in the app. A person can choose their own password only through **Forgot password** on the log-in page, which relies on email delivery (see below). Until that is settled, the temporary password is the account's password; treat it as one, and reset it (next section) if it has been seen by anyone else.
+The person changes it on first login: **Change password** is a link at the foot of their home screen (Care recipients, My assignments, or any Admin screen). It asks for the current (temporary) password, then the new one twice. If the temporary password has been seen by anyone else, reset it first (next section).
 
 ## Reset a password by hand (TO CONFIRM with the Tech Lead)
 
@@ -79,7 +79,7 @@ It should contain exactly the people you expect and no test accounts. At the tim
 
 ## Things to settle (for the production rehearsal, DEV-052)
 
-- A change-password screen, or a decision that the temporary password is acceptable for Beta.
+- ~~A change-password screen~~: built (2026-11-17).
 - Email delivery for **Forgot password** and for family sign-up confirmation. As I understand Supabase's built-in email service, it only delivers to members of the Supabase project's own team and is rate-limited, so real families will need a custom email provider. Check the current Supabase docs before relying on it.
 - A signed-in caregiver lands on **My assignments** (DEV-047, in review).
 - The production release steps, including the rehearsal this section was written for, are in `docs/Production Release Runbook.md` (DEV-052).

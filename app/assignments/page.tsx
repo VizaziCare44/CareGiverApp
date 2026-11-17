@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
+import { TextLink } from '@/components/ui/text-link'
 import { MissingBookingHelp } from '@/components/caregiver/missing-booking-help'
 import { StatusChip } from '@/components/ui/status-chip'
 import { BUNDLE_LINES } from '@/lib/bookings/bundles'
@@ -100,6 +101,9 @@ export default async function MyAssignmentsPage() {
       )}
 
       <MissingBookingHelp />
+      <TextLink href="/account/password" className="self-start">
+        Change password
+      </TextLink>
       </main>
     </div>
   )

@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { test, expect, type Page } from '@playwright/test'
-import { AREAS, AUTH_PREFIX, PUBLIC_PATHS, areaFor, homeFor, type Role } from '../../lib/route-guard'
+import { AREAS, AUTH_PREFIX, PUBLIC_PATHS, SIGNED_IN_PATHS, areaFor, homeFor, type Role } from '../../lib/route-guard'
 import { TEST_PASSWORD, createUserWithRole, logInViaUI, serviceClient } from './helpers'
 
 // DEV-049: route guarding for the new screens (extends DEV-012). Every Admin,
@@ -66,8 +66,9 @@ test.describe('DEV-049 — route guarding', () => {
     walk(root)
     expect(routes.length).toBeGreaterThan(15)
 
-    // /reset-password is reached through the session a reset link creates: no role owns it
-    const open = new Set(['/', '/reset-password', ...PUBLIC_PATHS])
+    // /reset-password is reached through the session a reset link creates: no role owns it; the signed-in screens (Change
+    // password) are for every role
+    const open = new Set(['/', '/reset-password', ...PUBLIC_PATHS, ...SIGNED_IN_PATHS])
     const unowned = routes.filter((route) => !open.has(route) && !route.startsWith(AUTH_PREFIX) && !areaFor(route))
     expect(unowned, `screens with no owner in lib/route-guard.ts: ${unowned.join(', ')}`).toEqual([])
 

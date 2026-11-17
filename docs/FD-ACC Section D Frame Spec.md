@@ -37,3 +37,15 @@ underlined). It goes to ACC-13. It is not in the original frames because passwor
 - Field labels: the Log In and Sign Up frames say "Email", not "Email address"; Forgot Password uses the same.
 - Field errors have no full stop ("Password must be at least 8 characters"), as in ACC-01b.
 - The password hint "At least 8 characters." is not drawn on any frame; only its error message exists.
+
+## Added 2026-11-17: Change password (signed in), frames still to draw
+
+For anyone signed in (Family Member, Caregiver, Admin), reached from a "Change password" text link at the foot of their
+home screen. Built in the app and tested (`tests/e2e/change-password.spec.ts`); the frames follow the same pattern as
+ACC-14 and ACC-14b, with the app bar of ACC-05 (title "Change password", back to the person's home).
+
+| Frame | Copy of | Changes |
+|---|---|---|
+| **ACC-17 Change password** | ACC-14 Reset Password | Add the AppBar/Mobile "Change password". Sentence "Enter the password you use now, then choose a new one." Three Field/Default: "Current password" (placeholder "Current password"), "New password", "Confirm new password". Button "Save new password". |
+| **ACC-17b Change password — errors** | ACC-14b | Field/Error states, messages without a full stop: "Enter your current password", "That isn't your current password", "Password must be at least 8 characters", "Choose a password different from your current one", "The passwords don't match". |
+| **ACC-17c Password changed** | ACC-16 Sign Up — check your email | Title "Password changed", sentence "Use your new password the next time you log in.", text link "Back to the app". |

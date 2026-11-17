@@ -17,6 +17,12 @@ export const PUBLIC_PATHS = ['/sign-up', '/log-in', '/forgot-password']
 export const AUTH_PREFIX = '/auth/'
 
 /**
+ * Screens for anyone who is signed in, whatever their role: no area owns them, a signed-out visitor is sent to Log In
+ * (the middleware does that for every path that is not public).
+ */
+export const SIGNED_IN_PATHS = ['/account/password']
+
+/**
  * Each role's own area. A path belongs to an area when it is the prefix or sits
  * under it ("/book" owns "/book/bundle" but not "/bookings", which is listed on its
  * own), so a look-alike such as "/administrator" belongs to no one and is a plain 404.
