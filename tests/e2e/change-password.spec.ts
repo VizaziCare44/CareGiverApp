@@ -1,10 +1,12 @@
+import { randomBytes } from 'node:crypto'
 import { test, expect } from '@playwright/test'
 import { TEST_PASSWORD, createUserWithRole, logInViaUI } from './helpers'
 
 // Change password: a signed-in person (any role) replaces the password they have with one of their own. The current
 // password is asked for and checked; the new one is at least 8 characters, different, and typed twice.
 
-const NEW_PASSWORD = 'A-new-password-1!'
+// made up for each run, like the shared test password (DEV-057): no password is written in this file
+const NEW_PASSWORD = `Np-${randomBytes(10).toString('hex')}-Bb2!`
 
 test.use({ viewport: { width: 390, height: 844 } })
 
