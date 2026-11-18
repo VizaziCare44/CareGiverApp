@@ -81,18 +81,18 @@ select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select throws_ok($$select 1 from public.bookings$$, '42501', null, 'anonymous users have no access');
 reset role;
 
--- Family Two removes a recipient: the cascade still deletes its bookings even
--- though the family has no DELETE right on bookings itself.
+-- Family Two cannot remove a recipient (migration 0022): that delete used to
+-- cascade onto the family's bookings, which have no DELETE right of their own.
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-0000000000f2","role":"authenticated"}', true);
-select lives_ok(
+select throws_ok(
   $$delete from public.care_recipients where id = '00000000-0000-0000-0000-00000000c0f2'$$,
-  'a family can still remove their own care recipient');
+  '42501', null, 'a family cannot remove their own care recipient');
 reset role;
 select is((select count(*)::int from public.bookings
             where care_recipient_id = '00000000-0000-0000-0000-00000000c0f2'),
-  0, 'removing the recipient removed its bookings');
+  1, 'the refused delete left the booking in place');
 
 -- Admin read still works after all of the above, and the Family One data is intact.
 select is((select count(*)::int from public.bookings where account_id = '00000000-0000-0000-0000-0000000000f1'),
