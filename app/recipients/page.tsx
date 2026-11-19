@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { ActionLink } from '@/components/ui/action-button'
+import { LogOutButton } from '@/components/ui/log-out-button'
 import { TextLink } from '@/components/ui/text-link'
 import type { CareRecipient } from '@/lib/bookings/types'
 
@@ -59,9 +60,11 @@ export default async function RecipientsPage() {
         </>
       )}
 
-      <TextLink href="/account/password" className="self-start">
-        Change password
-      </TextLink>
+      {/* VIZ-201: Log out sits beside Change password, so anyone on a shared phone can end their session */}
+      <div className="flex flex-wrap items-center gap-x-6">
+        <TextLink href="/account/password">Change password</TextLink>
+        <LogOutButton />
+      </div>
     </main>
   )
 }

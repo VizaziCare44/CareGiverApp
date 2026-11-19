@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { AppBar } from '@/components/ui/app-bar'
+import { LogOutButton } from '@/components/ui/log-out-button'
 import { TextLink } from '@/components/ui/text-link'
 import { MissingBookingHelp } from '@/components/caregiver/missing-booking-help'
 import { StatusChip } from '@/components/ui/status-chip'
@@ -101,9 +102,11 @@ export default async function MyAssignmentsPage() {
       )}
 
       <MissingBookingHelp />
-      <TextLink href="/account/password" className="self-start">
-        Change password
-      </TextLink>
+      {/* VIZ-201: Log out sits beside Change password, so anyone on a shared phone can end their session */}
+      <div className="flex flex-wrap items-center gap-x-6">
+        <TextLink href="/account/password">Change password</TextLink>
+        <LogOutButton />
+      </div>
       </main>
     </div>
   )

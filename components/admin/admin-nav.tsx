@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LogOutButton } from '@/components/ui/log-out-button'
 
 // The Admin navigation of the Figma frames: a white bar 64 high with "Vizazi Care · Admin" in 18 bold, then the
 // tabs 32 to the right of it. The current tab is bold with a 4px primary line under it; the others are medium
@@ -21,7 +22,12 @@ export function AdminNav() {
     <nav aria-label="Main" className="bg-white">
       {/* from 768 wide: the brand and the tabs in one row, 64 high. Under 768 the brand has its own row and the three tabs are equal columns, 56 high */}
       <div className="mx-auto flex w-full max-w-[1280px] flex-col md:h-16 md:flex-row md:items-center md:gap-8 md:px-8">
-        <p className="px-4 pb-1 pt-3 text-[18px] font-bold leading-[1.4] text-figma-ink md:p-0">Vizazi Care · Admin</p>
+        {/* VIZ-201: Log out is at the right of the brand row under 768 wide, and at the far right of the bar from 768 ("md:contents" lets
+            the brand and the button join the bar's own row; the button moves after the tabs) */}
+        <div className="flex items-center justify-between pb-1 pl-4 pr-2 pt-1 md:contents">
+          <p className="text-[18px] font-bold leading-[1.4] text-figma-ink md:p-0">Vizazi Care · Admin</p>
+          <LogOutButton className="md:order-last md:ml-auto" />
+        </div>
         <ul className="grid grid-cols-3 gap-1 px-2 md:flex md:gap-8 md:p-0">
           {links.map((link) => {
             const current = [link.href, ...link.alsoUnder].some((base) => pathname === base || pathname.startsWith(`${base}/`))
