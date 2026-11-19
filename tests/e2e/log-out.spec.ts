@@ -29,6 +29,9 @@ test.describe('VIZ-201 — Log out', () => {
       expect(pathOf(page)).toBe('/log-in')
       // going back in the browser does not bring the session back either
       await page.goBack()
+      // the back step is itself sent on to Log In; let that finish before asking for the home again
+      await page.waitForURL('**/log-in')
+      await page.waitForLoadState('networkidle')
       await page.goto(home)
       expect(pathOf(page)).toBe('/log-in')
     })
